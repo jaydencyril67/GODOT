@@ -22,7 +22,7 @@ const LEGACY_PROCESSOR_COLORS := {
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
-const WIZARD_STEP_COUNT := 3
+const WIZARD_STEP_COUNT := 4
 
 const PROCESSOR_TECHNOLOGIES := [
 	"Control Unit",
@@ -238,6 +238,12 @@ var processor_technology_research_levels: Dictionary = {}
 var processor_technology_level_value_label: Label
 var processor_technology_checked_texture: Texture2D
 var processor_technology_unchecked_texture: Texture2D
+var processor_cpu_core_step_content: VBoxContainer
+var processor_cpu_core_slider: HSlider
+var processor_cpu_core_value_label: Label
+var processor_cpu_core_range_label: Label
+var processor_cpu_core_research_level := 0
+var processor_cpu_core_count := 1
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
 var die_surfaces: Array[MeshInstance3D] = []
@@ -257,7 +263,8 @@ var processor_design := {
 	"processor_color": "#101214",
 	"processor_gradient_color": "#536DFE",
 	"processor_gradient_enabled": false,
-	"processor_gradient_direction": 0
+	"processor_gradient_direction": 0,
+	"cpu_core_count": 1
 }
 
 func _ready() -> void:
@@ -282,6 +289,7 @@ func configure_design(design: Dictionary) -> void:
 	processor_gradient_color = _parse_saved_processor_color(str(processor_design.get("processor_gradient_color", "#536DFE")), Color("#536DFE"))
 	processor_gradient_enabled = bool(processor_design.get("processor_gradient_enabled", false))
 	processor_gradient_direction = clampi(int(processor_design.get("processor_gradient_direction", 0)), 0, 3)
+	processor_cpu_core_count = clampi(int(processor_design.get("cpu_core_count", 1)), 1, 30)
 	var saved_technology_states: Variant = processor_design.get("processor_technology_enabled_states", {})
 	if saved_technology_states is Dictionary:
 		processor_technology_enabled_states = saved_technology_states.duplicate(true)
@@ -553,6 +561,17 @@ func _build_interface() -> void:
 	save_technology_settings_button.pressed.connect(_save_design)
 	technologies_page.add_child(save_technology_settings_button)
 
+	var cpu_cores_page := _create_step_page("CPU CORES")
+	_build_processor_cpu_core_controls(cpu_cores_page)
+	var save_cpu_core_settings_button := Button.new()
+	save_cpu_core_settings_button.name = "SaveProcessorCpuCoreSettingsButton"
+	save_cpu_core_settings_button.text = "SAVE PROCESSOR DESIGN"
+	save_cpu_core_settings_button.custom_minimum_size = Vector2(0, 46)
+	save_cpu_core_settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_cpu_core_settings_button, true)
+	save_cpu_core_settings_button.pressed.connect(_save_design)
+	cpu_cores_page.add_child(save_cpu_core_settings_button)
+
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
@@ -648,6 +667,114 @@ func set_processor_technology_research_levels(levels: Dictionary) -> void:
 	_refresh_processor_technology_level_display()
 
 
+func set_cpu_core_research_level(level: int) -> void:
+	processor_cpu_core_research_level = clampi(level, 0, ResearchManagerScript.CPU_CORE_MAX_RESEARCH_LEVEL)
+	_refresh_processor_cpu_core_controls()
+
+
+func _get_maximum_cpu_core_count() -> int:
+	return ResearchManagerScript.get_cpu_cores_max_for_level(processor_cpu_core_research_level)
+
+
+func _build_processor_cpu_core_controls(parent: VBoxContainer) -> void:
+	processor_cpu_core_step_content = VBoxContainer.new()
+	processor_cpu_core_step_content.name = "ProcessorCpuCoreStepContent"
+	processor_cpu_core_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_cpu_core_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_cpu_core_step_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	processor_cpu_core_step_content.add_theme_constant_override("separation", 18)
+	parent.add_child(processor_cpu_core_step_content)
+
+	var description := _label("SELECT THE NUMBER OF CPU CORES", 12, MUTED)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_cpu_core_step_content.add_child(description)
+
+	processor_cpu_core_value_label = _label("1 CORE", 30, Color("#F2EEE7"))
+	processor_cpu_core_value_label.name = "ProcessorCpuCoreCountValue"
+	processor_cpu_core_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_cpu_core_step_content.add_child(processor_cpu_core_value_label)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "ProcessorCpuCoreSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.add_theme_constant_override("separation", 12)
+	processor_cpu_core_step_content.add_child(slider_row)
+
+	var minimum_label := _label("1", 12, MUTED)
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+
+	processor_cpu_core_slider = HSlider.new()
+	processor_cpu_core_slider.name = "ProcessorCpuCoreSlider"
+	processor_cpu_core_slider.min_value = 1
+	processor_cpu_core_slider.max_value = _get_maximum_cpu_core_count()
+	processor_cpu_core_slider.step = 1
+	processor_cpu_core_slider.value = processor_cpu_core_count
+	processor_cpu_core_slider.custom_minimum_size = Vector2(0, 46)
+	processor_cpu_core_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_cpu_core_slider.focus_mode = Control.FOCUS_NONE
+	processor_cpu_core_slider.tick_count = 0
+	_style_processor_cpu_core_slider(processor_cpu_core_slider)
+	processor_cpu_core_slider.value_changed.connect(_on_processor_cpu_core_slider_changed)
+	slider_row.add_child(processor_cpu_core_slider)
+
+	var maximum_label := _label("30", 12, MUTED)
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+
+	processor_cpu_core_range_label = _label("AVAILABLE RANGE: 1–1 CORES", 11, ACCENT)
+	processor_cpu_core_range_label.name = "ProcessorCpuCoreRangeLabel"
+	processor_cpu_core_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_cpu_core_step_content.add_child(processor_cpu_core_range_label)
+	_refresh_processor_cpu_core_controls()
+
+
+func _style_processor_cpu_core_slider(slider: Slider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#26292B")
+	track.border_color = Color("#C58A3A")
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(12)
+	track.content_margin_left = 6
+	track.content_margin_right = 6
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
+	slider.add_theme_stylebox_override("slider", track)
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color("#FFFFFF"))
+	gradient.set_color(1, Color("#C58A3A"))
+	var grabber := GradientTexture2D.new()
+	grabber.gradient = gradient
+	grabber.width = 32
+	grabber.height = 32
+	slider.add_theme_icon_override("grabber", grabber)
+	slider.add_theme_icon_override("grabber_highlight", grabber)
+	slider.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
+	slider.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+	slider.editable = true
+
+
+func _on_processor_cpu_core_slider_changed(value: float) -> void:
+	processor_cpu_core_count = clampi(roundi(value), 1, _get_maximum_cpu_core_count())
+	_refresh_processor_cpu_core_controls()
+
+
+func _refresh_processor_cpu_core_controls() -> void:
+	var maximum_count := _get_maximum_cpu_core_count()
+	processor_cpu_core_count = clampi(processor_cpu_core_count, 1, maximum_count)
+	if is_instance_valid(processor_cpu_core_slider):
+		processor_cpu_core_slider.min_value = 1
+		processor_cpu_core_slider.max_value = maximum_count
+		if not is_equal_approx(processor_cpu_core_slider.value, float(processor_cpu_core_count)):
+			processor_cpu_core_slider.set_value_no_signal(processor_cpu_core_count)
+	if is_instance_valid(processor_cpu_core_value_label):
+		processor_cpu_core_value_label.text = "%d CORE%s" % [processor_cpu_core_count, "" if processor_cpu_core_count == 1 else "S"]
+	if is_instance_valid(processor_cpu_core_range_label):
+		processor_cpu_core_range_label.text = "AVAILABLE RANGE: 1–%d CORES" % maximum_count
+	_refresh_processor_technology_level_display()
+
+
 func _refresh_processor_technology_level_display() -> void:
 	if is_instance_valid(processor_technology_level_value_label):
 		processor_technology_level_value_label.text = "%.2f TP" % _calculate_processor_technology_points()
@@ -659,6 +786,7 @@ func _calculate_processor_technology_points() -> float:
 		var technology_name := str(technology_value)
 		if int(processor_technology_research_levels.get(technology_name, 0)) >= 1 and bool(processor_technology_enabled_states.get(technology_name, false)):
 			total += ResearchManagerScript.get_technology_points_for_progress(technology_name, 1.0)
+	total += ResearchManagerScript.get_technology_points_for_progress("CPU Cores", float(maxi(0, processor_cpu_core_count - 1)))
 	return maxf(0.0, total)
 
 
@@ -1580,6 +1708,7 @@ func _save_design() -> void:
 		"processor_gradient_color": "#" + processor_gradient_color.to_html(false).to_upper(),
 		"processor_gradient_enabled": processor_gradient_enabled,
 		"processor_gradient_direction": processor_gradient_direction,
+		"cpu_core_count": processor_cpu_core_count,
 		"processor_technology_enabled_states": processor_technology_enabled_states.duplicate(true)
 	}
 	design_saved.emit(processor_design.duplicate(true))
