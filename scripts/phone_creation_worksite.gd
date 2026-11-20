@@ -1769,7 +1769,8 @@ func _show_front_camera_import_controls() -> void:
 	panel.name = "FrontCameraImportControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_theme_constant_override("separation", 12)
+	# Match the standard Phone Creation worksite hero-to-content spacing.
+	panel.add_theme_constant_override("separation", 16)
 	active_feature_panel = panel
 	panel_host.add_child(panel)
 
@@ -1820,7 +1821,8 @@ func _show_rear_camera_import_controls() -> void:
 	panel.name = "RearCameraImportControls"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_theme_constant_override("separation", 12)
+	# Match the standard Phone Creation worksite hero-to-content spacing.
+	panel.add_theme_constant_override("separation", 16)
 	active_feature_panel = panel
 	panel_host.add_child(panel)
 
