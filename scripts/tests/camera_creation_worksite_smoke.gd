@@ -59,8 +59,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if progress_bar.max_value != 3 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Camera Worksite does not initialize its three-stage creation workflow.")
+	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Camera Worksite does not initialize its four-stage creation workflow.")
 		worksite.free()
 		return
 
@@ -105,14 +105,64 @@ func _run_camera_worksite_test() -> void:
 
 	worksite.call("_on_next_pressed")
 	worksite.call("_on_next_pressed")
-	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or not next_step_button.disabled:
-		_fail("Camera Worksite Next navigation did not reach the final workflow stage.")
+	worksite.call("_on_next_pressed")
+	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or not next_step_button.disabled:
+		_fail("Camera Worksite Next navigation did not reach the fourth and final workflow stage.")
+		worksite.free()
+		return
+
+	var rare_camera_panel := worksite.find_child("RareCameraStepControls", true, false) as VBoxContainer
+	var camera_mode_button := worksite.find_child("RearHardwareModeCamera", true, false) as Button
+	var flash_mode_button := worksite.find_child("RearHardwareModeFlash", true, false) as Button
+	var add_button := worksite.find_child("RearHardwareAddButton", true, false) as Button
+	var remove_button := worksite.find_child("RearHardwareRemoveButton", true, false) as Button
+	var size_slider := worksite.find_child("RearHardwareHorizontalSizeSlider", true, false) as HSlider
+	var direction_pad := worksite.find_child("RearHardwareDirectionPad", true, false) as GridContainer
+	if rare_camera_panel == null or not rare_camera_panel.visible or camera_mode_button == null or flash_mode_button == null or add_button == null or remove_button == null or size_slider == null or direction_pad == null:
+		_fail("Rare Camera step is missing its camera/flash, add/remove, resize or movement controls.")
+		worksite.free()
+		return
+
+	worksite.call("_add_rear_hardware_module")
+	var camera_modules: Array = worksite.get("rear_camera_modules")
+	if camera_modules.size() != 1 or remove_button.disabled:
+		_fail("Rare Camera step could not add and select a rear camera module.")
+		worksite.free()
+		return
+
+	var initial_camera_position: Vector2 = camera_modules[0]["position"]
+	worksite.call("_on_rear_hardware_size_changed", 0.10)
+	camera_modules = worksite.get("rear_camera_modules")
+	if not is_equal_approx(float(camera_modules[0]["size"]), 0.10):
+		_fail("Rare Camera size control did not resize the selected camera.")
+		worksite.free()
+		return
+
+	worksite.call("_on_rear_hardware_pad_pressed", Vector2i(1, 0))
+	camera_modules = worksite.get("rear_camera_modules")
+	if camera_modules[0]["position"] == initial_camera_position:
+		_fail("Rare Camera direction pad did not move the selected camera.")
+		worksite.free()
+		return
+
+	worksite.call("_set_rear_hardware_mode", "FLASH")
+	worksite.call("_add_rear_hardware_module")
+	var flash_modules: Array = worksite.get("rear_flash_modules")
+	if flash_modules.size() != 1 or worksite.find_child("RearCameraFlashHardware", true, false) == null:
+		_fail("Rare Camera step could not add a flash or render the rear hardware preview.")
+		worksite.free()
+		return
+
+	worksite.call("_remove_rear_hardware_module")
+	flash_modules = worksite.get("rear_flash_modules")
+	if not flash_modules.is_empty():
+		_fail("Rare Camera remove control did not remove the selected flash.")
 		worksite.free()
 		return
 
 	worksite.call("_on_wizard_back_pressed")
-	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2:
-		_fail("Camera Worksite Back navigation did not return to the previous workflow stage.")
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or rare_camera_panel.visible:
+		_fail("Camera Worksite Back navigation did not leave the fourth step cleanly.")
 		worksite.free()
 		return
 

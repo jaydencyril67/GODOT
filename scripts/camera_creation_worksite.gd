@@ -320,7 +320,7 @@ func _build_interface() -> void:
 	progress.add_theme_constant_override("separation", 4)
 	worksite_root.add_child(progress)
 
-	progress_number = _label("STEP 1 / 3", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 4", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.name = "WorksiteProgressNumber"
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
@@ -962,7 +962,7 @@ func _refresh_rear_hardware_visuals() -> void:
 	var surface_z := -CAMERA_WORKSITE_PHONE_DEPTH * 0.5
 
 	for module in rear_camera_modules:
-		var position: Vector2 = module["position"]
+		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
 		var housing := StandardMaterial3D.new()
 		housing.albedo_color = Color("#05070a")
@@ -982,10 +982,10 @@ func _refresh_rear_hardware_visuals() -> void:
 		var module_id := int(module["id"])
 		var depth_scale := (module_size / 0.08) / 1.5
 		var layer := func(depth: float) -> float: return depth * depth_scale
-		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.010)), module_size * 1.22, layer.call(0.020), housing)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.021)), module_size * 1.04, layer.call(0.006), ring)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.025)), module_size * 0.88, layer.call(0.003), housing)
-		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.030)), module_size * 0.72, layer.call(0.007), lens)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.010)), module_size * 1.22, layer.call(0.020), housing)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.021)), module_size * 1.04, layer.call(0.006), ring)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.025)), module_size * 0.88, layer.call(0.003), housing)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.030)), module_size * 0.72, layer.call(0.007), lens)
 		var optical_core := StandardMaterial3D.new()
 		optical_core.albedo_color = Color("#010308")
 		optical_core.metallic = 0.18
@@ -993,17 +993,17 @@ func _refresh_rear_hardware_visuals() -> void:
 		optical_core.clearcoat_enabled = true
 		optical_core.clearcoat = 1.0
 		optical_core.clearcoat_roughness = 0.035
-		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.034)), module_size * 0.38, layer.call(0.0025), optical_core)
+		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.034)), module_size * 0.38, layer.call(0.0025), optical_core)
 		var glint := StandardMaterial3D.new()
 		glint.albedo_color = Color(0.30, 0.43, 0.58, 0.24)
 		glint.metallic = 0.22
 		glint.roughness = 0.055
 		glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(position.x - module_size * 0.13, position.y + module_size * 0.13, surface_z - layer.call(0.036)), module_size * 0.12, layer.call(0.001), glint)
+		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(module_position.x - module_size * 0.13, module_position.y + module_size * 0.13, surface_z - layer.call(0.036)), module_size * 0.12, layer.call(0.001), glint)
 
 	for index in range(rear_flash_modules.size()):
 		var module: Dictionary = rear_flash_modules[index]
-		var position: Vector2 = module["position"]
+		var module_position: Vector2 = module["position"]
 		var module_size := float(module["size"])
 		var selected := rear_hardware_mode == "FLASH" and index == rear_flash_selected_index
 		var housing := StandardMaterial3D.new()
@@ -1023,17 +1023,17 @@ func _refresh_rear_hardware_visuals() -> void:
 		var module_id := int(module["id"])
 		var depth_scale := (module_size / 0.08) / 1.5
 		var layer := func(depth: float) -> float: return depth * depth_scale
-		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.009)), module_size * 1.22, layer.call(0.018), housing)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.019)), module_size * 1.04, layer.call(0.006), rim)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.022)), module_size * 0.86, layer.call(0.0025), housing)
-		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.027)), module_size * 0.70, layer.call(0.006), diffuser)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.009)), module_size * 1.22, layer.call(0.018), housing)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.019)), module_size * 1.04, layer.call(0.006), rim)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.022)), module_size * 0.86, layer.call(0.0025), housing)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.027)), module_size * 0.70, layer.call(0.006), diffuser)
 		var led := StandardMaterial3D.new()
 		led.albedo_color = Color("#fff9e9")
 		led.roughness = 0.18
 		led.emission_enabled = true
 		led.emission = Color("#fff0c8")
 		led.emission_energy_multiplier = 0.32
-		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.031)), module_size * 0.38, layer.call(0.002), led)
+		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % module_id, Vector3(module_position.x, module_position.y, surface_z - layer.call(0.031)), module_size * 0.38, layer.call(0.002), led)
 
 
 func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
