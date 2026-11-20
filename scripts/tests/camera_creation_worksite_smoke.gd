@@ -232,7 +232,9 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	camera_mode_button.emit_signal("pressed")
-	if not worksite.find_child("RearHardwareControls", true, false).visible or design_panel.visible:
+	var active_camera_controls := worksite.get("rear_hardware_controls_view") as VBoxContainer
+	var active_design_panel_after_switch := worksite.get("camera_back_design_view") as VBoxContainer
+	if active_camera_controls == null or not active_camera_controls.visible or active_design_panel_after_switch == null or active_design_panel_after_switch.visible:
 		_fail("Switching from DESIGN back to CAMERA did not restore the original camera controls.")
 		worksite.free()
 		return
