@@ -38,10 +38,12 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	_palette = palette.duplicate(true)
 	_show_date = false
 	if size.x > 0.0 and size.y > 0.0:
+		if not _face_variants.has(_style_index):
+			_build_face_variant(_style_index)
+		_faces_initialized = not _face_variants.is_empty()
 		if _faces_initialized:
 			_select_cached_face(_style_index)
-		else:
-			_initialize_face_variants()
+			_refresh_all_cached_time_labels()
 	else:
 		_initial_build_pending = true
 
@@ -103,18 +105,21 @@ func _process(_delta: float) -> void:
 		_last_minute = current_minute
 
 func _load_selected_face() -> void:
-	if not _faces_initialized:
-		_initialize_face_variants()
-		return
+	if not _face_variants.has(_style_index):
+		if not _build_face_variant(_style_index):
+			return
+	_faces_initialized = not _face_variants.is_empty()
 	_select_cached_face(_style_index)
+	_refresh_all_cached_time_labels()
 
 func _render_face() -> void:
-	# Face trees are prepared once during initial configuration. A style change
-	# only exposes its already-built resource tree.
-	if not _faces_initialized:
-		_initialize_face_variants()
-	else:
-		_select_cached_face(_style_index)
+	# Only the selected face is built; other styles are created when requested.
+	if not _face_variants.has(_style_index):
+		if not _build_face_variant(_style_index):
+			return
+	_faces_initialized = not _face_variants.is_empty()
+	_select_cached_face(_style_index)
+	_refresh_all_cached_time_labels()
 
 func get_time_visual_rect() -> Rect2:
 	if not _face_variants.has(_style_index):
