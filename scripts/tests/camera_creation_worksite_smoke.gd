@@ -1,6 +1,7 @@
 extends SceneTree
 
 const WorksiteScene = preload("res://scenes/camera_creation_worksite.tscn")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 
 func _initialize() -> void:
