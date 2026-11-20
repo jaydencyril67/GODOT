@@ -87,8 +87,8 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 3 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Processor worksite does not initialize its three-step progress navigation.")
+	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Processor worksite does not initialize its four-step progress navigation.")
 		worksite.free()
 		return
 	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
@@ -293,8 +293,8 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
-	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or not next_step_button.disabled:
-		_fail("Processor Next navigation did not advance from colour to the final Technologies step.")
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or next_step_button.disabled:
+		_fail("Processor Next navigation did not advance from colour to the Technologies step before CPU Cores.")
 		worksite.free()
 		return
 	worksite.call("set_processor_technology_research_levels", {"Control Unit": 1, "Security Processing Unit": 1})
@@ -328,6 +328,33 @@ func _run_processor_worksite_test() -> void:
 		worksite.call("_on_processor_technology_previous_pressed")
 	if technology_name_label.text != "Control Unit" or not technology_previous.disabled:
 		_fail("Processor Technologies did not return to its first entry or disable the minus control.")
+		worksite.free()
+		return
+	worksite.call("_on_next_pressed")
+	var cpu_core_slider := worksite.find_child("ProcessorCpuCoreSlider", true, false) as HSlider
+	var cpu_core_value := worksite.find_child("ProcessorCpuCoreCountValue", true, false) as Label
+	var cpu_core_range := worksite.find_child("ProcessorCpuCoreRangeLabel", true, false) as Label
+	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or not next_step_button.disabled or cpu_core_slider == null or cpu_core_value == null or cpu_core_range == null:
+		_fail("Processor CPU Cores is not available as the fourth worksite step with its slider and labels.")
+		worksite.free()
+		return
+	if cpu_core_slider.min_value != 1.0 or cpu_core_slider.max_value != 1.0 or cpu_core_slider.step != 1.0 or cpu_core_value.text != "1 CORE" or cpu_core_range.text != "AVAILABLE RANGE: 1–1 CORES":
+		_fail("Processor CPU Cores did not initialize at the one-core baseline.")
+		worksite.free()
+		return
+	worksite.call("set_cpu_core_research_level", 2)
+	if cpu_core_slider.max_value != 3.0 or cpu_core_range.text != "AVAILABLE RANGE: 1–3 CORES":
+		_fail("CPU Core research approval did not progressively expand the selectable core-count range.")
+		worksite.free()
+		return
+	cpu_core_slider.value = 3.0
+	if int(worksite.get("processor_cpu_core_count")) != 3 or cpu_core_value.text != "3 CORES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 19.00) or technology_level_value.text != "19.00 TP":
+		_fail("CPU Core selection did not update the selected count and shared Processor Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from CPU Cores to Technologies.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -379,6 +406,7 @@ func _run_processor_worksite_test() -> void:
 		"processor_gradient_color": "#C65B8E",
 		"processor_gradient_enabled": true,
 		"processor_gradient_direction": 2,
+		"cpu_core_count": 3,
 		"processor_technology_enabled_states": {
 			"Control Unit": true,
 			"Security Processing Unit": true
@@ -394,7 +422,7 @@ func _run_processor_worksite_test() -> void:
 	var emitted_design: Array = []
 	worksite.design_saved.connect(func(design: Dictionary): emitted_design.append(design))
 	worksite.call("_save_design")
-	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01":
+	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01" or int(emitted_design[0].get("cpu_core_count", 0)) != 3:
 		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return
