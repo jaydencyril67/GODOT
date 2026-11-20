@@ -162,13 +162,28 @@ func _run_test() -> void:
 	hidden_clock.size = Vector2(680.0, 1360.0)
 	hidden_host.add_child(hidden_clock)
 	hidden_clock.call("configure", 41, test_palette, {"show_details": true})
+	var hidden_progress_values: Array[float] = []
+	var hidden_progress_callback := func(_message: String, progress: float) -> void:
+		hidden_progress_values.append(progress)
 	var hidden_start_frame := Engine.get_process_frames()
-	if not bool(await hidden_clock.call("prepare_all_styles", 3)):
+	if not bool(await hidden_clock.call("prepare_all_styles", 3, hidden_progress_callback)):
 		_fail("The hidden digital renderer could not prepare its 41 cached clock styles.")
 		return
 	var hidden_elapsed_frames := Engine.get_process_frames() - hidden_start_frame
 	if hidden_elapsed_frames > 100 or not bool(hidden_clock.call("is_time_layout_normalized")):
 		_fail("Hidden digital clock layouts took too long to normalize (%d frames)." % hidden_elapsed_frames)
+		return
+	var previous_hidden_progress := -1.0
+	var hidden_normalization_updates := 0
+	for progress_value in hidden_progress_values:
+		if progress_value + 0.001 < previous_hidden_progress:
+			_fail("Hidden digital clock preparation progress moved backwards.")
+			return
+		if progress_value > 75.0 and progress_value < 100.0:
+			hidden_normalization_updates += 1
+		previous_hidden_progress = progress_value
+	if hidden_normalization_updates < 3 or not is_equal_approx(previous_hidden_progress, 100.0):
+		_fail("Hidden digital clock normalization must report incremental progress through completion.")
 		return
 	hidden_clock.free()
 	hidden_host.free()
