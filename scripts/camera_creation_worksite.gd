@@ -2,6 +2,14 @@ extends Node3D
 
 const CameraLessPhoneModelScript = preload("res://scripts/camera_worksite_phone_model.gd")
 
+const MAX_REAR_CAMERAS := 5
+const MAX_REAR_FLASHES := 5
+const REAR_HARDWARE_GRID_STEP := 0.04
+const REAR_HARDWARE_SPAWN_GRID_INTERVALS := 3
+const REAR_HARDWARE_SIZE_MIN := 0.05
+const REAR_HARDWARE_SIZE_MAX := 0.20
+const CAMERA_WORKSITE_PHONE_DEPTH := 0.13
+
 const DRAG_SENSITIVITY := 0.0024
 const MIN_PREVIEW_DISTANCE := 3.2
 const MAX_PREVIEW_DISTANCE := 7.2
@@ -10,7 +18,8 @@ const DEFAULT_PREVIEW_DISTANCE := 4.6
 const WIZARD_STEPS := [
 	{"title": "CAMERA SYSTEM"},
 	{"title": "CAMERA HARDWARE"},
-	{"title": "CAMERA POSITIONING"}
+	{"title": "CAMERA POSITIONING"},
+	{"title": "RARE CAMERA"}
 ]
 
 
@@ -37,6 +46,26 @@ var next_button: Button
 var current_wizard_step := 1
 var preview_mouse_dragging := false
 var preview_touch_points: Dictionary = {}
+
+var rear_camera_modules: Array[Dictionary] = []
+var rear_flash_modules: Array[Dictionary] = []
+var rear_hardware_mode := "CAMERA"
+var rear_camera_selected_index := -1
+var rear_flash_selected_index := -1
+var next_rear_camera_id := 1
+var next_rear_flash_id := 1
+
+var rear_hardware_step_content: VBoxContainer
+var rear_hardware_controls_view: VBoxContainer
+var rear_hardware_selection_view: VBoxContainer
+var rear_hardware_camera_mode_button: Button
+var rear_hardware_flash_mode_button: Button
+var rear_hardware_selection_button: Button
+var rear_hardware_size_label: Label
+var rear_hardware_size_slider: HSlider
+var rear_hardware_add_button: Button
+var rear_hardware_remove_button: Button
+var rear_hardware_move_buttons: Array[Button] = []
 
 
 class GlassArrowButton extends Button:
@@ -275,6 +304,7 @@ func _build_interface() -> void:
 	divider.color = Color(0.58, 0.46, 0.29, 0.42)
 	selection_stack.add_child(divider)
 
+	_build_rear_hardware_step_controls()
 
 
 	var progress := VBoxContainer.new()
@@ -366,6 +396,10 @@ func _set_wizard_step(step: int) -> void:
 	step_title_label.text = str(data.get("title", ""))
 	progress_number.text = "STEP %d / %d" % [current_wizard_step, WIZARD_STEPS.size()]
 	progress_bar.value = current_wizard_step
+	if is_instance_valid(rear_hardware_step_content):
+		rear_hardware_step_content.visible = current_wizard_step == 4
+		if current_wizard_step != 4:
+			_show_rear_camera_controls()
 	wizard_back_button.disabled = current_wizard_step <= 1
 	next_button.disabled = current_wizard_step >= WIZARD_STEPS.size()
 	wizard_back_button.queue_redraw()
@@ -384,6 +418,638 @@ func _on_wizard_back_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	back_requested.emit()
+
+
+
+func _build_rear_hardware_step_controls() -> void:
+	rear_hardware_step_content = VBoxContainer.new()
+	rear_hardware_step_content.name = "RareCameraStepControls"
+	rear_hardware_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rear_hardware_step_content.add_theme_constant_override("separation", 9)
+	selection_stack.add_child(rear_hardware_step_content)
+
+	rear_hardware_controls_view = VBoxContainer.new()
+	rear_hardware_controls_view.name = "RearHardwareControls"
+	rear_hardware_controls_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_controls_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rear_hardware_controls_view.add_theme_constant_override("separation", 7)
+	rear_hardware_step_content.add_child(rear_hardware_controls_view)
+
+	var heading := _label("REAR CAMERA & FLASH", 16, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	rear_hardware_controls_view.add_child(heading)
+
+	var modes := HBoxContainer.new()
+	modes.name = "RearHardwareModeSwitchers"
+	modes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	modes.add_theme_constant_override("separation", 6)
+	rear_hardware_controls_view.add_child(modes)
+
+	rear_hardware_camera_mode_button = Button.new()
+	rear_hardware_camera_mode_button.name = "RearHardwareModeCamera"
+	rear_hardware_camera_mode_button.text = "CAMERA"
+	rear_hardware_camera_mode_button.custom_minimum_size = Vector2(0, 36)
+	rear_hardware_camera_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_camera_mode_button.pressed.connect(_set_rear_hardware_mode.bind("CAMERA"))
+	_style_button(rear_hardware_camera_mode_button, true)
+	modes.add_child(rear_hardware_camera_mode_button)
+
+	rear_hardware_flash_mode_button = Button.new()
+	rear_hardware_flash_mode_button.name = "RearHardwareModeFlash"
+	rear_hardware_flash_mode_button.text = "FLASH"
+	rear_hardware_flash_mode_button.custom_minimum_size = Vector2(0, 36)
+	rear_hardware_flash_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_flash_mode_button.pressed.connect(_set_rear_hardware_mode.bind("FLASH"))
+	_style_button(rear_hardware_flash_mode_button, false)
+	modes.add_child(rear_hardware_flash_mode_button)
+
+	var management := HBoxContainer.new()
+	management.name = "RearHardwareManagementStrip"
+	management.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	management.add_theme_constant_override("separation", 6)
+	rear_hardware_controls_view.add_child(management)
+
+	rear_hardware_selection_button = Button.new()
+	rear_hardware_selection_button.name = "RearHardwareItemSelector"
+	rear_hardware_selection_button.custom_minimum_size = Vector2(0, 42)
+	rear_hardware_selection_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_button.pressed.connect(_show_rear_hardware_selection_controls)
+	_style_button(rear_hardware_selection_button, true)
+	management.add_child(rear_hardware_selection_button)
+
+	var size_section := VBoxContainer.new()
+	size_section.name = "RearHardwareSizeSection"
+	size_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_theme_constant_override("separation", 3)
+	rear_hardware_controls_view.add_child(size_section)
+
+	var size_header := HBoxContainer.new()
+	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_section.add_child(size_header)
+	size_header.add_child(_label("SIZE", 10, Color("#B8AFA2")))
+
+	rear_hardware_size_label = _label("ADD A COMPONENT TO BEGIN", 11, Color("#E5E0D6"))
+	rear_hardware_size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rear_hardware_size_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	size_header.add_child(rear_hardware_size_label)
+
+	rear_hardware_size_slider = HSlider.new()
+	rear_hardware_size_slider.name = "RearHardwareHorizontalSizeSlider"
+	rear_hardware_size_slider.min_value = REAR_HARDWARE_SIZE_MIN
+	rear_hardware_size_slider.max_value = REAR_HARDWARE_SIZE_MAX
+	rear_hardware_size_slider.step = 0.005
+	rear_hardware_size_slider.custom_minimum_size = Vector2(0, 24)
+	rear_hardware_size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_size_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_style_rear_hardware_slider(rear_hardware_size_slider)
+	rear_hardware_size_slider.value_changed.connect(_on_rear_hardware_size_changed)
+	size_section.add_child(rear_hardware_size_slider)
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
+	var icon_diameter := 56.0 if tight else 64.0
+	var pad_control_row := HBoxContainer.new()
+	pad_control_row.name = "RearHardwarePadWithManagement"
+	pad_control_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_control_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_theme_constant_override("separation", 10 if tight else 14)
+	rear_hardware_controls_view.add_child(pad_control_row)
+
+	rear_hardware_add_button = _make_rear_hardware_icon_button(
+		pad_control_row, "RearHardwareAddButton", "+", "Add camera or flash",
+		Callable(self, "_add_rear_hardware_module"), icon_diameter, true
+	)
+
+	var pad_center := CenterContainer.new()
+	pad_center.name = "RearHardwareDirectionControllerCenter"
+	pad_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad_center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	pad_control_row.add_child(pad_center)
+
+	var pad_shell := PanelContainer.new()
+	pad_shell.name = "RearHardwareDirectionController"
+	pad_shell.custom_minimum_size = Vector2(204, 204) if not tight else Vector2(184, 184)
+	var pad_style := StyleBoxFlat.new()
+	pad_style.bg_color = Color(0.12, 0.13, 0.14, 0.72)
+	pad_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
+	pad_style.set_border_width_all(1)
+	pad_style.set_corner_radius_all(16)
+	pad_style.content_margin_left = 8
+	pad_style.content_margin_right = 8
+	pad_style.content_margin_top = 8
+	pad_style.content_margin_bottom = 8
+	pad_shell.add_theme_stylebox_override("panel", pad_style)
+	pad_center.add_child(pad_shell)
+
+	var pad := GridContainer.new()
+	pad.name = "RearHardwareDirectionPad"
+	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 18 if not tight else 16)
+	pad.add_theme_constant_override("v_separation", 6)
+	pad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pad.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pad_shell.add_child(pad)
+
+	_add_rear_hardware_pad_spacer(pad, tight)
+	_add_rear_hardware_pad_button(pad, "↑", Vector2i(0, 1), tight)
+	_add_rear_hardware_pad_spacer(pad, tight)
+	_add_rear_hardware_pad_button(pad, "←", Vector2i(-1, 0), tight)
+
+	var move_label := Button.new()
+	move_label.name = "RearHardwareMoveCenterButton"
+	move_label.text = "MOVE"
+	move_label.custom_minimum_size = Vector2(64, 38)
+	move_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_apply_shared_page_typography(move_label, 11)
+	_style_button(move_label, true)
+	pad.add_child(move_label)
+
+	_add_rear_hardware_pad_button(pad, "→", Vector2i(1, 0), tight)
+	_add_rear_hardware_pad_spacer(pad, tight)
+	_add_rear_hardware_pad_button(pad, "↓", Vector2i(0, -1), tight)
+	_add_rear_hardware_pad_spacer(pad, tight)
+
+	rear_hardware_remove_button = _make_rear_hardware_icon_button(
+		pad_control_row, "RearHardwareRemoveButton", "−", "Remove selected component",
+		Callable(self, "_remove_rear_hardware_module"), icon_diameter, false
+	)
+	rear_hardware_step_content.visible = false
+	_refresh_rear_hardware_panel()
+
+
+func _make_rear_hardware_icon_button(parent: Control, node_name: String, caption: String, tooltip: String, pressed_callback: Callable, diameter: float, active: bool) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.text = caption
+	button.tooltip_text = tooltip
+	button.custom_minimum_size = Vector2(diameter, diameter)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.focus_mode = Control.FOCUS_NONE
+	_apply_shared_page_typography(button, 29 if diameter >= 52.0 else 27)
+	_style_rear_hardware_circle_button(button, active, diameter)
+	button.pressed.connect(pressed_callback)
+	parent.add_child(button)
+	return button
+
+
+func _style_rear_hardware_circle_button(button: Button, active: bool, diameter: float) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.27, 0.18, 0.09, 0.90) if active else Color(0.12, 0.13, 0.14, 0.82)
+		if state == "hover":
+			style.bg_color = Color(0.38, 0.25, 0.12, 0.94) if active else Color(0.21, 0.22, 0.23, 0.88)
+		elif state == "pressed":
+			style.bg_color = Color(0.17, 0.11, 0.06, 0.98) if active else Color(0.08, 0.09, 0.10, 0.94)
+		elif state == "disabled":
+			style.bg_color = Color(0.10, 0.11, 0.12, 0.58)
+		style.border_color = Color(0.80, 0.60, 0.32, 0.78) if active else Color(0.72, 0.72, 0.68, 0.34)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(int(diameter * 0.5))
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color("#A9A092"))
+
+
+func _style_rear_hardware_slider(slider: Slider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("#26292B")
+	track.border_color = Color("#C58A3A")
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(12)
+	track.content_margin_left = 6
+	track.content_margin_right = 6
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
+	slider.add_theme_stylebox_override("slider", track)
+
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color("#ffffff"))
+	gradient.set_color(1, Color("#C58A3A"))
+	var grabber := GradientTexture2D.new()
+	grabber.gradient = gradient
+	grabber.width = 32
+	grabber.height = 32
+	grabber.fill_from = Vector2.ZERO
+	grabber.fill_to = Vector2.ONE
+	slider.add_theme_icon_override("grabber", grabber)
+	slider.add_theme_icon_override("grabber_highlight", grabber)
+	slider.add_theme_stylebox_override("grabber_area", StyleBoxEmpty.new())
+	slider.add_theme_stylebox_override("grabber_area_highlight", StyleBoxEmpty.new())
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _add_rear_hardware_pad_spacer(parent: GridContainer, tight: bool) -> void:
+	var diameter := 64.0 if tight else 72.0
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(diameter, diameter)
+	spacer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	spacer.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
+
+
+func _add_rear_hardware_pad_button(parent: GridContainer, caption: String, direction: Vector2i, tight: bool) -> void:
+	var diameter := 64.0 if tight else 72.0
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(diameter, diameter)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_apply_shared_page_typography(button, 27 if tight else 29)
+	button.focus_mode = Control.FOCUS_NONE
+	_style_rear_hardware_circle_button(button, true, diameter)
+	button.pressed.connect(_on_rear_hardware_pad_pressed.bind(direction))
+	parent.add_child(button)
+	rear_hardware_move_buttons.append(button)
+
+
+func _set_rear_hardware_mode(mode: String) -> void:
+	if mode not in ["CAMERA", "FLASH"]:
+		return
+	rear_hardware_mode = mode
+	_show_rear_camera_controls()
+
+
+func _get_rear_hardware_modules() -> Array[Dictionary]:
+	return rear_flash_modules if rear_hardware_mode == "FLASH" else rear_camera_modules
+
+
+func _get_rear_hardware_selected_index() -> int:
+	return rear_flash_selected_index if rear_hardware_mode == "FLASH" else rear_camera_selected_index
+
+
+func _set_rear_hardware_selected_index(index: int) -> void:
+	if rear_hardware_mode == "FLASH":
+		rear_flash_selected_index = index
+	else:
+		rear_camera_selected_index = index
+
+
+func _get_rear_hardware_addition_limit() -> int:
+	return MAX_REAR_FLASHES if rear_hardware_mode == "FLASH" else MAX_REAR_CAMERAS
+
+
+func _add_rear_hardware_module() -> void:
+	var modules := _get_rear_hardware_modules()
+	if modules.size() >= _get_rear_hardware_addition_limit():
+		_refresh_rear_hardware_panel()
+		return
+	var module_size := REAR_HARDWARE_SIZE_MIN
+	if not modules.is_empty():
+		module_size = float(modules[modules.size() - 1].get("size", module_size))
+	var spawn_position := _find_rear_hardware_spawn_position(rear_hardware_mode, module_size)
+	if spawn_position.x > 900.0:
+		return
+	if rear_hardware_mode == "FLASH":
+		rear_flash_modules.append({"id": next_rear_flash_id, "position": spawn_position, "size": module_size})
+		rear_flash_selected_index = rear_flash_modules.size() - 1
+		next_rear_flash_id += 1
+	else:
+		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size})
+		rear_camera_selected_index = rear_camera_modules.size() - 1
+		next_rear_camera_id += 1
+	_refresh_rear_hardware_panel()
+
+
+func _remove_rear_hardware_module() -> void:
+	var selected_index := _get_rear_hardware_selected_index()
+	var modules := _get_rear_hardware_modules()
+	if selected_index < 0 or selected_index >= modules.size():
+		return
+	modules.remove_at(selected_index)
+	_set_rear_hardware_selected_index(mini(selected_index, modules.size() - 1))
+	if rear_hardware_mode == "FLASH":
+		rear_flash_modules = modules
+	else:
+		rear_camera_modules = modules
+	_refresh_rear_hardware_panel()
+
+
+func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vector2:
+	var extent := module_size * 1.22
+	var half := Vector2(1.45, 2.92) * 0.5
+	var min_x := -half.x + extent + 0.025
+	var max_x := half.x - extent - 0.025
+	var min_y := -half.y + extent + 0.025
+	var max_y := half.y - extent - 0.025
+	var min_x_index := ceili(min_x / REAR_HARDWARE_GRID_STEP - 0.00001)
+	var max_x_index := floori(max_x / REAR_HARDWARE_GRID_STEP + 0.00001)
+	var min_y_index := ceili(min_y / REAR_HARDWARE_GRID_STEP - 0.00001)
+	var max_y_index := floori(max_y / REAR_HARDWARE_GRID_STEP + 0.00001)
+	var y_index := max_y_index
+	while y_index >= min_y_index:
+		var x_index := min_x_index
+		while x_index <= max_x_index:
+			var candidate := Vector2(float(x_index) * REAR_HARDWARE_GRID_STEP, float(y_index) * REAR_HARDWARE_GRID_STEP)
+			if _rear_module_position_is_free(candidate, module_size, kind, -1):
+				return candidate
+			x_index += REAR_HARDWARE_SPAWN_GRID_INTERVALS
+		y_index -= REAR_HARDWARE_SPAWN_GRID_INTERVALS
+	return Vector2(1000.0, 1000.0)
+
+
+func _rear_module_position_is_free(candidate_position: Vector2, module_size: float, kind: String, ignore_index: int) -> bool:
+	var extent := module_size * 1.22 + 0.015
+	var half := Vector2(1.45, 2.92) * 0.5
+	if absf(candidate_position.x) + extent > half.x - 0.025:
+		return false
+	if absf(candidate_position.y) + extent > half.y - 0.025:
+		return false
+	for index in range(rear_camera_modules.size()):
+		if kind == "CAMERA" and index == ignore_index:
+			continue
+		var other: Dictionary = rear_camera_modules[index]
+		if candidate_position.distance_to(other["position"]) < (module_size + float(other["size"])) * 1.18 + 0.025:
+			return false
+	for index in range(rear_flash_modules.size()):
+		if kind == "FLASH" and index == ignore_index:
+			continue
+		var other: Dictionary = rear_flash_modules[index]
+		if candidate_position.distance_to(other["position"]) < (module_size + float(other["size"])) * 1.18 + 0.025:
+			return false
+	return true
+
+
+func _snap_rear_hardware_position(local_position: Vector2) -> Vector2:
+	return Vector2(
+		roundf(local_position.x / REAR_HARDWARE_GRID_STEP) * REAR_HARDWARE_GRID_STEP,
+		roundf(local_position.y / REAR_HARDWARE_GRID_STEP) * REAR_HARDWARE_GRID_STEP
+	)
+
+
+func _on_rear_hardware_pad_pressed(direction: Vector2i) -> void:
+	var modules := _get_rear_hardware_modules()
+	var selected_index := _get_rear_hardware_selected_index()
+	if selected_index < 0 or selected_index >= modules.size():
+		return
+	if not is_instance_valid(phone_model) or not is_instance_valid(preview_camera):
+		return
+	var module: Dictionary = modules[selected_index]
+	var module_position: Vector2 = module["position"]
+	var module_size := float(module["size"])
+	var inverse_basis := phone_model.global_transform.basis.inverse()
+	var camera_right := inverse_basis * preview_camera.global_transform.basis.x
+	var camera_up := inverse_basis * preview_camera.global_transform.basis.y
+	var local_direction_3d := camera_right * float(direction.x) + camera_up * float(direction.y)
+	var local_direction := Vector2(local_direction_3d.x, local_direction_3d.y)
+	if local_direction.length_squared() < 0.000001:
+		return
+	local_direction = local_direction.normalized()
+	if absf(local_direction.x) >= absf(local_direction.y):
+		local_direction = Vector2(signf(local_direction.x), 0.0)
+	else:
+		local_direction = Vector2(0.0, signf(local_direction.y))
+	var next_position := _snap_rear_hardware_position(
+		module_position + local_direction * REAR_HARDWARE_GRID_STEP
+	)
+	if not _rear_module_position_is_free(next_position, module_size, rear_hardware_mode, selected_index):
+		return
+	module["position"] = next_position
+	if rear_hardware_mode == "FLASH":
+		rear_flash_modules[selected_index] = module
+	else:
+		rear_camera_modules[selected_index] = module
+	_refresh_rear_hardware_panel()
+
+
+func _on_rear_hardware_size_changed(value: float) -> void:
+	var modules := _get_rear_hardware_modules()
+	var selected_index := _get_rear_hardware_selected_index()
+	if selected_index < 0 or selected_index >= modules.size():
+		return
+	var module: Dictionary = modules[selected_index]
+	var position: Vector2 = module["position"]
+	var next_size := clampf(value, REAR_HARDWARE_SIZE_MIN, REAR_HARDWARE_SIZE_MAX)
+	if not _rear_module_position_is_free(position, next_size, rear_hardware_mode, selected_index):
+		_refresh_rear_hardware_panel()
+		return
+	module["size"] = next_size
+	if rear_hardware_mode == "FLASH":
+		rear_flash_modules[selected_index] = module
+	else:
+		rear_camera_modules[selected_index] = module
+	_refresh_rear_hardware_panel()
+
+
+func _select_rear_hardware_module(index: int) -> void:
+	var modules := _get_rear_hardware_modules()
+	if index < 0 or index >= modules.size():
+		return
+	_set_rear_hardware_selected_index(index)
+	_show_rear_camera_controls()
+
+
+func _show_rear_hardware_selection_controls() -> void:
+	var modules := _get_rear_hardware_modules()
+	if modules.is_empty() or not is_instance_valid(rear_hardware_step_content):
+		return
+	if is_instance_valid(rear_hardware_selection_view):
+		rear_hardware_selection_view.queue_free()
+		rear_hardware_selection_view = null
+	rear_hardware_controls_view.visible = false
+	rear_hardware_selection_view = VBoxContainer.new()
+	rear_hardware_selection_view.name = "RearHardwareSelection"
+	rear_hardware_selection_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rear_hardware_selection_view.add_theme_constant_override("separation", 9)
+	rear_hardware_step_content.add_child(rear_hardware_selection_view)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	rear_hardware_selection_view.add_child(header)
+	var back := Button.new()
+	back.name = "RearHardwareSelectionBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_apply_shared_page_typography(back, 25)
+	_style_button(back, false)
+	back.pressed.connect(_show_rear_camera_controls)
+	header.add_child(back)
+
+	var title := _label("SELECT " + rear_hardware_mode, 15, Color("#E5E0D6"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var list := GridContainer.new()
+	list.name = "RearHardwareOptions"
+	list.columns = 2
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("h_separation", 7)
+	list.add_theme_constant_override("v_separation", 7)
+	rear_hardware_selection_view.add_child(list)
+	var selected_index := _get_rear_hardware_selected_index()
+	for index in range(modules.size()):
+		var module: Dictionary = modules[index]
+		var option := Button.new()
+		option.name = "RearHardwareOption%d" % index
+		option.text = "%s  %02d%s" % [
+			rear_hardware_mode,
+			int(module["id"]),
+			"   ✓ SELECTED" if index == selected_index else ""
+		]
+		option.custom_minimum_size.y = 48
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		option.focus_mode = Control.FOCUS_NONE
+		_style_button(option, index == selected_index)
+		option.pressed.connect(_select_rear_hardware_module.bind(index))
+		list.add_child(option)
+
+
+func _show_rear_camera_controls() -> void:
+	if not is_instance_valid(rear_hardware_controls_view):
+		return
+	if is_instance_valid(rear_hardware_selection_view):
+		rear_hardware_selection_view.queue_free()
+		rear_hardware_selection_view = null
+	rear_hardware_controls_view.visible = true
+	_style_button(rear_hardware_camera_mode_button, rear_hardware_mode == "CAMERA")
+	_style_button(rear_hardware_flash_mode_button, rear_hardware_mode == "FLASH")
+	_refresh_rear_hardware_panel()
+
+
+func _refresh_rear_hardware_panel() -> void:
+	if not is_instance_valid(rear_hardware_selection_button):
+		return
+	var modules := _get_rear_hardware_modules()
+	var selected_index := _get_rear_hardware_selected_index()
+	var kind := "FLASH" if rear_hardware_mode == "FLASH" else "CAMERA"
+	var has_selection := selected_index >= 0 and selected_index < modules.size()
+	if has_selection:
+		var selected: Dictionary = modules[selected_index]
+		rear_hardware_size_slider.set_value_no_signal(float(selected["size"]))
+		rear_hardware_size_label.text = "SIZE  %.3f" % float(selected["size"])
+	else:
+		rear_hardware_size_slider.set_value_no_signal(REAR_HARDWARE_SIZE_MIN)
+		rear_hardware_size_label.text = "ADD A %s TO BEGIN" % kind
+
+	rear_hardware_size_slider.editable = has_selection
+	rear_hardware_remove_button.disabled = not has_selection
+	rear_hardware_selection_button.disabled = modules.is_empty()
+	rear_hardware_selection_button.text = (
+		"%s  %02d  ›" % [kind, int(modules[selected_index]["id"])]
+		if has_selection else "ADD A %s TO SELECT" % kind
+	)
+	rear_hardware_add_button.disabled = modules.size() >= _get_rear_hardware_addition_limit()
+	for move_button in rear_hardware_move_buttons:
+		move_button.disabled = not has_selection
+	_refresh_rear_hardware_visuals()
+
+
+func _refresh_rear_hardware_visuals() -> void:
+	if not is_instance_valid(phone_model):
+		return
+	var previous := phone_model.get_node_or_null("RearCameraFlashHardware")
+	if is_instance_valid(previous):
+		previous.free()
+	if rear_camera_modules.is_empty() and rear_flash_modules.is_empty():
+		return
+
+	var root := Node3D.new()
+	root.name = "RearCameraFlashHardware"
+	phone_model.add_child(root)
+	var surface_z := -CAMERA_WORKSITE_PHONE_DEPTH * 0.5
+
+	for module in rear_camera_modules:
+		var position: Vector2 = module["position"]
+		var module_size := float(module["size"])
+		var housing := StandardMaterial3D.new()
+		housing.albedo_color = Color("#05070a")
+		housing.metallic = 0.88
+		housing.roughness = 0.20
+		var ring := StandardMaterial3D.new()
+		ring.albedo_color = Color("#171d25")
+		ring.metallic = 0.94
+		ring.roughness = 0.14
+		var lens := StandardMaterial3D.new()
+		lens.albedo_color = Color("#03070d")
+		lens.metallic = 0.62
+		lens.roughness = 0.075
+		lens.clearcoat_enabled = true
+		lens.clearcoat = 0.9
+		lens.clearcoat_roughness = 0.06
+		var module_id := int(module["id"])
+		var depth_scale := (module_size / 0.08) / 1.5
+		var layer := func(depth: float) -> float: return depth * depth_scale
+		_add_rear_hardware_disc(root, "RearCamera_%d_Housing" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.010)), module_size * 1.22, layer.call(0.020), housing)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Rim" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.021)), module_size * 1.04, layer.call(0.006), ring)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Gasket" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.025)), module_size * 0.88, layer.call(0.003), housing)
+		_add_rear_hardware_disc(root, "RearCamera_%d_Lens" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.030)), module_size * 0.72, layer.call(0.007), lens)
+		var optical_core := StandardMaterial3D.new()
+		optical_core.albedo_color = Color("#010308")
+		optical_core.metallic = 0.18
+		optical_core.roughness = 0.045
+		optical_core.clearcoat_enabled = true
+		optical_core.clearcoat = 1.0
+		optical_core.clearcoat_roughness = 0.035
+		_add_rear_hardware_disc(root, "RearCamera_%d_OpticalCore" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.034)), module_size * 0.38, layer.call(0.0025), optical_core)
+		var glint := StandardMaterial3D.new()
+		glint.albedo_color = Color(0.30, 0.43, 0.58, 0.24)
+		glint.metallic = 0.22
+		glint.roughness = 0.055
+		glint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_add_rear_hardware_disc(root, "RearCamera_%d_GlassGlint" % module_id, Vector3(position.x - module_size * 0.13, position.y + module_size * 0.13, surface_z - layer.call(0.036)), module_size * 0.12, layer.call(0.001), glint)
+
+	for index in range(rear_flash_modules.size()):
+		var module: Dictionary = rear_flash_modules[index]
+		var position: Vector2 = module["position"]
+		var module_size := float(module["size"])
+		var selected := rear_hardware_mode == "FLASH" and index == rear_flash_selected_index
+		var housing := StandardMaterial3D.new()
+		housing.albedo_color = Color("#303943")
+		housing.metallic = 0.78
+		housing.roughness = 0.24
+		var rim := StandardMaterial3D.new()
+		rim.albedo_color = Color("#C58A3A") if selected else Color("#aab4bd")
+		rim.metallic = 0.76
+		rim.roughness = 0.24
+		var diffuser := StandardMaterial3D.new()
+		diffuser.albedo_color = Color("#fff1cf")
+		diffuser.roughness = 0.24
+		diffuser.emission_enabled = true
+		diffuser.emission = Color("#ffe5ad")
+		diffuser.emission_energy_multiplier = 0.18
+		var module_id := int(module["id"])
+		var depth_scale := (module_size / 0.08) / 1.5
+		var layer := func(depth: float) -> float: return depth * depth_scale
+		_add_rear_hardware_disc(root, "RearFlash_%d_Housing" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.009)), module_size * 1.22, layer.call(0.018), housing)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Rim" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.019)), module_size * 1.04, layer.call(0.006), rim)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Gasket" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.022)), module_size * 0.86, layer.call(0.0025), housing)
+		_add_rear_hardware_disc(root, "RearFlash_%d_Diffuser" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.027)), module_size * 0.70, layer.call(0.006), diffuser)
+		var led := StandardMaterial3D.new()
+		led.albedo_color = Color("#fff9e9")
+		led.roughness = 0.18
+		led.emission_enabled = true
+		led.emission = Color("#fff0c8")
+		led.emission_energy_multiplier = 0.32
+		_add_rear_hardware_disc(root, "RearFlash_%d_LEDCore" % module_id, Vector3(position.x, position.y, surface_z - layer.call(0.031)), module_size * 0.38, layer.call(0.002), led)
+
+
+func _add_rear_hardware_disc(parent: Node3D, node_name: String, disc_position: Vector3, radius: float, height: float, material: Material) -> void:
+	var disc := MeshInstance3D.new()
+	disc.name = node_name
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 40
+	disc.mesh = mesh
+	disc.rotation_degrees.x = -90.0
+	disc.position = disc_position
+	disc.material_override = material
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(disc)
 
 
 func _initialize_rear_view() -> void:
@@ -457,7 +1123,7 @@ func _apply_responsive_layout() -> void:
 		preview_region.size_flags_stretch_ratio = 1.12
 		right_panel_column.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2.ZERO
-		right_panel_column.custom_minimum_size = Vector2(280.0, 0.0)
+		right_panel_column.custom_minimum_size = Vector2(356.0, 0.0)
 		selection_scroll.custom_minimum_size = Vector2.ZERO
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
