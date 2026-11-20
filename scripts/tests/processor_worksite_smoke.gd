@@ -96,6 +96,24 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 
+	var design_profiles: Array = worksite.get("processor_designs")
+	if design_profiles.size() != 30:
+		_fail("The processor library does not expose exactly 30 design profiles.")
+		worksite.free()
+		return
+	var unique_design_ids := {}
+	var unique_design_layouts := {}
+	for profile_value in design_profiles:
+		var profile: Dictionary = profile_value
+		var design_id := str(profile.get("id", ""))
+		var design_layout := str(profile.get("layout", ""))
+		if design_id.is_empty() or design_layout.is_empty() or unique_design_ids.has(design_id) or unique_design_layouts.has(design_layout):
+			_fail("Processor presets must have unique design IDs and unique physical layouts.")
+			worksite.free()
+			return
+		unique_design_ids[design_id] = true
+		unique_design_layouts[design_layout] = true
+
 	var model_roots: Array[Node3D] = []
 	for model_data_value in design_models:
 		var model_data: Dictionary = model_data_value
@@ -181,7 +199,7 @@ func _run_processor_worksite_test() -> void:
 		return
 	worksite.call("_on_wizard_back_pressed")
 	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2:
-		_fail("Processor Back navigation did not return to the previous design step.")
+		_fail("Processor Back navigation did not return to the previous colour step.")
 		worksite.free()
 		return
 	worksite.call("_set_wizard_step", 1)
