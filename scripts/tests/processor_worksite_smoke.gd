@@ -101,16 +101,19 @@ func _run_processor_worksite_test() -> void:
 	var technology_previous := worksite.find_child("PreviousProcessorTechnologyButton", true, false) as Button
 	var technology_next := worksite.find_child("NextProcessorTechnologyButton", true, false) as Button
 	var technology_states: Dictionary = worksite.get("processor_technology_enabled_states")
-	if technology_name_label == null or technology_toggle == null or technology_previous == null or technology_next == null or technology_states.size() != 15:
+	var processor_research_button := worksite.find_child("ProcessorResearchButton", true, false) as Button
+	var technology_level_panel := worksite.find_child("ProcessorTechnologyLevelPanel", true, false) as PanelContainer
+	var technology_level_value := worksite.find_child("ProcessorTechnologyLevelValue", true, false) as Label
+	if technology_name_label == null or technology_toggle == null or technology_previous == null or technology_next == null or technology_states.size() != 15 or processor_research_button == null or technology_level_panel == null or technology_level_value == null:
 		_fail("Processor Technologies step is missing its selector, enable control, or all 15 entries.")
 		worksite.free()
 		return
-	if technology_name_label.text != "Control Unit" or not technology_previous.disabled or technology_next.disabled:
-		_fail("Processor Technologies does not initialize on the first entry with correct minus/plus states.")
+	if technology_name_label.text != "Control Unit" or not technology_previous.disabled or technology_next.disabled or not technology_toggle.disabled or technology_level_value.text != "0.00 TP":
+		_fail("Processor Technologies does not initialize locked with the correct first-entry, toggle, and TP states.")
 		worksite.free()
 		return
-	if worksite.find_child("ProcessorTechnologyCameraSwitcher", true, false) != null or worksite.find_child("ProcessorTechnologyLevelPanel", true, false) != null:
-		_fail("Processor Technologies contains an unwanted top switcher or technology-level footer.")
+	if worksite.find_child("ProcessorTechnologyCameraSwitcher", true, false) != null:
+		_fail("Processor Technologies contains an unwanted camera-style top switcher.")
 		worksite.free()
 		return
 	if not back_step_button.disabled or next_step_button.disabled:
@@ -287,16 +290,26 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor Next navigation did not advance from colour to the final Technologies step.")
 		worksite.free()
 		return
+	worksite.call("set_processor_technology_research_levels", {"Control Unit": 1, "Security Processing Unit": 1})
+	if technology_toggle.disabled:
+		_fail("An approved Processor Technology did not enable its worksite toggle.")
+		worksite.free()
+		return
 	worksite.call("_on_processor_technology_toggled", true)
 	technology_states = worksite.get("processor_technology_enabled_states")
-	if not technology_toggle.button_pressed or not bool(technology_states.get("Control Unit", false)):
+	if not technology_toggle.button_pressed or not bool(technology_states.get("Control Unit", false)) or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 1.20):
 		_fail("Processor Technologies enable toggle did not update the selected technology state.")
 		worksite.free()
 		return
 	for technology_index in range(14):
 		worksite.call("_on_processor_technology_next_pressed")
-	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or not technology_next.disabled or technology_previous.disabled:
-		_fail("Processor Technologies plus navigation did not reach the fifteenth and final entry.")
+	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or not technology_next.disabled or technology_previous.disabled or technology_toggle.disabled:
+		_fail("Processor Technologies plus navigation did not reach the unlocked fifteenth and final entry.")
+	worksite.call("_on_processor_technology_toggled", true)
+	if not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 4.00) or technology_level_value.text != "4.00 TP":
+		_fail("Processor Technologies did not add the approved unlocks to the shared TP total.")
+		worksite.free()
+		return
 		worksite.free()
 		return
 	worksite.call("_on_processor_technology_previous_pressed")
@@ -374,6 +387,12 @@ func _run_processor_worksite_test() -> void:
 		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return
+	worksite.call("configure_design", emitted_design[0])
+	technology_states = worksite.get("processor_technology_enabled_states")
+	if not bool(technology_states.get("Control Unit", false)) or not bool(technology_states.get("Security Processing Unit", false)):
+		_fail("Processor Technology enable states did not restore with the saved processor design.")
+		worksite.free()
+		return
 	if str(emitted_design[0].get("design_id", "")) != "dw_silicon_01":
 		_fail("Saving the processor did not preserve the selected physical design identity.")
 		worksite.free()
@@ -384,6 +403,11 @@ func _run_processor_worksite_test() -> void:
 		return
 	if str(emitted_design[0].get("processor_gradient_color", "")) != "#C65B8E" or not bool(emitted_design[0].get("processor_gradient_enabled", false)) or int(emitted_design[0].get("processor_gradient_direction", -1)) != 2:
 		_fail("Save Processor Design did not preserve gradient colour, enabled state, and direction.")
+		worksite.free()
+		return
+	var saved_technology_states: Dictionary = emitted_design[0].get("processor_technology_enabled_states", {})
+	if not bool(saved_technology_states.get("Control Unit", false)) or not bool(saved_technology_states.get("Security Processing Unit", false)):
+		_fail("Save Processor Design did not preserve enabled Processor Technologies.")
 		worksite.free()
 		return
 
