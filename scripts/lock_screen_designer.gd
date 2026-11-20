@@ -190,7 +190,7 @@ func prepare_clock_styles_for_loading(progress_callback: Callable = Callable()) 
 		return false
 	if progress_callback.is_valid():
 		progress_callback.call("Preparing lock-screen clock styles", 0.0)
-	var styles_ready := bool(await clock.call("prepare_all_styles", 5))
+	var styles_ready := bool(await clock.call("prepare_all_styles", 5, progress_callback))
 	if not styles_ready:
 		return false
 	if progress_callback.is_valid():
