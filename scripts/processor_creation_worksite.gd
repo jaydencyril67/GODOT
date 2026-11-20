@@ -20,7 +20,25 @@ const LEGACY_PROCESSOR_COLORS := {
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
-const WIZARD_STEP_COUNT := 2
+const WIZARD_STEP_COUNT := 3
+
+const PROCESSOR_TECHNOLOGIES := [
+	"Control Unit",
+	"Instruction Decoder",
+	"Instruction Fetch Unit",
+	"Branch Prediction Unit",
+	"Memory Management Unit",
+	"Translation Lookaside Buffer",
+	"Internal Bus",
+	"Ring Bus / Interconnect Fabric",
+	"System Agent",
+	"I/O Controller",
+	"Clock Distribution Network",
+	"Voltage Regulator Interface",
+	"Thermal Sensor",
+	"Debug and Test Unit",
+	"Security Processing Unit"
+]
 
 class GlassArrowButton extends Button:
 	var points_right := true
@@ -206,6 +224,16 @@ var progress_bar: ProgressBar
 var wizard_back_button: Button
 var next_button: Button
 var current_wizard_step := 1
+var processor_technology_step_content: VBoxContainer
+var processor_technology_enable_label: Label
+var processor_technology_enabled_toggle: TextureButton
+var processor_technology_name_label: Label
+var processor_technology_previous_button: Button
+var processor_technology_next_button: Button
+var processor_technology_selected_index := 0
+var processor_technology_enabled_states: Dictionary = {}
+var processor_technology_checked_texture: Texture2D
+var processor_technology_unchecked_texture: Texture2D
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
 var die_surfaces: Array[MeshInstance3D] = []
@@ -490,6 +518,8 @@ func _build_interface() -> void:
 	save_button.pressed.connect(_save_design)
 	color_page.add_child(save_button)
 
+	var technologies_page := _create_step_page("TECHNOLOGIES")
+	_build_processor_technology_controls(technologies_page)
 
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
@@ -538,6 +568,136 @@ func _create_step_page(title_text: String) -> VBoxContainer:
 	page.add_child(heading)
 
 	return page
+
+
+
+func _build_processor_technology_controls(parent: VBoxContainer) -> void:
+	processor_technology_step_content = VBoxContainer.new()
+	processor_technology_step_content.name = "ProcessorTechnologyStepContent"
+	processor_technology_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_technology_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_technology_step_content.custom_minimum_size = Vector2(0, 300)
+	processor_technology_step_content.add_theme_constant_override("separation", 14)
+	parent.add_child(processor_technology_step_content)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "ProcessorTechnologyEnableRow"
+	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.custom_minimum_size = Vector2(124, 42)
+	enable_row.add_theme_constant_override("separation", 8)
+	processor_technology_step_content.add_child(enable_row)
+
+	processor_technology_enable_label = _label("ENABLE", 14, TEXT)
+	processor_technology_enable_label.name = "ProcessorTechnologyEnableLabel"
+	processor_technology_enable_label.custom_minimum_size = Vector2(72, 0)
+	processor_technology_enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	processor_technology_enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	processor_technology_enable_label.clip_text = true
+	enable_row.add_child(processor_technology_enable_label)
+
+	processor_technology_checked_texture = _processor_checkbox_icon(true)
+	processor_technology_unchecked_texture = _processor_checkbox_icon(false)
+	processor_technology_enabled_toggle = TextureButton.new()
+	processor_technology_enabled_toggle.name = "ProcessorTechnologyEnabledToggle"
+	processor_technology_enabled_toggle.custom_minimum_size = Vector2(42, 42)
+	processor_technology_enabled_toggle.ignore_texture_size = true
+	processor_technology_enabled_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	processor_technology_enabled_toggle.toggle_mode = true
+	processor_technology_enabled_toggle.focus_mode = Control.FOCUS_NONE
+	processor_technology_enabled_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	processor_technology_enabled_toggle.texture_normal = processor_technology_unchecked_texture
+	processor_technology_enabled_toggle.texture_hover = processor_technology_unchecked_texture
+	processor_technology_enabled_toggle.texture_pressed = processor_technology_checked_texture
+	processor_technology_enabled_toggle.texture_disabled = processor_technology_unchecked_texture
+	processor_technology_enabled_toggle.toggled.connect(_on_processor_technology_toggled)
+	enable_row.add_child(processor_technology_enabled_toggle)
+
+	var navigation_center := CenterContainer.new()
+	navigation_center.name = "ProcessorTechnologyNavigationCenter"
+	navigation_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_technology_step_content.add_child(navigation_center)
+
+	var navigation := HBoxContainer.new()
+	navigation.name = "ProcessorTechnologyNavigation"
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.add_theme_constant_override("separation", 30)
+	navigation_center.add_child(navigation)
+
+	processor_technology_previous_button = Button.new()
+	processor_technology_previous_button.name = "PreviousProcessorTechnologyButton"
+	processor_technology_previous_button.text = "−"
+	processor_technology_previous_button.custom_minimum_size = Vector2(56, 48)
+	processor_technology_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_style_button(processor_technology_previous_button, false)
+	processor_technology_previous_button.pressed.connect(_on_processor_technology_previous_pressed)
+	navigation.add_child(processor_technology_previous_button)
+
+	processor_technology_name_label = _label(PROCESSOR_TECHNOLOGIES[0], 19, TEXT)
+	processor_technology_name_label.name = "SelectedProcessorTechnology"
+	processor_technology_name_label.custom_minimum_size = Vector2(150, 56)
+	processor_technology_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	processor_technology_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	processor_technology_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_technology_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	processor_technology_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	navigation.add_child(processor_technology_name_label)
+
+	processor_technology_next_button = Button.new()
+	processor_technology_next_button.name = "NextProcessorTechnologyButton"
+	processor_technology_next_button.text = "+"
+	processor_technology_next_button.custom_minimum_size = Vector2(56, 48)
+	processor_technology_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_style_button(processor_technology_next_button, false)
+	processor_technology_next_button.pressed.connect(_on_processor_technology_next_pressed)
+	navigation.add_child(processor_technology_next_button)
+
+	for technology_value in PROCESSOR_TECHNOLOGIES:
+		processor_technology_enabled_states[str(technology_value)] = false
+	_refresh_processor_technology_controls()
+
+
+func _refresh_processor_technology_controls() -> void:
+	if PROCESSOR_TECHNOLOGIES.is_empty():
+		return
+	processor_technology_selected_index = clampi(processor_technology_selected_index, 0, PROCESSOR_TECHNOLOGIES.size() - 1)
+	var technology_name: String = PROCESSOR_TECHNOLOGIES[processor_technology_selected_index]
+	var enabled := bool(processor_technology_enabled_states.get(technology_name, false))
+	if is_instance_valid(processor_technology_name_label):
+		processor_technology_name_label.text = technology_name
+	if is_instance_valid(processor_technology_enable_label):
+		processor_technology_enable_label.text = "ENABLE"
+	if is_instance_valid(processor_technology_enabled_toggle):
+		processor_technology_enabled_toggle.set_pressed_no_signal(enabled)
+		var checkbox_texture := processor_technology_checked_texture if enabled else processor_technology_unchecked_texture
+		processor_technology_enabled_toggle.texture_normal = checkbox_texture
+		processor_technology_enabled_toggle.texture_hover = checkbox_texture
+		processor_technology_enabled_toggle.texture_pressed = processor_technology_checked_texture
+		processor_technology_enabled_toggle.texture_disabled = processor_technology_unchecked_texture
+		processor_technology_enabled_toggle.tooltip_text = "Enable or disable " + technology_name
+	if is_instance_valid(processor_technology_previous_button):
+		processor_technology_previous_button.disabled = processor_technology_selected_index <= 0
+	if is_instance_valid(processor_technology_next_button):
+		processor_technology_next_button.disabled = processor_technology_selected_index >= PROCESSOR_TECHNOLOGIES.size() - 1
+
+
+func _on_processor_technology_toggled(enabled: bool) -> void:
+	if PROCESSOR_TECHNOLOGIES.is_empty():
+		return
+	var technology_name: String = PROCESSOR_TECHNOLOGIES[clampi(processor_technology_selected_index, 0, PROCESSOR_TECHNOLOGIES.size() - 1)]
+	processor_technology_enabled_states[technology_name] = enabled
+	_refresh_processor_technology_controls()
+
+
+func _on_processor_technology_previous_pressed() -> void:
+	processor_technology_selected_index = maxi(0, processor_technology_selected_index - 1)
+	_refresh_processor_technology_controls()
+
+
+func _on_processor_technology_next_pressed() -> void:
+	processor_technology_selected_index = mini(PROCESSOR_TECHNOLOGIES.size() - 1, processor_technology_selected_index + 1)
+	_refresh_processor_technology_controls()
 
 
 func _apply_responsive_layout() -> void:
