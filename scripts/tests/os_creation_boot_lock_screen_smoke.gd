@@ -10,14 +10,35 @@ func _initialize() -> void:
 func _run_test() -> void:
 	var worksite: Node = WorksiteScript.new()
 	worksite.name = "OSCreationBootLockScreenSmokeTest"
+	# Match production startup: the OS Worksite stays hidden and process-disabled
+	# while its assets are prepared behind the loading screen.
+	worksite.call("set_preparing_for_first_load", true)
+	worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	worksite.hide()
 	root.add_child(worksite)
 	for _frame_index in range(1200):
 		if bool(worksite.get("setup_complete")):
 			break
 		await process_frame
 	if not bool(worksite.get("setup_complete")):
-		_fail("The OS Worksite did not finish its staged startup preparation.")
+		_fail("The OS Worksite did not finish its staged startup preparation while hidden and process-disabled.")
 		return
+
+	if worksite.process_mode != Node.PROCESS_MODE_DISABLED or worksite.visible:
+		_fail("The startup test did not keep the OS Worksite hidden and process-disabled through preparation.")
+		return
+	var prepared_lock_screen := worksite.find_child("AutonomousLockScreenDesignerPreview", true, false)
+	var prepared_digital_clock := prepared_lock_screen.find_child("DigitalClock", true, false) as Control if prepared_lock_screen != null else null
+	if prepared_digital_clock == null or not bool(prepared_digital_clock.call("are_all_styles_normalized")):
+		_fail("OS startup reported completion before every one of the 41 digital clock styles was normalized.")
+		return
+
+	# Continue the remaining UI checks with the worksite in its normal interactive state.
+	worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	worksite.show()
+	for worksite_child in worksite.get_children():
+		if worksite_child is CanvasLayer:
+			worksite_child.show()
 
 	var home_screen := worksite.find_child("OneUIHomeScreenPreview", true, false)
 	if home_screen == null or int(home_screen.call("get_loaded_app_count")) != 200:
