@@ -66,11 +66,10 @@ func set_clock_style_index(style_index: int) -> bool:
 	if style_index < 1 or style_index > AssetLibrary.get_analog_clock_count():
 		return false
 	_clock_style_index = style_index
-	analog_artwork.texture = _analog_textures.get(style_index) as Texture2D
-	analog_artwork.visible = _clock_type == "analog" and analog_artwork.texture != null
-	if not bool(digital_artwork.call("set_style_index", style_index)):
-		return false
-	return true
+	_restore_selected_analog_artwork()
+	var digital_style_updated := bool(digital_artwork.call("set_style_index", style_index))
+	_apply_clock_renderer_visibility()
+	return digital_style_updated
 
 
 func get_clock_style_index() -> int:
@@ -82,10 +81,37 @@ func set_clock_type(clock_type: String) -> bool:
 	if normalized not in ["analog", "digital"]:
 		return false
 	_clock_type = normalized
-	analog_container.visible = normalized == "analog"
-	digital_artwork.visible = normalized == "digital"
-	analog_artwork.visible = normalized == "analog" and analog_artwork.texture != null
+	if normalized == "analog":
+		if not _restore_selected_analog_artwork():
+			_apply_clock_renderer_visibility()
+			return false
+	else:
+		# Re-select the cached digital face before exposing its renderer. This
+		# keeps the selected style synchronized after returning from Analog.
+		digital_artwork.call("set_style_index", _clock_style_index)
+	_apply_clock_renderer_visibility()
 	return true
+
+
+func _restore_selected_analog_artwork() -> bool:
+	var selected_texture := _analog_textures.get(_clock_style_index) as Texture2D
+	if selected_texture == null:
+		selected_texture = load(AssetLibrary.get_analog_clock_path(_clock_style_index)) as Texture2D
+	if selected_texture == null:
+		return false
+	_analog_textures[_clock_style_index] = selected_texture
+	analog_artwork.texture = selected_texture
+	return true
+
+
+func _apply_clock_renderer_visibility() -> void:
+	var showing_analog := _clock_type == "analog"
+	analog_container.visible = showing_analog
+	digital_artwork.visible = not showing_analog
+	analog_artwork.visible = showing_analog and analog_artwork.texture != null
+	analog_container.queue_redraw()
+	analog_artwork.queue_redraw()
+	digital_artwork.queue_redraw()
 
 
 func get_clock_type() -> String:
