@@ -127,6 +127,21 @@ func _run_processor_worksite_test() -> void:
 		_fail("The worksite did not preload all 30 physical designs with Design 01 initially visible.")
 		worksite.free()
 		return
+	for design_root in model_roots:
+		for mesh_value in design_root.find_children("*", "MeshInstance3D", true, false):
+			var mesh_part := mesh_value as MeshInstance3D
+			var mesh_material := mesh_part.material_override as StandardMaterial3D
+			if mesh_material == null or mesh_material.albedo_color.r > 0.1 or mesh_material.albedo_color.g > 0.1 or mesh_material.albedo_color.b > 0.1:
+				_fail("At least one processor design contains a non-black mesh material before the colour step.")
+				worksite.free()
+				return
+		for multimesh_value in design_root.find_children("*", "MultiMeshInstance3D", true, false):
+			var multimesh_part := multimesh_value as MultiMeshInstance3D
+			var multimesh_material := multimesh_part.material_override as StandardMaterial3D
+			if multimesh_material == null or multimesh_material.albedo_color.r > 0.1 or multimesh_material.albedo_color.g > 0.1 or multimesh_material.albedo_color.b > 0.1:
+				_fail("At least one processor contact array contains a non-black material before the colour step.")
+				worksite.free()
+				return
 	var initial_viewport_child_count := viewport.get_child_count()
 	var first_package_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
 	var first_package_material := first_package_surface.material_override as StandardMaterial3D if first_package_surface != null else null
