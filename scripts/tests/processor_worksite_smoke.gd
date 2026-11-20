@@ -35,7 +35,7 @@ func _run_processor_worksite_test() -> void:
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
-	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or preview_world == null or preview_environment == null or model == null or design_models.size() != 15 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
+	if worksite_root == null or worksite_body == null or preview_region == null or preview_column == null or preview_container == null or viewport == null or preview_world == null or preview_environment == null or model == null or design_models.size() != 30 or design_selector_previous == null or design_selector_next == null or design_selector_value == null or design_selector_position == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null:
 		_fail("Processor worksite is missing part of the shared Phone/OS full-screen worksite structure.")
 		worksite.free()
 		return
@@ -91,7 +91,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if design_selector_position.text != "DESIGN 01 / 15" or design_selector_value.text != "DW SILICON 01" or not design_selector_previous.disabled or design_selector_next.disabled:
+	if design_selector_position.text != "DESIGN 01 / 30" or design_selector_value.text != "DW SILICON 01" or not design_selector_previous.disabled or design_selector_next.disabled:
 		_fail("The first processor design selector does not match the Phone Worksite's initial minus/current/plus state.")
 		worksite.free()
 		return
@@ -105,18 +105,18 @@ func _run_processor_worksite_test() -> void:
 			worksite.free()
 			return
 		model_roots.append(model_root)
-	if model_roots.size() != 15 or model_roots[0] != model or not model_roots[0].visible:
-		_fail("The worksite did not preload all 15 physical designs with Design 01 initially visible.")
+	if model_roots.size() != 30 or model_roots[0] != model or not model_roots[0].visible:
+		_fail("The worksite did not preload all 30 physical designs with Design 01 initially visible.")
 		worksite.free()
 		return
 	var initial_viewport_child_count := viewport.get_child_count()
 	var first_package_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
-	if first_package_surface == null or first_package_surface.material_override == null:
-		_fail("The original processor package has no prebuilt substrate finish.")
+	if first_package_surface == null or first_package_surface.material_override == null or first_package_surface.material_override.albedo_color != Color("#101214"):
+		_fail("The original processor package does not start in the required black finish.")
 		worksite.free()
 		return
 	var first_package_material_id := first_package_surface.material_override.get_instance_id()
-	for design_index in range(15):
+	for design_index in range(30):
 		worksite.call("_select_processor_design", design_index, false)
 		var visible_count := 0
 		for model_root in model_roots:
@@ -134,9 +134,9 @@ func _run_processor_worksite_test() -> void:
 		_fail("Switching processor designs recreated materials instead of reusing the prebuilt design.")
 		worksite.free()
 		return
-	worksite.call("_select_processor_design", 14, false)
+	worksite.call("_select_processor_design", 29, false)
 	if not design_selector_next.disabled or design_selector_previous.disabled:
-		_fail("The processor design selector did not disable the plus button at Design 15.")
+		_fail("The processor design selector did not disable the plus button at Design 30.")
 		worksite.free()
 		return
 	worksite.call("_on_processor_design_decrease_pressed")
@@ -146,10 +146,35 @@ func _run_processor_worksite_test() -> void:
 		return
 	worksite.call("_select_processor_design", 0, true)
 
+	var processor_color_control := worksite.find_child("ProcessorColor", true, false) as OptionButton
+	if processor_color_control == null:
+		_fail("Processor worksite is missing its dedicated second-step colour selector.")
+		worksite.free()
+		return
 	worksite.call("_on_next_pressed")
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2:
+		_fail("Processor Next navigation did not advance to the dedicated colour step.")
+		worksite.free()
+		return
+	var silver_index := -1
+	for option_index in range(processor_color_control.item_count):
+		if processor_color_control.get_item_text(option_index) == "Silver":
+			silver_index = option_index
+			break
+	if silver_index < 0:
+		_fail("Processor colour step is missing the Silver option.")
+		worksite.free()
+		return
+	processor_color_control.select(silver_index)
+	worksite.call("_on_processor_color_selected", silver_index)
+	var recolored_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
+	if recolored_surface == null or recolored_surface.material_override == null or recolored_surface.material_override.albedo_color != Color("#A5AAAE"):
+		_fail("Processor colour selection did not apply to the model.")
+		worksite.free()
+		return
 	worksite.call("_on_next_pressed")
 	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3:
-		_fail("Processor Next navigation did not advance the wizard and progress indicator.")
+		_fail("Processor Next navigation did not advance from colour to package dimensions.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -180,30 +205,30 @@ func _run_processor_worksite_test() -> void:
 		return
 
 	worksite.configure_design({
-		"name": "Smoke Test SoC",
+		"design_id": "dw_silicon_01",
 		"package_size": "14 × 14 mm",
-		"package_finish": "Deep green substrate",
-		"die_finish": "Polished silicon"
+		"processor_color": "Silver"
 	})
-	var name_control := worksite.get("name_input") as LineEdit
-	if name_control == null or name_control.text != "Smoke Test SoC":
-		_fail("Saved processor design values are not restored into the controls.")
+	var name_control := worksite.find_child("ProcessorNameInput", true, false)
+	var restored_color := worksite.find_child("ProcessorColor", true, false) as OptionButton
+	if name_control != null or restored_color == null or restored_color.get_item_text(restored_color.selected) != "Silver":
+		_fail("Processor worksite still shows a name field or failed to restore the saved processor colour.")
 		worksite.free()
 		return
 
 	var emitted_design: Array = []
 	worksite.design_saved.connect(func(design: Dictionary): emitted_design.append(design))
 	worksite.call("_save_design")
-	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "Smoke Test SoC":
-		_fail("Save Processor Design did not emit the configured processor design.")
+	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01":
+		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return
 	if str(emitted_design[0].get("design_id", "")) != "dw_silicon_01":
 		_fail("Saving the processor did not preserve the selected physical design identity.")
 		worksite.free()
 		return
-	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("package_finish", "")) != "Deep green substrate" or str(emitted_design[0].get("die_finish", "")) != "Polished silicon":
-		_fail("Save Processor Design did not preserve all configured package and die values.")
+	if str(emitted_design[0].get("package_size", "")) != "14 × 14 mm" or str(emitted_design[0].get("processor_color", "")) != "Silver":
+		_fail("Save Processor Design did not preserve the configured package size and processor colour.")
 		worksite.free()
 		return
 
