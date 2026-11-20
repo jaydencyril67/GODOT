@@ -244,6 +244,27 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	var component_selector := worksite.find_child("RearHardwareItemSelector", true, false) as Button
+	if component_selector == null:
+		_fail("Camera/Flash component selector disappeared after adding a camera.")
+		worksite.free()
+		return
+	component_selector.emit_signal("pressed")
+	var component_selection := worksite.find_child("RearHardwareSelection", true, false) as VBoxContainer
+	if component_selection == null:
+		_fail("Camera component selection view did not open.")
+		worksite.free()
+		return
+	design_mode_button.emit_signal("pressed")
+	await process_frame
+	var restored_design_panel := worksite.find_child("CameraBackDesignControls", true, false) as VBoxContainer
+	if component_selection.is_inside_tree() or restored_design_panel == null or not restored_design_panel.visible:
+		_fail("Switching from Camera component selection to DESIGN left overlapping panels.")
+		worksite.free()
+		return
+	camera_mode_button.emit_signal("pressed")
+	await process_frame
+
 	var initial_camera_position: Vector2 = camera_modules[0]["position"]
 	worksite.call("_on_rear_hardware_size_changed", 0.06)
 	camera_modules = worksite.get("rear_camera_modules")
