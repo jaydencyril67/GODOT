@@ -262,8 +262,14 @@ func _run_camera_worksite_test() -> void:
 
 	worksite.call("_add_rear_hardware_module")
 	var camera_modules: Array = worksite.get("rear_camera_modules")
-	if camera_modules.size() != 1 or remove_button.disabled:
-		_fail("Rare Camera step could not add and select a rear camera module.")
+	if camera_modules.size() != 1 or remove_button.disabled or not add_button.disabled:
+		_fail("The first rear camera should be available by default and use up the initial one-camera capacity.")
+		worksite.free()
+		return
+	worksite.call("_add_rear_hardware_module")
+	camera_modules = worksite.get("rear_camera_modules")
+	if camera_modules.size() != 1:
+		_fail("Camera Worksite added a second rear camera before count research approval.")
 		worksite.free()
 		return
 
@@ -308,20 +314,67 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("_set_rear_hardware_mode", "FLASH")
 	worksite.call("_add_rear_hardware_module")
 	var flash_modules: Array = worksite.get("rear_flash_modules")
-	if flash_modules.size() != 1 or worksite.find_child("RearCameraFlashHardware", true, false) == null:
-		_fail("Rare Camera step could not add a flash or render the rear hardware preview.")
+	if flash_modules.size() != 1 or worksite.find_child("RearCameraFlashHardware", true, false) == null or not add_button.disabled:
+		_fail("Rare Camera step should add one default rear flash and then enforce its initial capacity.")
+		worksite.free()
+		return
+	worksite.call("_add_rear_hardware_module")
+	flash_modules = worksite.get("rear_flash_modules")
+	if flash_modules.size() != 1:
+		_fail("Camera Worksite added a second rear flash before count research approval.")
 		worksite.free()
 		return
 
+	worksite.call("set_rear_flash_count_research_level", 1)
+	if add_button.disabled or int(worksite.call("_get_rear_hardware_addition_limit")) != 2:
+		_fail("Approving Rear Flash Count level 1 did not unlock the second flash slot.")
+		worksite.free()
+		return
+	var flash_points_before_second := float(worksite.call("_calculate_camera_technology_points"))
+	worksite.call("_add_rear_hardware_module")
+	flash_modules = worksite.get("rear_flash_modules")
+	var flash_points_after_second := float(worksite.call("_calculate_camera_technology_points"))
+	var expected_flash_points := ResearchManagerScript.get_technology_points_for_progress("Rear Flash Count", 1.0)
+	if flash_modules.size() != 2 or not add_button.disabled or not is_equal_approx(flash_points_after_second - flash_points_before_second, expected_flash_points):
+		_fail("The approved second flash slot or its Technology Points contribution was not applied.")
+		worksite.free()
+		return
+	worksite.call("set_rear_flash_count_research_level", 4)
+	if int(worksite.call("_get_rear_hardware_addition_limit")) != 5:
+		_fail("Rear Flash Count level 4 did not unlock the five-flash maximum.")
+		worksite.free()
+		return
+	worksite.call("set_rear_flash_count_research_level", 1)
+	worksite.call("_remove_rear_hardware_module")
 	worksite.call("_remove_rear_hardware_module")
 	flash_modules = worksite.get("rear_flash_modules")
 	if not flash_modules.is_empty():
-		_fail("Rare Camera remove control did not remove the selected flash.")
+		_fail("Rare Camera remove control did not remove both test flashes.")
 		worksite.free()
 		return
+	worksite.call("set_rear_flash_count_research_level", 0)
 
 	worksite.call("_set_rear_hardware_mode", "CAMERA")
+	worksite.call("set_rear_camera_count_research_level", 1)
+	if add_button.disabled or int(worksite.call("_get_rear_hardware_addition_limit")) != 2:
+		_fail("Approving Rear Camera Count level 1 did not unlock the second camera slot.")
+		worksite.free()
+		return
+	var camera_points_before_second := float(worksite.call("_calculate_camera_technology_points"))
 	worksite.call("_add_rear_hardware_module")
+	camera_modules = worksite.get("rear_camera_modules")
+	var camera_points_after_second := float(worksite.call("_calculate_camera_technology_points"))
+	var expected_camera_points := ResearchManagerScript.get_technology_points_for_progress("Rear Camera Count", 1.0)
+	if camera_modules.size() != 2 or int(camera_modules[1].get("mp", -1)) != 1 or not add_button.disabled or not is_equal_approx(camera_points_after_second - camera_points_before_second, expected_camera_points):
+		_fail("The approved second rear camera slot, independent 1MP starting resolution, or Technology Points contribution was not applied.")
+		worksite.free()
+		return
+	worksite.call("set_rear_camera_count_research_level", 4)
+	if int(worksite.call("_get_rear_hardware_addition_limit")) != 5:
+		_fail("Rear Camera Count level 4 did not unlock the five-camera maximum.")
+		worksite.free()
+		return
+	worksite.call("set_rear_camera_count_research_level", 1)
 	camera_modules = worksite.get("rear_camera_modules")
 	if camera_modules.size() != 2 or int(camera_modules[1].get("mp", -1)) != 1:
 		_fail("New rear cameras must receive an independent 1MP starting resolution.")
