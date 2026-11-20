@@ -883,6 +883,24 @@ func _add_camera_back_design_box() -> void:
 	var min_y := -body_half.y + half.y
 	var max_y := body_half.y - half.y
 	var placed := false
+	# Place the first raised section centrally so the directional pad has
+	# usable movement space in every direction while viewing the handset rear.
+	var preferred_position := Vector2.ZERO
+	if _camera_back_design_position_is_free(preferred_position, box_size, -1):
+		camera_back_design_boxes.append({
+			"id": next_camera_back_design_id,
+			"position": preferred_position,
+			"size": box_size,
+			"border": 0.08,
+			"custom_color": camera_back_design_color,
+			"gradient_color": Color("#536dfe"),
+			"gradient_enabled": false,
+			"gradient_direction": 0,
+			"use_device_color": false
+		})
+		camera_back_design_selected_index = camera_back_design_boxes.size() - 1
+		next_camera_back_design_id += 1
+		placed = true
 	var y := max_y
 	while y >= min_y and not placed:
 		var x := min_x
