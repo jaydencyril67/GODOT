@@ -9973,18 +9973,10 @@ func _refresh_rear_hardware_panel() -> void:
 		rear_hardware_selection_button.text = "%s  %02d  ›" % [kind_name, int(modules[selected_index]["id"])] if has_selection else "ADD A %s TO SELECT" % kind_name
 	var addition_limit := _get_rear_hardware_addition_limit()
 	var addition_limit_reached := modules.size() >= addition_limit
-	if addition_limit_reached:
-		var limit_unit := "CAMERA" if rear_hardware_mode == "CAMERA" else "FLASH"
-		if addition_limit != 1:
-			if rear_hardware_mode == "CAMERA":
-				limit_unit += "S"
-			else:
-				limit_unit += "ES"
-		rear_hardware_add_button.text = "MAX %d %s" % [addition_limit, limit_unit]
-	else:
-		rear_hardware_add_button.text = "+ ADD CAMERA" if rear_hardware_mode == "CAMERA" else "+ ADD FLASH"
+	# Keep these controls icon-only in both CAMERA and FLASH modes.
+	# Reaching the research limit disables the plus button without replacing its icon.
 	rear_hardware_add_button.disabled = addition_limit_reached
-	rear_hardware_remove_button.text = "− REMOVE CAMERA" if rear_hardware_mode == "CAMERA" else "− REMOVE FLASH"
+	rear_hardware_remove_button.text = "−"
 
 func _rear_hardware_back_design_index(module_position: Vector2) -> int:
 	# Match the hardware support rule exactly: a module belongs to a raised
