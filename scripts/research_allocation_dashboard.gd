@@ -15,8 +15,9 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package Customizations", "Charger"]
-const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
+const COMPONENT_LABELS := ["Screen Tech", "RAM Tech", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System", "Phone Type", "Memory Clock", "Curve Horizontal", "Curve Vertical", "Curve Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charge", "Fingerprint", "Face ID", "NFC", "Accelerometer", "Gyroscope", "Proximity", "Ambient Light", "Magnetometer", "Barometer", "GNSS / GPS", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen", "Button Length", "Power Position", "Volume Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package Customizations", "Charger"]
+const COMPONENT_VALUES := ["Screen Technology", "RAM Technology", "RAM", "Internal Storage", "Phone Thickness", "Border Radius", "Charge Port", "Home Button", "Speakers", "Speaker Quality", "Front Camera", "Mobile Network", "Wi-Fi", "Bluetooth", "Screen Width", "Screen Height", "Refresh Rate", "Cooling System Design", "Phone Type", "Memory Clock", "Curved Screen Horizontal", "Curved Screen Vertical", "Curved Screen Both", "Battery Capacity", "Power Bank", "Charging Speed", "Wireless Charging", "Fingerprint Sensor", "Face Recognition / Face ID", "NFC Controller", "Accelerometer", "Gyroscope", "Proximity Sensor", "Ambient Light Sensor", "Magnetometer / Compass", "Barometer", "GNSS / GPS Receiver", "Rear Camera Count", "Rear Camera Size", "Rear Flash Count", "Rear Flash Size", "Back Raised Design", "Device Color", "Side Button", "Sound Button", "Style Pen (S Pen)", "Power/Volume Button Length", "Power Button Position", "Volume Button Position", "Phone Case", "Protection Glass", "Smartwatch", "Wireless Earbuds", "Box Package", "Charger"]
+const CAMERA_RESEARCH_COMPONENTS := ["Rear Camera MP", "Front Camera MP"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -335,13 +336,21 @@ func _build_empty_scene() -> void:
 	create.pressed.connect(_open_creation_scene)
 	empty_state.add_child(create)
 
+func _is_research_project_visible(component: String) -> bool:
+	return not CAMERA_RESEARCH_COMPONENTS.has(component)
+
+
 func _get_pending_validation_projects() -> Array[Dictionary]:
 	var pending_projects: Array[Dictionary] = []
 	# Newest completed projects appear first for technical review.
 	for index in range(research_projects.size() - 1, -1, -1):
 		var project_value: Variant = research_projects[index]
-		if project_value is Dictionary and str(project_value.get("status", "")) in [ResearchManagerScript.STATUS_AWAITING_VALIDATION, ResearchManagerScript.STATUS_UNSUCCESSFUL]:
-			pending_projects.append(project_value)
+		if project_value is Dictionary:
+			var project: Dictionary = project_value
+			if not _is_research_project_visible(str(project.get("component", ""))):
+				continue
+			if str(project.get("status", "")) in [ResearchManagerScript.STATUS_AWAITING_VALIDATION, ResearchManagerScript.STATUS_UNSUCCESSFUL]:
+				pending_projects.append(project)
 	return pending_projects
 
 
@@ -488,8 +497,7 @@ func _build_component_selection_scene() -> void:
 	component_page_grids.clear()
 	component_page_index = 0
 	component_buttons.clear()
-	# Five components per row and four rows per page gives 20 slots,
-	# keeping the 54-component catalogue within exactly three pages.
+	# Five components per row and four rows per page preserve the compact catalogue layout.
 	var columns := 5
 	var rows_per_page := 4
 	var page_capacity := columns * rows_per_page
@@ -1567,8 +1575,12 @@ func _get_active_projects() -> Array[Dictionary]:
 	# Newest projects appear first while all active projects remain visible.
 	for index in range(research_projects.size() - 1, -1, -1):
 		var value: Variant = research_projects[index]
-		if value is Dictionary and str(value.get("status", "")) == "active":
-			active_projects.append(value)
+		if value is Dictionary:
+			var project: Dictionary = value
+			if not _is_research_project_visible(str(project.get("component", ""))):
+				continue
+			if str(project.get("status", "")) == "active":
+				active_projects.append(project)
 	return active_projects
 
 

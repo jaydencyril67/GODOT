@@ -1928,7 +1928,35 @@ func _run_transition_checks() -> void:
 		_fail("Closing the R&D centre did not reveal the original Research page.")
 		return
 	if is_instance_valid(game.research_allocation_dashboard):
-		_fail("Closing the R&D centre did not dispose of its dashboard scene.")
+		_fail("Closing the Phone R&D centre did not dispose of its dashboard scene.")
+		return
+
+	# Camera opens its own full research dashboard while reusing the same Research page.
+	game._on_research_category_pressed("CAMERA")
+	if game.current_screen != "camera_research_allocation" or not is_instance_valid(game.research_allocation_dashboard):
+		_fail("Camera did not open its dedicated research dashboard.")
+		return
+	var camera_dashboard = game.research_allocation_dashboard
+	if not camera_dashboard.has_signal("project_commission_requested") or not camera_dashboard.has_signal("project_approve_requested") or not camera_dashboard.has_signal("project_retry_requested"):
+		_fail("Camera Research is missing the shared project-management signals.")
+		return
+	if not is_instance_valid(camera_dashboard.get_node_or_null("ResearchManagementFrame/ResearchManagementPage/ResearchManagementBody")):
+		_fail("Camera Research did not reproduce the full Phone Research workspace structure.")
+		return
+	camera_dashboard.call("_open_creation_scene")
+	var camera_component_buttons: Array = camera_dashboard.get("component_buttons")
+	if camera_component_buttons.size() != 2:
+		_fail("Camera Research must initially expose exactly Rear Camera MP and Front Camera MP.")
+		return
+	if str(camera_component_buttons[0].get("text")) != "REAR CAMERA MP" or str(camera_component_buttons[1].get("text")) != "FRONT CAMERA MP":
+		_fail("Camera Research component ordering or labels are incorrect.")
+		return
+	game._return_from_research_allocation_dashboard()
+	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
+		_fail("Closing Camera Research did not restore the original Research page.")
+		return
+	if is_instance_valid(game.research_allocation_dashboard):
+		_fail("Closing Camera Research did not dispose of its dashboard scene.")
 		return
 
 	game._return_home_from_research()

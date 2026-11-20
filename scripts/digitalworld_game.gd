@@ -6,6 +6,7 @@ const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_w
 const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/processor_creation_worksite.tscn")
 const CameraCreationWorksiteScene: PackedScene = preload("res://scenes/camera_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
+const CameraResearchDashboardScene: PackedScene = preload("res://scenes/camera_research_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
@@ -2450,8 +2451,12 @@ void fragment() {
 
 
 func _on_research_category_pressed(category: String) -> void:
-	if category.to_upper() == "PHONE":
+	var selected_category := category.to_upper()
+	if selected_category == "PHONE":
 		_show_research_allocation_dashboard()
+		return
+	if selected_category == "CAMERA":
+		_show_research_allocation_dashboard(true)
 		return
 	_show_notice("RESEARCH", category.capitalize() + " research will be added here.")
 
@@ -2532,23 +2537,22 @@ func _open_research_from_camera_creation_worksite() -> void:
 	ui_layer = worksite_research_overlay_layer
 	ui_root = overlay_root
 	research_dashboard_return_to_worksite = true
-	_show_research_allocation_dashboard()
+	_show_research_allocation_dashboard(true)
 
 
 
-func _show_research_allocation_dashboard() -> void:
-	# Phone now opens the company-level research dashboard, not the legacy
-	# component-by-component upgrade catalogue.
+func _show_research_allocation_dashboard(camera_research: bool = false) -> void:
 	if not is_instance_valid(ui_root):
 		push_error("Cannot open Research Allocation: the Research screen root is missing.")
 		return
 	if is_instance_valid(research_allocation_dashboard):
 		research_allocation_dashboard.queue_free()
-	research_allocation_dashboard = ResearchAllocationDashboardScene.instantiate() as Control
+	var dashboard_scene: PackedScene = CameraResearchDashboardScene if camera_research else ResearchAllocationDashboardScene
+	research_allocation_dashboard = dashboard_scene.instantiate() as Control
 	if not is_instance_valid(research_allocation_dashboard):
-		push_error("Could not instantiate the Company Research Allocation Dashboard.")
+		push_error("Could not instantiate the %s Research Allocation Dashboard." % ("Camera" if camera_research else "Phone"))
 		return
-	research_allocation_dashboard.name = "CompanyResearchAllocationDashboard"
+	research_allocation_dashboard.name = "CompanyCameraResearchDashboard" if camera_research else "CompanyResearchAllocationDashboard"
 	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
 	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
@@ -2556,8 +2560,7 @@ func _show_research_allocation_dashboard() -> void:
 	research_allocation_dashboard.connect("project_retry_requested", Callable(self, "_on_rd_project_retry_requested"))
 	research_allocation_dashboard.connect("project_cancel_requested", Callable(self, "_on_rd_project_cancel_requested"))
 	ui_root.add_child(research_allocation_dashboard)
-	current_screen = "research_allocation"
-
+	current_screen = "camera_research_allocation" if camera_research else "research_allocation"
 
 func _get_research_dashboard_data() -> Dictionary:
 	return {
