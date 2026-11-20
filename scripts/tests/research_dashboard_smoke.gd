@@ -207,6 +207,7 @@ func _run_checks() -> void:
 	var processor_labels := _button_labels(processor_options)
 	var expected_processor_labels: Array[String] = [
 		"CPU CORES",
+		"INSTRUCTION SCHEDULER",
 		"CONTROL UNIT",
 		"INSTRUCTION DECODER",
 		"INSTRUCTION FETCH UNIT",
@@ -228,7 +229,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_processor_technology_research() or not _check_processor_cpu_core_research():
+	if not _check_processor_technology_research() or not _check_processor_cpu_core_research() or not _check_processor_instruction_scheduler_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -540,6 +541,83 @@ func _check_processor_cpu_core_research() -> bool:
 		}], 2000.0 + float(expected_core_count))
 		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(COMPONENT, 0)) != expected_core_count - 1:
 			_fail("Approving the %s target did not persist the next CPU Core research level: %s" % [expected_target, str(approval.get("error", ""))])
+			return false
+	return true
+
+
+func _check_processor_instruction_scheduler_research() -> bool:
+	const COMPONENT := "Instruction Scheduler"
+	const EXPECTED_CAPACITIES: Array[int] = [8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 320, 384, 448, 500]
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has(COMPONENT) or not ResearchManagerScript.PROCESSOR_RESEARCH_COMPONENTS.has(COMPONENT):
+		_fail("Instruction Scheduler is missing from the processor research catalogue or routing group.")
+		return false
+	if ResearchManagerScript.INSTRUCTION_SCHEDULER_ENTRY_LEVELS != EXPECTED_CAPACITIES or ResearchManagerScript.INSTRUCTION_SCHEDULER_MAX_RESEARCH_LEVEL != 13:
+		_fail("Instruction Scheduler does not expose the approved 14-capacity progression from 8 to 500 entries.")
+		return false
+	if ResearchManagerScript.get_instruction_scheduler_entries_for_level(0) != 8 or ResearchManagerScript.get_instruction_scheduler_entries_for_level(13) != 500:
+		_fail("Instruction Scheduler did not preserve its 8-entry baseline or 500-entry maximum.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(COMPONENT, 1), 270.0):
+		_fail("Every Instruction Scheduler capacity upgrade must use a fixed 270-day research duration.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 0.5), 1.35) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 1.0), 2.70) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 13.0), 35.10):
+		_fail("Instruction Scheduler is not using the shared 270-day Technology Points conversion.")
+		return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_instruction_scheduler_research_target({})
+	var final_target: Dictionary = ResearchManagerScript.get_instruction_scheduler_research_target({COMPONENT: 12})
+	if int(first_target.get("index", -1)) != 1 or str(first_target.get("technology", "")) != "16 Entries" or int(first_target.get("entry_count", -1)) != 16:
+		_fail("Instruction Scheduler did not begin with the expected 8-to-16-entry research upgrade.")
+		return false
+	if int(final_target.get("index", -1)) != 13 or str(final_target.get("technology", "")) != "500 Entries" or not ResearchManagerScript.get_instruction_scheduler_research_target({COMPONENT: 13}).is_empty():
+		_fail("Instruction Scheduler did not stop cleanly at its 500-entry maximum.")
+		return false
+
+	var test_career := {
+		"staff_employees": [{"id": "scheduler_researcher", "department": "Research", "efficiency": 90}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	for expected_level in range(1, EXPECTED_CAPACITIES.size()):
+		var target: Dictionary = ResearchManagerScript.get_instruction_scheduler_research_target(test_career["research_component_levels"])
+		var expected_entries := EXPECTED_CAPACITIES[expected_level]
+		var expected_target := "%d Entries" % expected_entries
+		if int(target.get("index", -1)) != expected_level or str(target.get("technology", "")) != expected_target:
+			_fail("Instruction Scheduler did not produce the next ordered target: %s." % expected_target)
+			return false
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["scheduler_researcher"]
+		}, 5000.0 + float(expected_level))
+		if not bool(commission.get("ok", false)):
+			_fail("Instruction Scheduler research could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if int(project.get("research_target_index", -1)) != expected_level or str(project.get("research_target", "")) != expected_target or not is_equal_approx(float(project.get("required_research_days", 0.0)), 270.0):
+			_fail("Instruction Scheduler project did not preserve its ordered target or fixed 270-day duration.")
+			return false
+		var duplicate := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["scheduler_researcher"]
+		}, 5100.0)
+		if bool(duplicate.get("ok", false)):
+			_fail("Instruction Scheduler allowed a duplicate project while the next upgrade was active.")
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": COMPONENT,
+			"metric": "Instruction scheduler entry capacity",
+			"value": expected_target
+		}], 6000.0 + float(expected_level))
+		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(COMPONENT, 0)) != expected_level:
+			_fail("Approving %s did not persist the corresponding scheduler research level: %s" % [expected_target, str(approval.get("error", ""))])
 			return false
 	return true
 

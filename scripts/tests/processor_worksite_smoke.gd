@@ -87,7 +87,7 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+	if progress_bar.max_value != 5 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
 		_fail("Processor worksite does not initialize its four-step progress navigation.")
 		worksite.free()
 		return
@@ -334,7 +334,7 @@ func _run_processor_worksite_test() -> void:
 	var cpu_core_slider := worksite.find_child("ProcessorCpuCoreSlider", true, false) as HSlider
 	var cpu_core_value := worksite.find_child("ProcessorCpuCoreCountValue", true, false) as Label
 	var cpu_core_range := worksite.find_child("ProcessorCpuCoreRangeLabel", true, false) as Label
-	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or not next_step_button.disabled or cpu_core_slider == null or cpu_core_value == null or cpu_core_range == null:
+	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or next_step_button.disabled or cpu_core_slider == null or cpu_core_value == null or cpu_core_range == null:
 		_fail("Processor CPU Cores is not available as the fourth worksite step with its slider and labels.")
 		worksite.free()
 		return
@@ -350,6 +350,48 @@ func _run_processor_worksite_test() -> void:
 	cpu_core_slider.value = 3.0
 	if int(worksite.get("processor_cpu_core_count")) != 3 or cpu_core_value.text != "3 CORES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 19.00) or technology_level_value.text != "19.00 TP":
 		_fail("CPU Core selection did not update the selected count and shared Processor Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("_on_next_pressed")
+	var scheduler_slider := worksite.find_child("ProcessorInstructionSchedulerSlider", true, false) as HSlider
+	var scheduler_value := worksite.find_child("ProcessorInstructionSchedulerEntryValue", true, false) as Label
+	var scheduler_range := worksite.find_child("ProcessorInstructionSchedulerRangeLabel", true, false) as Label
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.value != 5 or not next_step_button.disabled or scheduler_slider == null or scheduler_value == null or scheduler_range == null:
+		_fail("Instruction Scheduler is not available as the fifth worksite step with its slider and labels.")
+		worksite.free()
+		return
+	if scheduler_slider.min_value != 0.0 or scheduler_slider.max_value != 0.0 or scheduler_slider.step != 1.0 or scheduler_value.text != "8 ENTRIES" or scheduler_range.text != "AVAILABLE RANGE: 8–8 ENTRIES":
+		_fail("Instruction Scheduler did not initialize at the 8-entry baseline.")
+		worksite.free()
+		return
+	worksite.call("set_instruction_scheduler_research_level", 4)
+	if scheduler_slider.max_value != 4.0 or scheduler_range.text != "AVAILABLE RANGE: 8–48 ENTRIES":
+		_fail("Instruction Scheduler approvals did not progressively expand its selectable capacity.")
+		worksite.free()
+		return
+	scheduler_slider.value = 4.0
+	if int(worksite.get("processor_instruction_scheduler_selected_level")) != 4 or scheduler_value.text != "48 ENTRIES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 29.80) or technology_level_value.text != "29.80 TP":
+		_fail("Instruction Scheduler selection did not update the entry capacity and shared Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("set_instruction_scheduler_research_level", 2)
+	if scheduler_slider.max_value != 2.0 or int(worksite.get("processor_instruction_scheduler_selected_level")) != 2 or scheduler_value.text != "24 ENTRIES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 24.40):
+		_fail("Instruction Scheduler selection did not clamp to the approved research ceiling.")
+		worksite.free()
+		return
+	worksite.call("set_instruction_scheduler_research_level", 13)
+	if scheduler_slider.max_value != 13.0 or scheduler_range.text != "AVAILABLE RANGE: 8–500 ENTRIES":
+		_fail("Instruction Scheduler did not expose the complete 500-entry research ceiling.")
+		worksite.free()
+		return
+	scheduler_slider.value = 13.0
+	if scheduler_value.text != "500 ENTRIES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 54.10):
+		_fail("Maximum Instruction Scheduler capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from Instruction Scheduler to CPU Cores.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -407,6 +449,7 @@ func _run_processor_worksite_test() -> void:
 		"processor_gradient_enabled": true,
 		"processor_gradient_direction": 2,
 		"cpu_core_count": 3,
+		"instruction_scheduler_entries": 500,
 		"processor_technology_enabled_states": {
 			"Control Unit": true,
 			"Security Processing Unit": true
@@ -422,7 +465,7 @@ func _run_processor_worksite_test() -> void:
 	var emitted_design: Array = []
 	worksite.design_saved.connect(func(design: Dictionary): emitted_design.append(design))
 	worksite.call("_save_design")
-	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01" or int(emitted_design[0].get("cpu_core_count", 0)) != 3:
+	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01" or int(emitted_design[0].get("cpu_core_count", 0)) != 3 or int(emitted_design[0].get("instruction_scheduler_entries", 0)) != 500:
 		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return

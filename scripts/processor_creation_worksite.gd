@@ -22,7 +22,7 @@ const LEGACY_PROCESSOR_COLORS := {
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
-const WIZARD_STEP_COUNT := 4
+const WIZARD_STEP_COUNT := 5
 
 const PROCESSOR_TECHNOLOGIES := [
 	"Control Unit",
@@ -244,6 +244,12 @@ var processor_cpu_core_value_label: Label
 var processor_cpu_core_range_label: Label
 var processor_cpu_core_research_level := 0
 var processor_cpu_core_count := 1
+var processor_instruction_scheduler_step_content: VBoxContainer
+var processor_instruction_scheduler_slider: HSlider
+var processor_instruction_scheduler_value_label: Label
+var processor_instruction_scheduler_range_label: Label
+var processor_instruction_scheduler_research_level := 0
+var processor_instruction_scheduler_selected_level := 0
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
 var die_surfaces: Array[MeshInstance3D] = []
@@ -264,7 +270,8 @@ var processor_design := {
 	"processor_gradient_color": "#536DFE",
 	"processor_gradient_enabled": false,
 	"processor_gradient_direction": 0,
-	"cpu_core_count": 1
+	"cpu_core_count": 1,
+	"instruction_scheduler_entries": 8
 }
 
 func _ready() -> void:
@@ -290,6 +297,9 @@ func configure_design(design: Dictionary) -> void:
 	processor_gradient_enabled = bool(processor_design.get("processor_gradient_enabled", false))
 	processor_gradient_direction = clampi(int(processor_design.get("processor_gradient_direction", 0)), 0, 3)
 	processor_cpu_core_count = clampi(int(processor_design.get("cpu_core_count", 1)), 1, 30)
+	var saved_scheduler_entries := int(processor_design.get("instruction_scheduler_entries", 8))
+	var saved_scheduler_level := ResearchManagerScript.INSTRUCTION_SCHEDULER_ENTRY_LEVELS.find(saved_scheduler_entries)
+	processor_instruction_scheduler_selected_level = maxi(0, saved_scheduler_level)
 	var saved_technology_states: Variant = processor_design.get("processor_technology_enabled_states", {})
 	if saved_technology_states is Dictionary:
 		processor_technology_enabled_states = saved_technology_states.duplicate(true)
@@ -572,6 +582,17 @@ func _build_interface() -> void:
 	save_cpu_core_settings_button.pressed.connect(_save_design)
 	cpu_cores_page.add_child(save_cpu_core_settings_button)
 
+	var instruction_scheduler_page := _create_step_page("INSTRUCTION SCHEDULER")
+	_build_processor_instruction_scheduler_controls(instruction_scheduler_page)
+	var save_instruction_scheduler_settings_button := Button.new()
+	save_instruction_scheduler_settings_button.name = "SaveProcessorInstructionSchedulerSettingsButton"
+	save_instruction_scheduler_settings_button.text = "SAVE PROCESSOR DESIGN"
+	save_instruction_scheduler_settings_button.custom_minimum_size = Vector2(0, 46)
+	save_instruction_scheduler_settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_instruction_scheduler_settings_button, true)
+	save_instruction_scheduler_settings_button.pressed.connect(_save_design)
+	instruction_scheduler_page.add_child(save_instruction_scheduler_settings_button)
+
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
@@ -676,6 +697,11 @@ func _get_maximum_cpu_core_count() -> int:
 	return ResearchManagerScript.get_cpu_cores_max_for_level(processor_cpu_core_research_level)
 
 
+func set_instruction_scheduler_research_level(level: int) -> void:
+	processor_instruction_scheduler_research_level = clampi(level, 0, ResearchManagerScript.INSTRUCTION_SCHEDULER_MAX_RESEARCH_LEVEL)
+	_refresh_processor_instruction_scheduler_controls()
+
+
 func _build_processor_cpu_core_controls(parent: VBoxContainer) -> void:
 	processor_cpu_core_step_content = VBoxContainer.new()
 	processor_cpu_core_step_content.name = "ProcessorCpuCoreStepContent"
@@ -775,6 +801,81 @@ func _refresh_processor_cpu_core_controls() -> void:
 	_refresh_processor_technology_level_display()
 
 
+func _build_processor_instruction_scheduler_controls(parent: VBoxContainer) -> void:
+	processor_instruction_scheduler_step_content = VBoxContainer.new()
+	processor_instruction_scheduler_step_content.name = "ProcessorInstructionSchedulerStepContent"
+	processor_instruction_scheduler_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_instruction_scheduler_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_instruction_scheduler_step_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	processor_instruction_scheduler_step_content.add_theme_constant_override("separation", 18)
+	parent.add_child(processor_instruction_scheduler_step_content)
+
+	var description := _label("SELECT INSTRUCTION SCHEDULER CAPACITY", 12, MUTED)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_instruction_scheduler_step_content.add_child(description)
+
+	processor_instruction_scheduler_value_label = _label("8 ENTRIES", 30, Color("#F2EEE7"))
+	processor_instruction_scheduler_value_label.name = "ProcessorInstructionSchedulerEntryValue"
+	processor_instruction_scheduler_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_instruction_scheduler_step_content.add_child(processor_instruction_scheduler_value_label)
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "ProcessorInstructionSchedulerSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.add_theme_constant_override("separation", 12)
+	processor_instruction_scheduler_step_content.add_child(slider_row)
+
+	var minimum_label := _label("8", 12, MUTED)
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+
+	processor_instruction_scheduler_slider = HSlider.new()
+	processor_instruction_scheduler_slider.name = "ProcessorInstructionSchedulerSlider"
+	processor_instruction_scheduler_slider.min_value = 0
+	processor_instruction_scheduler_slider.max_value = processor_instruction_scheduler_research_level
+	processor_instruction_scheduler_slider.step = 1
+	processor_instruction_scheduler_slider.value = processor_instruction_scheduler_selected_level
+	processor_instruction_scheduler_slider.custom_minimum_size = Vector2(0, 46)
+	processor_instruction_scheduler_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_instruction_scheduler_slider.focus_mode = Control.FOCUS_NONE
+	processor_instruction_scheduler_slider.tick_count = 0
+	_style_processor_cpu_core_slider(processor_instruction_scheduler_slider)
+	processor_instruction_scheduler_slider.value_changed.connect(_on_processor_instruction_scheduler_slider_changed)
+	slider_row.add_child(processor_instruction_scheduler_slider)
+
+	var maximum_label := _label("500", 12, MUTED)
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+
+	processor_instruction_scheduler_range_label = _label("AVAILABLE RANGE: 8–8 ENTRIES", 11, ACCENT)
+	processor_instruction_scheduler_range_label.name = "ProcessorInstructionSchedulerRangeLabel"
+	processor_instruction_scheduler_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_instruction_scheduler_step_content.add_child(processor_instruction_scheduler_range_label)
+	_refresh_processor_instruction_scheduler_controls()
+
+
+func _on_processor_instruction_scheduler_slider_changed(value: float) -> void:
+	processor_instruction_scheduler_selected_level = clampi(roundi(value), 0, processor_instruction_scheduler_research_level)
+	_refresh_processor_instruction_scheduler_controls()
+
+
+func _refresh_processor_instruction_scheduler_controls() -> void:
+	var maximum_level := processor_instruction_scheduler_research_level
+	processor_instruction_scheduler_selected_level = clampi(processor_instruction_scheduler_selected_level, 0, maximum_level)
+	var selected_entries := ResearchManagerScript.get_instruction_scheduler_entries_for_level(processor_instruction_scheduler_selected_level)
+	var maximum_entries := ResearchManagerScript.get_instruction_scheduler_entries_for_level(maximum_level)
+	if is_instance_valid(processor_instruction_scheduler_slider):
+		processor_instruction_scheduler_slider.min_value = 0
+		processor_instruction_scheduler_slider.max_value = maximum_level
+		if not is_equal_approx(processor_instruction_scheduler_slider.value, float(processor_instruction_scheduler_selected_level)):
+			processor_instruction_scheduler_slider.set_value_no_signal(processor_instruction_scheduler_selected_level)
+	if is_instance_valid(processor_instruction_scheduler_value_label):
+		processor_instruction_scheduler_value_label.text = "%d ENTRIES" % selected_entries
+	if is_instance_valid(processor_instruction_scheduler_range_label):
+		processor_instruction_scheduler_range_label.text = "AVAILABLE RANGE: 8–%d ENTRIES" % maximum_entries
+	_refresh_processor_technology_level_display()
+
+
 func _refresh_processor_technology_level_display() -> void:
 	if is_instance_valid(processor_technology_level_value_label):
 		processor_technology_level_value_label.text = "%.2f TP" % _calculate_processor_technology_points()
@@ -787,6 +888,7 @@ func _calculate_processor_technology_points() -> float:
 		if int(processor_technology_research_levels.get(technology_name, 0)) >= 1 and bool(processor_technology_enabled_states.get(technology_name, false)):
 			total += ResearchManagerScript.get_technology_points_for_progress(technology_name, 1.0)
 	total += ResearchManagerScript.get_technology_points_for_progress("CPU Cores", float(maxi(0, processor_cpu_core_count - 1)))
+	total += ResearchManagerScript.get_technology_points_for_progress("Instruction Scheduler", float(processor_instruction_scheduler_selected_level))
 	return maxf(0.0, total)
 
 
@@ -1709,6 +1811,7 @@ func _save_design() -> void:
 		"processor_gradient_enabled": processor_gradient_enabled,
 		"processor_gradient_direction": processor_gradient_direction,
 		"cpu_core_count": processor_cpu_core_count,
+		"instruction_scheduler_entries": ResearchManagerScript.get_instruction_scheduler_entries_for_level(processor_instruction_scheduler_selected_level),
 		"processor_technology_enabled_states": processor_technology_enabled_states.duplicate(true)
 	}
 	design_saved.emit(processor_design.duplicate(true))
