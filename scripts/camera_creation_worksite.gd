@@ -649,11 +649,6 @@ func _show_camera_back_design_controls() -> void:
 		camera_back_design_selection_view = null
 	if is_instance_valid(rear_hardware_controls_view):
 		rear_hardware_controls_view.visible = false
-	if is_instance_valid(camera_back_design_selection_view):
-		camera_back_design_selection_view.queue_free()
-		camera_back_design_selection_view = null
-	if is_instance_valid(rear_hardware_controls_view):
-		rear_hardware_controls_view.visible = false
 	if is_instance_valid(camera_back_design_view):
 		camera_back_design_view.queue_free()
 		camera_back_design_view = null
