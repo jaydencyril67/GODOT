@@ -7,6 +7,7 @@ const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/proces
 const CameraCreationWorksiteScene: PackedScene = preload("res://scenes/camera_creation_worksite.tscn")
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const CameraResearchDashboardScene: PackedScene = preload("res://scenes/camera_research_dashboard.tscn")
+const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/processor_research_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
@@ -44,6 +45,7 @@ var processor_worksite_open_pending := false
 var camera_worksite_open_pending := false
 var research_dashboard_return_to_worksite := false
 var research_dashboard_return_to_camera_worksite := false
+var research_dashboard_return_to_processor_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
@@ -2458,6 +2460,9 @@ func _on_research_category_pressed(category: String) -> void:
 	if selected_category == "CAMERA":
 		_show_research_allocation_dashboard(true)
 		return
+	if selected_category == "PROCESSOR":
+		_show_research_allocation_dashboard(false, true)
+		return
 	_show_notice("RESEARCH", category.capitalize() + " research will be added here.")
 
 
@@ -2493,6 +2498,7 @@ func _open_research_from_phone_creation_worksite() -> void:
 	if research_dashboard_return_to_worksite:
 		return
 	research_dashboard_return_to_camera_worksite = false
+	research_dashboard_return_to_processor_worksite = false
 	# The worksite runs without the normal screen UI root, so open research in
 	# a dedicated top-layer CanvasLayer and restore the same worksite on return.
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
@@ -2514,12 +2520,40 @@ func _open_research_from_phone_creation_worksite() -> void:
 	research_dashboard_return_to_worksite = true
 	_show_research_allocation_dashboard()
 
+func _open_research_from_processor_creation_worksite() -> void:
+	if not is_instance_valid(processor_creation_worksite):
+		return
+	if research_dashboard_return_to_worksite:
+		return
+	research_dashboard_return_to_camera_worksite = false
+	research_dashboard_return_to_processor_worksite = true
+	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	processor_creation_worksite.hide()
+	for child in processor_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	worksite_research_overlay_layer = CanvasLayer.new()
+	worksite_research_overlay_layer.name = "WorksiteResearchOverlay"
+	worksite_research_overlay_layer.layer = 100
+	add_child(worksite_research_overlay_layer)
+	var overlay_root := Control.new()
+	overlay_root.name = "WorksiteResearchRoot"
+	overlay_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	worksite_research_overlay_layer.add_child(overlay_root)
+	ui_layer = worksite_research_overlay_layer
+	ui_root = overlay_root
+	research_dashboard_return_to_worksite = true
+	_show_research_allocation_dashboard(false, true)
+
+
 func _open_research_from_camera_creation_worksite() -> void:
 	if not is_instance_valid(camera_creation_worksite):
 		return
 	if research_dashboard_return_to_worksite:
 		return
 	research_dashboard_return_to_camera_worksite = true
+	research_dashboard_return_to_processor_worksite = false
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
@@ -2541,18 +2575,22 @@ func _open_research_from_camera_creation_worksite() -> void:
 
 
 
-func _show_research_allocation_dashboard(camera_research: bool = false) -> void:
+func _show_research_allocation_dashboard(camera_research: bool = false, processor_research: bool = false) -> void:
 	if not is_instance_valid(ui_root):
 		push_error("Cannot open Research Allocation: the Research screen root is missing.")
 		return
 	if is_instance_valid(research_allocation_dashboard):
 		research_allocation_dashboard.queue_free()
-	var dashboard_scene: PackedScene = CameraResearchDashboardScene if camera_research else ResearchAllocationDashboardScene
+	var dashboard_scene: PackedScene = ResearchAllocationDashboardScene
+	if camera_research:
+		dashboard_scene = CameraResearchDashboardScene
+	elif processor_research:
+		dashboard_scene = ProcessorResearchDashboardScene
 	research_allocation_dashboard = dashboard_scene.instantiate() as Control
 	if not is_instance_valid(research_allocation_dashboard):
 		push_error("Could not instantiate the %s Research Allocation Dashboard." % ("Camera" if camera_research else "Phone"))
 		return
-	research_allocation_dashboard.name = "CompanyCameraResearchDashboard" if camera_research else "CompanyResearchAllocationDashboard"
+	research_allocation_dashboard.name = "CompanyCameraResearchDashboard" if camera_research else ("CompanyProcessorResearchDashboard" if processor_research else "CompanyResearchAllocationDashboard")
 	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
 	research_allocation_dashboard.connect("back_requested", Callable(self, "_return_from_research_allocation_dashboard"))
 	research_allocation_dashboard.connect("project_commission_requested", Callable(self, "_on_rd_project_commission_requested"))
@@ -2560,7 +2598,7 @@ func _show_research_allocation_dashboard(camera_research: bool = false) -> void:
 	research_allocation_dashboard.connect("project_retry_requested", Callable(self, "_on_rd_project_retry_requested"))
 	research_allocation_dashboard.connect("project_cancel_requested", Callable(self, "_on_rd_project_cancel_requested"))
 	ui_root.add_child(research_allocation_dashboard)
-	current_screen = "camera_research_allocation" if camera_research else "research_allocation"
+	current_screen = "camera_research_allocation" if camera_research else ("processor_research_allocation" if processor_research else "research_allocation")
 
 func _get_research_dashboard_data() -> Dictionary:
 	return {
@@ -2743,6 +2781,8 @@ func approve_research_project(project_id: String, results: Array) -> Dictionary:
 	if not _save_career():
 		career = previous_career
 		return {"ok": false, "error": "The approval could not be saved. The project remains awaiting validation."}
+	if is_instance_valid(processor_creation_worksite):
+		processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	if is_instance_valid(phone_creation_worksite):
 		phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
 		phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
@@ -2814,6 +2854,16 @@ func _return_from_research_allocation_dashboard() -> void:
 					if child is CanvasLayer:
 						child.show()
 			current_screen = "camera_creation_worksite"
+		elif research_dashboard_return_to_processor_worksite:
+			research_dashboard_return_to_processor_worksite = false
+			if is_instance_valid(processor_creation_worksite):
+				processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+				processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
+				processor_creation_worksite.show()
+				for child in processor_creation_worksite.get_children():
+					if child is CanvasLayer:
+						child.show()
+			current_screen = "processor_creation_worksite"
 		else:
 			if is_instance_valid(phone_creation_worksite):
 				phone_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
@@ -3063,8 +3113,10 @@ func _prepare_processor_creation_worksite() -> void:
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
 	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
+	processor_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_processor_creation_worksite"))
 	add_child(processor_creation_worksite)
 	processor_creation_worksite.call("configure_design", career.get("processor_design", {}))
+	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -3113,6 +3165,7 @@ func _activate_processor_creation_worksite() -> void:
 
 	ui_layer = null
 	ui_root = null
+	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
 	processor_creation_worksite.show()
 	for child in processor_creation_worksite.get_children():
