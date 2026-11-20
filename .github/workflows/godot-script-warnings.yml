@@ -1,6 +1,12 @@
 name: DigitalWorld GDScript Warning Scan
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -61,16 +67,11 @@ jobs:
             resource_path="res://${relative_path}"
             echo "===== ${resource_path} =====" >> gdscript-warning-scan.log
 
-            # --debug makes Godot print ordinary GDScript warnings.
-            # --check-only parses the selected file without running the game.
-            # A timeout prevents a parse-error debugger from holding CI open.
             script_log="$(mktemp)"
             timeout --signal=TERM --kill-after=1s 5s \
               godot --headless --path . --check-only --script "${resource_path}" --debug \
               > "$script_log" 2>&1
 
-            # Keep only warning diagnostics and their source locations.
-            # Other parser/runtime diagnostics are deliberately not reported here.
             awk '
               /WARNING:/ {
                 print
