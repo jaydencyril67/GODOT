@@ -289,8 +289,6 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor worksite did not restore the saved gradient editor state.")
 		worksite.free()
 		return
-		worksite.free()
-		return
 
 	var emitted_design: Array = []
 	worksite.design_saved.connect(func(design: Dictionary): emitted_design.append(design))
