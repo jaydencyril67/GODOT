@@ -49,7 +49,6 @@ var preview_viewport: SubViewport
 var processor_preview_world: Node3D
 var processor_root: Node3D
 var preview_camera: Camera3D
-var name_input: LineEdit
 var package_size: OptionButton
 var package_finish: OptionButton
 var die_finish: OptionButton
@@ -102,8 +101,6 @@ func configure_design(design: Dictionary) -> void:
 			restored_index = index
 			break
 	_select_processor_design(restored_index, false)
-	if is_instance_valid(name_input):
-		name_input.text = str(processor_design.get("name", ProcessorDesignLibrary.DESIGNS[restored_index].get("name", "DW SILICON 01")))
 	if is_instance_valid(package_size):
 		_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
 	if is_instance_valid(package_finish):
@@ -316,18 +313,6 @@ func _build_interface() -> void:
 	selector_row.add_child(design_increase_button)
 
 
-	var name_label := _label("PROCESSOR NAME", 11, ACCENT)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_page.add_child(name_label)
-	name_input = LineEdit.new()
-	name_input.name = "ProcessorNameInput"
-	name_input.text = str(processor_design.get("name", "DW Silicon 01"))
-	name_input.placeholder_text = "Enter processor name"
-	name_input.custom_minimum_size = Vector2(0, 46)
-	name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_input(name_input)
-	name_input.text_changed.connect(_on_design_changed)
-	name_page.add_child(name_input)
 
 	var dimensions_page := _create_step_page("PACKAGE DIMENSIONS")
 	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
@@ -622,8 +607,6 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	die_surface = die_surfaces[0] if not die_surfaces.is_empty() else null
 
 	if reset_to_preset:
-		if is_instance_valid(name_input):
-			name_input.text = str(selected_profile.get("name", "DW PROCESSOR"))
 		if is_instance_valid(package_size):
 			_select_option(package_size, str(selected_profile.get("package_size", "12 × 12 mm")))
 		if is_instance_valid(package_finish):
@@ -814,7 +797,7 @@ func _apply_design() -> void:
 func _save_design() -> void:
 	var selected_profile: Dictionary = processor_designs[selected_design_index]
 	processor_design = {
-		"name": name_input.text.strip_edges() if not name_input.text.strip_edges().is_empty() else str(selected_profile.get("name", "DW SILICON 01")),
+ 		"name": str(selected_profile.get("name", "DW SILICON 01")),
 		"design_id": str(selected_profile.get("id", "dw_silicon_01")),
 		"design_name": str(selected_profile.get("name", "DW SILICON 01")),
 		"package_size": package_size.get_item_text(package_size.selected),
