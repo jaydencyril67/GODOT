@@ -89,7 +89,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Voltage Regulator Interface": 240.0,
 	"Thermal Sensor": 250.0,
 	"Debug and Test Unit": 265.0,
-	"Security Processing Unit": 280.0
+	"Security Processing Unit": 280.0,
+	"CPU Cores": CPU_CORE_RESEARCH_DURATION_DAYS
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const TECHNOLOGY_POINTS_PER_RESEARCH_DAY := 0.01
@@ -120,6 +121,10 @@ const REAR_HARDWARE_SIZE_BASE := 0.050
 const REAR_HARDWARE_SIZE_RESEARCH_LEVELS := [0.070, 0.090, 0.110, 0.130, 0.150, 0.175, 0.200]
 const REAR_HARDWARE_SIZE_RESEARCH_UPGRADES := 7
 const BACK_RAISED_DESIGN_MAX_BOXES := 20
+const CPU_CORE_BASE_COUNT := 1
+const CPU_CORE_MAX_COUNT := 30
+const CPU_CORE_MAX_RESEARCH_LEVEL := CPU_CORE_MAX_COUNT - CPU_CORE_BASE_COUNT
+const CPU_CORE_RESEARCH_DURATION_DAYS := 750.0
 const BATTERY_CAPACITY_BASE_MAH := 1000
 const BATTERY_CAPACITY_STEP_MAH := 350
 const BATTERY_CAPACITY_RESEARCH_UPGRADES := 20
@@ -279,6 +284,25 @@ const PROCESSOR_TECHNOLOGIES := [
 	"Security Processing Unit"
 ]
 
+const PROCESSOR_RESEARCH_COMPONENTS := [
+	"CPU Cores",
+	"Control Unit",
+	"Instruction Decoder",
+	"Instruction Fetch Unit",
+	"Branch Prediction Unit",
+	"Memory Management Unit",
+	"Translation Lookaside Buffer",
+	"Internal Bus",
+	"Ring Bus / Interconnect Fabric",
+	"System Agent",
+	"I/O Controller",
+	"Clock Distribution Network",
+	"Voltage Regulator Interface",
+	"Thermal Sensor",
+	"Debug and Test Unit",
+	"Security Processing Unit"
+]
+
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Screen Width",
@@ -347,6 +371,7 @@ const COMPONENT_CATALOGUE := [
 	"Power/Volume Button Length",
 	"Power Button Position",
 	"Volume Button Position",
+	"CPU Cores",
 	"Control Unit",
 	"Instruction Decoder",
 	"Instruction Fetch Unit",
@@ -504,6 +529,27 @@ static func get_battery_capacity_research_target(component_levels: Dictionary) -
 		"index": target_level,
 		"technology": "%s mAh" % _format_research_integer(target_capacity),
 		"max_capacity_mah": target_capacity
+	}
+
+
+static func get_cpu_cores_max_for_level(level: int) -> int:
+	# One CPU core is the baseline; every approved project unlocks one more.
+	return CPU_CORE_BASE_COUNT + clampi(level, 0, CPU_CORE_MAX_RESEARCH_LEVEL)
+
+
+static func get_cpu_cores_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_upgrades := clampi(
+		int(component_levels.get("CPU Cores", 0)),
+		0,
+		CPU_CORE_MAX_RESEARCH_LEVEL
+	)
+	if completed_upgrades >= CPU_CORE_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_core_count := get_cpu_cores_max_for_level(completed_upgrades + 1)
+	return {
+		"index": target_core_count,
+		"technology": "%d Cores" % target_core_count,
+		"core_count": target_core_count
 	}
 
 
@@ -1178,6 +1224,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_phone_type_research_target(career.get("research_component_levels", {}))
 	elif component == "Battery Capacity":
 		ordered_target = get_battery_capacity_research_target(career.get("research_component_levels", {}))
+	elif component == "CPU Cores":
+		ordered_target = get_cpu_cores_research_target(career.get("research_component_levels", {}))
 	elif component == "Charger":
 		ordered_target = get_charger_research_target(career.get("research_component_levels", {}))
 	elif component == "Power Bank":
@@ -1221,10 +1269,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
 	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
-	if component in ["Wireless Charging", "Phone Case", "Charger"]:
+	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component == "CPU Cores" or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1336,6 +1384,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate the next wired charging-speed ceiling of %s while preserving player-selected speeds in 1W increments." % target_technology
 		elif component == "Wireless Charging":
 			project_objective = "Develop and validate the next wireless charging-speed ceiling of %s while preserving player-selected speeds in 1W increments." % target_technology
+		elif component == "CPU Cores":
+			project_objective = "Develop and validate support for a processor configuration with %s, adding one supported CPU core at each approved research level." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 	elif component == "Memory Clock":
@@ -1495,6 +1545,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var side_button_target_index := -1
 	var power_volume_button_length_target_index := -1
 	var power_volume_button_position_target_index := -1
+	var cpu_cores_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -1649,6 +1700,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		protection_glass_target_index = int(project.get("research_target_index", -1))
 		if expected_protection_glass_target.is_empty() or protection_glass_target_index != int(expected_protection_glass_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_protection_glass_target.get("technology", "")):
 			return _failure("This Protection Glass project is no longer the next valid glass unlock.")
+	elif component == "CPU Cores":
+		var expected_cpu_cores_target := get_cpu_cores_research_target(component_levels)
+		cpu_cores_target_index = int(project.get("research_target_index", -1))
+		if expected_cpu_cores_target.is_empty() or cpu_cores_target_index != int(expected_cpu_cores_target.get("index", -1)):
+			return _failure("This CPU Cores project is no longer the next supported core-count upgrade.")
+		if str(project.get("research_target", "")) != str(expected_cpu_cores_target.get("technology", "")):
+			return _failure("The CPU Cores project target does not match the current core-count progression.")
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != component:
 			return _failure("This processor technology is no longer a valid, unapproved research target.")
@@ -1735,6 +1793,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Box Package customization unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
+		if result_component == "CPU Cores" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next CPU core-count target assigned to this project.")
 		if PROCESSOR_TECHNOLOGIES.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact processor technology assigned to this project.")
 		if CAMERA_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1871,6 +1931,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Protection Glass":
 		# Normal Glass is the first unlock; Privacy Glass is the second and final type.
 		component_levels[component] = protection_glass_target_index
+	elif component == "CPU Cores":
+		# Store the count of upgrades after the 1-core baseline.
+		component_levels[component] = clampi(cpu_cores_target_index - CPU_CORE_BASE_COUNT, 0, CPU_CORE_MAX_RESEARCH_LEVEL)
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		# Each processor subsystem is an independent, one-time approved research unlock.
 		component_levels[component] = 1
