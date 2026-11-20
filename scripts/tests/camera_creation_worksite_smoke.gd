@@ -131,9 +131,9 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	var initial_camera_position: Vector2 = camera_modules[0]["position"]
-	worksite.call("_on_rear_hardware_size_changed", 0.10)
+	worksite.call("_on_rear_hardware_size_changed", 0.06)
 	camera_modules = worksite.get("rear_camera_modules")
-	if not is_equal_approx(float(camera_modules[0]["size"]), 0.10):
+	if not is_equal_approx(float(camera_modules[0]["size"]), 0.06):
 		_fail("Rare Camera size control did not resize the selected camera.")
 		worksite.free()
 		return
