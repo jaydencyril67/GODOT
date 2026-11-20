@@ -42,6 +42,7 @@ var camera_creation_worksite: Node3D
 var processor_worksite_open_pending := false
 var camera_worksite_open_pending := false
 var research_dashboard_return_to_worksite := false
+var research_dashboard_return_to_camera_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
 var home_navigation_layer: CanvasLayer
 var home_company_label: Label
@@ -2486,6 +2487,7 @@ func _open_research_from_phone_creation_worksite() -> void:
 		return
 	if research_dashboard_return_to_worksite:
 		return
+	research_dashboard_return_to_camera_worksite = false
 	# The worksite runs without the normal screen UI root, so open research in
 	# a dedicated top-layer CanvasLayer and restore the same worksite on return.
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
@@ -2506,6 +2508,32 @@ func _open_research_from_phone_creation_worksite() -> void:
 	ui_root = overlay_root
 	research_dashboard_return_to_worksite = true
 	_show_research_allocation_dashboard()
+
+func _open_research_from_camera_creation_worksite() -> void:
+	if not is_instance_valid(camera_creation_worksite):
+		return
+	if research_dashboard_return_to_worksite:
+		return
+	research_dashboard_return_to_camera_worksite = true
+	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	camera_creation_worksite.hide()
+	for child in camera_creation_worksite.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	worksite_research_overlay_layer = CanvasLayer.new()
+	worksite_research_overlay_layer.name = "WorksiteResearchOverlay"
+	worksite_research_overlay_layer.layer = 100
+	add_child(worksite_research_overlay_layer)
+	var overlay_root := Control.new()
+	overlay_root.name = "WorksiteResearchRoot"
+	overlay_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	worksite_research_overlay_layer.add_child(overlay_root)
+	ui_layer = worksite_research_overlay_layer
+	ui_root = overlay_root
+	research_dashboard_return_to_worksite = true
+	_show_research_allocation_dashboard()
+
 
 
 func _show_research_allocation_dashboard() -> void:
@@ -2760,13 +2788,24 @@ func _return_from_research_allocation_dashboard() -> void:
 		worksite_research_overlay_layer = null
 		ui_layer = null
 		ui_root = null
-		if is_instance_valid(phone_creation_worksite):
-			phone_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
-			phone_creation_worksite.show()
-			for child in phone_creation_worksite.get_children():
-				if child is CanvasLayer:
-					child.show()
-		current_screen = "phone_creation_worksite"
+		if research_dashboard_return_to_camera_worksite:
+			research_dashboard_return_to_camera_worksite = false
+			if is_instance_valid(camera_creation_worksite):
+				camera_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+				camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
+				camera_creation_worksite.show()
+				for child in camera_creation_worksite.get_children():
+					if child is CanvasLayer:
+						child.show()
+			current_screen = "camera_creation_worksite"
+		else:
+			if is_instance_valid(phone_creation_worksite):
+				phone_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
+				phone_creation_worksite.show()
+				for child in phone_creation_worksite.get_children():
+					if child is CanvasLayer:
+						child.show()
+			current_screen = "phone_creation_worksite"
 		return
 	current_screen = "research"
 
@@ -2912,7 +2951,9 @@ func _prepare_camera_creation_worksite() -> void:
 	camera_creation_worksite.name = "Camera_Creation_Worksite"
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	camera_creation_worksite.connect("back_requested", Callable(self, "_return_from_camera_creation_worksite"))
+	camera_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_camera_creation_worksite"))
 	add_child(camera_creation_worksite)
+	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
