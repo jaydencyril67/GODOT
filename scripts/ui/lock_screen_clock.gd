@@ -53,7 +53,7 @@ func configure(design: Dictionary, palette: Dictionary) -> void:
 	_refresh_date()
 
 
-func prepare_all_styles(batch_size: int = 5) -> bool:
+func prepare_all_styles(batch_size: int = 5, progress_callback: Callable = Callable()) -> bool:
 	var total := AssetLibrary.get_analog_clock_count()
 	var safe_batch_size := maxi(1, batch_size)
 	for asset_index in range(1, total + 1):
@@ -61,10 +61,13 @@ func prepare_all_styles(batch_size: int = 5) -> bool:
 			var asset_path := AssetLibrary.get_analog_clock_path(asset_index)
 			_analog_textures[asset_index] = load(asset_path) as Texture2D
 		if asset_index % safe_batch_size == 0 or asset_index == total:
+			if progress_callback.is_valid():
+				var analog_progress := 25.0 * float(asset_index) / maxf(float(total), 1.0)
+				progress_callback.call("Preparing lock-screen clock styles", analog_progress)
 			await get_tree().process_frame
 	if not _restore_selected_analog_artwork():
 		return false
-	return bool(await digital_artwork.call("prepare_all_styles", 3))
+	return bool(await digital_artwork.call("prepare_all_styles", 3, progress_callback))
 
 
 func set_clock_style_index(style_index: int) -> bool:
