@@ -184,6 +184,18 @@ func generate_new_design() -> Dictionary:
 	return _last_design.duplicate(true)
 
 
+func prepare_clock_styles_for_loading(progress_callback: Callable = Callable()) -> bool:
+	var clock := find_child("GeneratedLockScreenClockComponent", true, false) as Control
+	if clock == null:
+		return false
+	if progress_callback.is_valid():
+		progress_callback.call("Preparing lock-screen clock styles", 0.0)
+	await clock.call("prepare_all_styles", 5)
+	if progress_callback.is_valid():
+		progress_callback.call("Preparing lock-screen clock styles", 100.0)
+	return true
+
+
 func get_last_design() -> Dictionary:
 	return _last_design.duplicate(true)
 
