@@ -48,8 +48,8 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 		_initial_build_pending = true
 
 func prepare_all_styles(batch_size: int = 3) -> void:
-	if size.x <= 0.0 or size.y <= 0.0:
-		return
+	while size.x <= 0.0 or size.y <= 0.0:
+		await get_tree().process_frame
 	var selected_index := _style_index
 	var total := get_style_count()
 	var safe_batch_size := maxi(1, batch_size)
