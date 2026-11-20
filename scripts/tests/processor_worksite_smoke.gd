@@ -132,26 +132,39 @@ func _run_processor_worksite_test() -> void:
 		_fail("The worksite did not preload all 30 physical designs with Design 01 initially visible.")
 		worksite.free()
 		return
-	for design_root in model_roots:
-		for mesh_value in design_root.find_children("*", "MeshInstance3D", true, false):
-			var mesh_part := mesh_value as MeshInstance3D
-			var mesh_material := mesh_part.material_override as StandardMaterial3D
-			if mesh_material == null or mesh_material.albedo_color.r > 0.1 or mesh_material.albedo_color.g > 0.1 or mesh_material.albedo_color.b > 0.1:
-				_fail("At least one processor design contains a non-black mesh material before the colour step.")
+	# Every design's editable package/die body surfaces start black.
+	# Accent meshes and contact arrays are intentionally not forced to black.
+	for model_data_value in design_models:
+		var model_data: Dictionary = model_data_value
+		var body_surface_count := 0
+		for body_surface_value in model_data.get("package_layers", []) + model_data.get("die_surfaces", []):
+			var body_surface := body_surface_value as MeshInstance3D
+			var body_material := body_surface.material_override as StandardMaterial3D if body_surface != null else null
+			if body_material == null or body_material.albedo_color.r > 0.1 or body_material.albedo_color.g > 0.1 or body_material.albedo_color.b > 0.1:
+				_fail("A processor package or die body surface does not start black.")
 				worksite.free()
 				return
-		for multimesh_value in design_root.find_children("*", "MultiMeshInstance3D", true, false):
-			var multimesh_part := multimesh_value as MultiMeshInstance3D
-			var multimesh_material := multimesh_part.material_override as StandardMaterial3D
-			if multimesh_material == null or multimesh_material.albedo_color.r > 0.1 or multimesh_material.albedo_color.g > 0.1 or multimesh_material.albedo_color.b > 0.1:
-				_fail("At least one processor contact array contains a non-black material before the colour step.")
-				worksite.free()
-				return
+			body_surface_count += 1
+		if body_surface_count == 0:
+			_fail("A processor design has no colour-editable package or die surfaces.")
+			worksite.free()
+			return
 	var initial_viewport_child_count := viewport.get_child_count()
 	var first_package_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
 	var first_package_material := first_package_surface.material_override as StandardMaterial3D if first_package_surface != null else null
 	if first_package_surface == null or first_package_material == null or first_package_material.albedo_color != Color("#101214"):
 		_fail("The original processor package does not start in the required black finish.")
+		worksite.free()
+		return
+	# Design 01 must retain its original gold and light-grey realism accents.
+	var gold_trace := model.find_child("TopEdgeTrace", true, false) as MeshInstance3D
+	var light_gray_passive := model.find_child("SurfaceMountPassive", true, false) as MeshInstance3D
+	var gold_contact_array := model.find_child("UndersideBGAContactArray", true, false) as MultiMeshInstance3D
+	var gold_trace_material := gold_trace.material_override as StandardMaterial3D if gold_trace != null else null
+	var light_gray_material := light_gray_passive.material_override as StandardMaterial3D if light_gray_passive != null else null
+	var contact_material := gold_contact_array.material_override as StandardMaterial3D if gold_contact_array != null else null
+	if gold_trace_material == null or gold_trace_material.albedo_color != Color("#B58B4C") or light_gray_material == null or light_gray_material.albedo_color != Color("#B6B4A8") or contact_material == null or contact_material.albedo_color != Color("#D3A957"):
+		_fail("Processor gold traces, light-grey ceramic components, or gold contacts lost their original materials.")
 		worksite.free()
 		return
 	var first_package_material_id := first_package_surface.material_override.get_instance_id()
@@ -212,7 +225,14 @@ func _run_processor_worksite_test() -> void:
 	var recolored_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
 	var recolored_material := recolored_surface.material_override as StandardMaterial3D if recolored_surface != null else null
 	if recolored_surface == null or recolored_material == null or recolored_material.albedo_color != Color("#A5AAAE"):
-		_fail("Processor normal colour selection did not apply to the model.")
+		_fail("Processor normal colour selection did not apply to the model body.")
+		worksite.free()
+		return
+	gold_trace_material = gold_trace.material_override as StandardMaterial3D if gold_trace != null else null
+	light_gray_material = light_gray_passive.material_override as StandardMaterial3D if light_gray_passive != null else null
+	contact_material = gold_contact_array.material_override as StandardMaterial3D if gold_contact_array != null else null
+	if gold_trace_material == null or gold_trace_material.albedo_color != Color("#B58B4C") or light_gray_material == null or light_gray_material.albedo_color != Color("#B6B4A8") or contact_material == null or contact_material.albedo_color != Color("#D3A957"):
+		_fail("Applying processor body colour also changed gold or light-grey realism details.")
 		worksite.free()
 		return
 	gradient_toggle.button_pressed = true
@@ -226,6 +246,13 @@ func _run_processor_worksite_test() -> void:
 		return
 	if gradient_material.get_shader_parameter("solid_color") != Color("#A5AAAE") or gradient_material.get_shader_parameter("gradient_color") != Color("#C65B8E") or int(gradient_material.get_shader_parameter("gradient_direction")) != 2:
 		_fail("Processor gradient shader did not receive the selected normal colour, gradient colour, and diagonal direction.")
+		worksite.free()
+		return
+	gold_trace_material = gold_trace.material_override as StandardMaterial3D if gold_trace != null else null
+	light_gray_material = light_gray_passive.material_override as StandardMaterial3D if light_gray_passive != null else null
+	contact_material = gold_contact_array.material_override as StandardMaterial3D if gold_contact_array != null else null
+	if gold_trace_material == null or light_gray_material == null or contact_material == null or gold_trace_material.albedo_color != Color("#B58B4C") or light_gray_material.albedo_color != Color("#B6B4A8") or contact_material.albedo_color != Color("#D3A957"):
+		_fail("Applying the processor gradient also changed the gold or light-grey realism details.")
 		worksite.free()
 		return
 	var gradient_options := processor_color_content.get_node_or_null("ProcessorGradientOptions") as Control
