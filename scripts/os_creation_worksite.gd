@@ -165,7 +165,6 @@ func _initialize_worksite() -> void:
 		return
 	_update_lock_screen_status(initial_design)
 	_emit_setup_progress("Generating the default lock screen", 100.0)
-	await get_tree().create_timer(0.18).timeout
 
 	var home_ready: bool = await home_screen_designer.call(
 		"configure_for_loading",
