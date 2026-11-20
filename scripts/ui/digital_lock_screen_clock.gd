@@ -10,7 +10,6 @@ const TIME_LABEL_SIDE_PADDING := 0.02
 var _face_variants: Dictionary = {}
 var _face_normalization_queue: Array[int] = []
 var _faces_initialized := false
-var _initial_build_pending := false
 const DATE_FONT_FRACTION := 0.045
 const DATE_TIME_GAP_RATIO := 0.012
 const DATE_TIME_GAP_MIN := 5.0
@@ -34,18 +33,15 @@ func _ready() -> void:
 	set_process(true)
 
 func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -> void:
+	# Configuration selects the requested style only. Every face is constructed
+	# by prepare_all_styles() in the startup batch loop.
 	_style_index = clampi(index, 1, maxi(1, _library.get_face_count()))
 	_palette = palette.duplicate(true)
 	_show_date = false
-	if size.x > 0.0 and size.y > 0.0:
-		if not _face_variants.has(_style_index):
-			_build_face_variant(_style_index)
-		_faces_initialized = not _face_variants.is_empty()
-		if _faces_initialized:
-			_select_cached_face(_style_index)
-			_refresh_all_cached_time_labels()
-	else:
-		_initial_build_pending = true
+	if _face_variants.has(_style_index):
+		_faces_initialized = true
+		_select_cached_face(_style_index)
+		_refresh_all_cached_time_labels()
 
 func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Callable()) -> bool:
 	# The clock can be attached before its parent layout has calculated a size.
@@ -103,14 +99,9 @@ func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Calla
 
 
 func set_style_index(index: int) -> bool:
-	if index < 1 or index > get_style_count():
+	if index < 1 or index > get_style_count() or not _face_variants.has(index):
 		return false
-	if size.x <= 0.0 or size.y <= 0.0:
-		_style_index = index
-		_initial_build_pending = true
-		return false
-	if not _face_variants.has(index) and not _build_face_variant(index):
-		return false
+	_style_index = index
 	_faces_initialized = not _face_variants.is_empty()
 	_select_cached_face(index)
 	_refresh_all_cached_time_labels()
@@ -147,9 +138,6 @@ func is_time_layout_normalized() -> bool:
 	return bool(_face_variants[_style_index].get("normalized", false))
 
 func _process(_delta: float) -> void:
-	if _initial_build_pending and size.x > 0.0 and size.y > 0.0:
-		_initial_build_pending = false
-		_initialize_face_variants()
 	if not _faces_initialized:
 		return
 	_process_face_normalization_queue()
@@ -158,23 +146,6 @@ func _process(_delta: float) -> void:
 	if current_minute != _last_minute:
 		_refresh_all_cached_time_labels()
 		_last_minute = current_minute
-
-func _load_selected_face() -> void:
-	if not _face_variants.has(_style_index):
-		if not _build_face_variant(_style_index):
-			return
-	_faces_initialized = not _face_variants.is_empty()
-	_select_cached_face(_style_index)
-	_refresh_all_cached_time_labels()
-
-func _render_face() -> void:
-	# Only the selected face is built; other styles are created when requested.
-	if not _face_variants.has(_style_index):
-		if not _build_face_variant(_style_index):
-			return
-	_faces_initialized = not _face_variants.is_empty()
-	_select_cached_face(_style_index)
-	_refresh_all_cached_time_labels()
 
 func get_time_visual_rect() -> Rect2:
 	if not _face_variants.has(_style_index):
@@ -371,18 +342,6 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override
 			child.size_flags_horizontal = Control.SIZE_EXPAND_FILL if layout_key == "column" else Control.SIZE_SHRINK_CENTER
 		container.add_child(child)
 	return container
-
-
-func _initialize_face_variants() -> void:
-	if size.x <= 0.0 or size.y <= 0.0:
-		return
-	if not _face_variants.has(_style_index):
-		_build_face_variant(_style_index)
-	_faces_initialized = not _face_variants.is_empty()
-	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
-	if _faces_initialized:
-		_select_cached_face(_style_index)
-		_refresh_all_cached_time_labels()
 
 
 func _build_face_variant(face_index: int) -> bool:
