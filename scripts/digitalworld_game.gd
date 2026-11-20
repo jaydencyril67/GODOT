@@ -2623,6 +2623,8 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
 	if is_instance_valid(camera_creation_worksite):
 		camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
+		camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
+		camera_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 		camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 		camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 		camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
@@ -2802,6 +2804,8 @@ func _return_from_research_allocation_dashboard() -> void:
 				camera_creation_worksite.process_mode = Node.PROCESS_MODE_INHERIT
 				camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 				camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
+				camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
+				camera_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 				camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 				camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 				camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
@@ -2967,6 +2971,8 @@ func _prepare_camera_creation_worksite() -> void:
 	add_child(camera_creation_worksite)
 	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
+	camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
+	camera_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 	camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
@@ -3001,6 +3007,8 @@ func _activate_camera_creation_worksite() -> void:
 		return
 	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
+	camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
+	camera_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
 	camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
