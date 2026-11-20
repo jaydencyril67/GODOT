@@ -157,13 +157,14 @@ func _run_checks() -> void:
 		"PANORAMA PHOTOGRAPHY",
 		"RAW PHOTOGRAPHY",
 		"BURST PHOTOGRAPHY",
+		"HDR PHOTOGRAPHY",
 		"SUPER SLOW-MOTION RECORDING",
 		"TIME-LAPSE RECORDING",
 		"HYPERLAPSE RECORDING",
 		"CINEMATIC VIDEO"
 	]
 	if camera_labels != expected_camera_labels:
-		_fail("Camera Research must expose both camera MP projects, both rear-hardware capacity projects, and all 11 one-time camera unlocks in the approved order.")
+		_fail("Camera Research must expose both camera MP projects, both rear-hardware capacity projects, and all 12 one-time camera unlocks in the approved order.")
 		host.queue_free()
 		quit(1)
 		return
@@ -322,13 +323,14 @@ func _check_camera_one_time_research() -> bool:
 		"Panorama Photography": 280.0,
 		"RAW Photography": 320.0,
 		"Burst Photography": 240.0,
+		"HDR Photography": 210.0,
 		"Super Slow-Motion Recording": 370.0,
 		"Time-Lapse Recording": 290.0,
 		"Hyperlapse Recording": 340.0,
 		"Cinematic Video": 360.0
 	}
-	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.size() != 11:
-		_fail("Camera research must contain exactly the 11 approved one-time unlock features.")
+	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.size() != 12:
+		_fail("Camera research must contain exactly the 12 approved one-time unlock features.")
 		return false
 
 	var test_career := {
@@ -343,7 +345,7 @@ func _check_camera_one_time_research() -> bool:
 	for feature_value in ResearchManagerScript.CAMERA_SENSOR_COMPONENTS:
 		var feature := str(feature_value)
 		var expected_days := float(expected_durations.get(feature, -1.0))
-		if expected_days < 240.0 or expected_days > 370.0 or not ResearchManagerScript.COMPONENT_CATALOGUE.has(feature):
+		if expected_days < 210.0 or expected_days > 370.0 or not ResearchManagerScript.COMPONENT_CATALOGUE.has(feature):
 			_fail("%s is missing its approved one-time research duration or catalogue entry." % feature)
 			return false
 		var actual_days := ResearchManagerScript.get_component_research_duration_days(feature, 1)
