@@ -652,14 +652,17 @@ func _show_camera_back_design_controls() -> void:
 	if is_instance_valid(camera_back_design_view):
 		camera_back_design_view.queue_free()
 		camera_back_design_view = null
+	camera_back_design_move_buttons.clear()
 	camera_back_design_view = _build_camera_back_design_controls()
 	rear_hardware_step_content.add_child(camera_back_design_view)
+	_refresh_camera_back_design_panel()
 	_style_button(rear_hardware_camera_mode_button, false)
 	_style_button(rear_hardware_flash_mode_button, false)
 	_style_button(rear_hardware_design_mode_button, true)
 
 
 func _build_camera_back_design_controls() -> VBoxContainer:
+	camera_back_design_move_buttons.clear()
 	var viewport_size := get_viewport().get_visible_rect().size
 	var tight := viewport_size.y < 560.0 or viewport_size.x < 520.0
 	var control_height := 40.0 if tight else 44.0
