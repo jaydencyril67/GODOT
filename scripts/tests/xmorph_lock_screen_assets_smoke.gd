@@ -55,8 +55,11 @@ func _run_test() -> void:
 		"text": Color.WHITE,
 		"muted": Color("#C3CFE3")
 	}
-	# Match the production call: no legacy device_clock override is supplied.
+	# Match production initial loading: configure the selected face, then batch-build every style before asserting the cache.
 	digital_clock.call("configure", 41, test_palette, {"show_details": true})
+	if not bool(await digital_clock.call("prepare_all_styles", 3)):
+		_fail("The XMorph renderer could not prepare all 41 digital clock styles.")
+		return
 	await process_frame
 	var prebuilt_face_canvases := digital_clock.find_children("XMorphClockFace_*", "Control", true, false)
 	var prebuilt_layout_trees := digital_clock.find_children("XMorphClockLayout_*", "Control", true, false)
