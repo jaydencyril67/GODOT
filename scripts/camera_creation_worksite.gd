@@ -99,13 +99,17 @@ var front_camera_secondary_megapixels := 1
 var front_camera_step_content: VBoxContainer
 var front_camera_mp_step_content: VBoxContainer
 var camera_sensor_step_content: VBoxContainer
+var camera_sensor_camera_switcher: HBoxContainer
+var camera_sensor_rear_camera_button: Button
+var camera_sensor_front_camera_button: Button
 var camera_sensor_enable_row: HBoxContainer
 var camera_sensor_enabled_toggle: TextureButton
 var camera_sensor_name_label: Label
 var camera_sensor_previous_button: Button
 var camera_sensor_next_button: Button
+var camera_sensor_selected_camera := "REAR"
 var camera_sensor_selected_index := 0
-var camera_sensor_enabled_states: Dictionary = {}
+var camera_sensor_enabled_states: Dictionary = {"REAR": {}, "FRONT": {}}
 var camera_sensor_checked_texture: Texture2D
 var camera_sensor_unchecked_texture: Texture2D
 var front_camera_enable_button: Button
@@ -1092,6 +1096,32 @@ func _build_camera_sensor_step_controls() -> void:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	camera_sensor_step_content.add_child(heading)
 
+	camera_sensor_camera_switcher = HBoxContainer.new()
+	camera_sensor_camera_switcher.name = "CameraSensorCameraSwitcher"
+	camera_sensor_camera_switcher.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_camera_switcher.add_theme_constant_override("separation", 8)
+	camera_sensor_step_content.add_child(camera_sensor_camera_switcher)
+
+	camera_sensor_rear_camera_button = Button.new()
+	camera_sensor_rear_camera_button.name = "CameraSensorRearCameraButton"
+	camera_sensor_rear_camera_button.text = "REAR CAMERA"
+	camera_sensor_rear_camera_button.custom_minimum_size = Vector2(0, 42)
+	camera_sensor_rear_camera_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_rear_camera_button.toggle_mode = true
+	_style_button(camera_sensor_rear_camera_button, false)
+	camera_sensor_rear_camera_button.pressed.connect(_on_camera_sensor_camera_selected.bind("REAR"))
+	camera_sensor_camera_switcher.add_child(camera_sensor_rear_camera_button)
+
+	camera_sensor_front_camera_button = Button.new()
+	camera_sensor_front_camera_button.name = "CameraSensorFrontCameraButton"
+	camera_sensor_front_camera_button.text = "FRONT CAMERA"
+	camera_sensor_front_camera_button.custom_minimum_size = Vector2(0, 42)
+	camera_sensor_front_camera_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_front_camera_button.toggle_mode = true
+	_style_button(camera_sensor_front_camera_button, false)
+	camera_sensor_front_camera_button.pressed.connect(_on_camera_sensor_camera_selected.bind("FRONT"))
+	camera_sensor_camera_switcher.add_child(camera_sensor_front_camera_button)
+
 	camera_sensor_enable_row = HBoxContainer.new()
 	camera_sensor_enable_row.name = "CameraSensorEnableRow"
 	camera_sensor_enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1162,8 +1192,11 @@ func _build_camera_sensor_step_controls() -> void:
 	camera_sensor_next_button.pressed.connect(_on_camera_sensor_next_pressed)
 	navigation.add_child(camera_sensor_next_button)
 
-	for sensor_name in CAMERA_SENSOR_COMPONENTS:
-		camera_sensor_enabled_states[sensor_name] = false
+	for camera_type in ["REAR", "FRONT"]:
+		var camera_states: Dictionary = {}
+		for sensor_name in CAMERA_SENSOR_COMPONENTS:
+			camera_states[sensor_name] = false
+		camera_sensor_enabled_states[camera_type] = camera_states
 	_refresh_camera_sensor_controls()
 
 
@@ -1186,8 +1219,10 @@ func _refresh_camera_sensor_controls() -> void:
 		return
 	camera_sensor_selected_index = clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)
 	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[camera_sensor_selected_index]
-	var enabled := bool(camera_sensor_enabled_states.get(sensor_name, false))
+	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
+	var enabled := bool(camera_states.get(sensor_name, false))
 
+	_refresh_camera_sensor_camera_switcher()
 	if is_instance_valid(camera_sensor_name_label):
 		camera_sensor_name_label.text = sensor_name
 	if is_instance_valid(camera_sensor_enabled_toggle):
@@ -1205,11 +1240,31 @@ func _refresh_camera_sensor_controls() -> void:
 		camera_sensor_next_button.disabled = camera_sensor_selected_index >= CAMERA_SENSOR_COMPONENTS.size() - 1
 
 
+func _refresh_camera_sensor_camera_switcher() -> void:
+	if is_instance_valid(camera_sensor_rear_camera_button):
+		var rear_selected := camera_sensor_selected_camera == "REAR"
+		camera_sensor_rear_camera_button.set_pressed_no_signal(rear_selected)
+		_style_button(camera_sensor_rear_camera_button, rear_selected)
+	if is_instance_valid(camera_sensor_front_camera_button):
+		var front_selected := camera_sensor_selected_camera == "FRONT"
+		camera_sensor_front_camera_button.set_pressed_no_signal(front_selected)
+		_style_button(camera_sensor_front_camera_button, front_selected)
+
+
+func _on_camera_sensor_camera_selected(camera_type: String) -> void:
+	if camera_type != "REAR" and camera_type != "FRONT":
+		return
+	camera_sensor_selected_camera = camera_type
+	_refresh_camera_sensor_controls()
+
+
 func _on_camera_sensor_toggled(enabled: bool) -> void:
 	if CAMERA_SENSOR_COMPONENTS.is_empty():
 		return
 	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)]
-	camera_sensor_enabled_states[sensor_name] = enabled
+	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
+	camera_states[sensor_name] = enabled
+	camera_sensor_enabled_states[camera_sensor_selected_camera] = camera_states
 	_refresh_camera_sensor_controls()
 
 
