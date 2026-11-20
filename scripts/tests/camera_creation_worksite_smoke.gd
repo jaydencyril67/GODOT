@@ -462,6 +462,7 @@ func _run_camera_worksite_test() -> void:
 	var camera_sensor_heading := camera_sensor_panel.get_child(0) as Label if camera_sensor_panel != null and camera_sensor_panel.get_child_count() > 0 else null
 	var camera_sensor_toggle := worksite.find_child("CameraSensorEnabledToggle", true, false) as TextureButton
 	var camera_sensor_label := worksite.find_child("SelectedCameraSensor", true, false) as Label
+	var camera_sensor_enable_label := worksite.get("camera_sensor_enable_label") as Label
 	var camera_sensor_previous := worksite.find_child("PreviousCameraSensorButton", true, false) as Button
 	var camera_sensor_next := worksite.find_child("NextCameraSensorButton", true, false) as Button
 	var rear_camera_selector := worksite.find_child("CameraSensorRearCameraButton", true, false) as Button
@@ -474,7 +475,7 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if str(worksite.get("camera_sensor_enable_label").text) != "LOCKED" or not camera_sensor_toggle.disabled:
+	if camera_sensor_enable_label.text != "LOCKED" or not camera_sensor_toggle.disabled:
 		_fail("Camera features must remain locked until their one-time research is approved.")
 		worksite.free()
 		return
