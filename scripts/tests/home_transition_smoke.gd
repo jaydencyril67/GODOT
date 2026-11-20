@@ -1948,6 +1948,8 @@ func _run_transition_checks() -> void:
 	var expected_camera_components: Array[String] = [
 		"REAR CAMERA MP",
 		"FRONT CAMERA MP",
+		"REAR CAMERA COUNT",
+		"REAR FLASH COUNT",
 		"PORTRAIT MODE",
 		"MACRO PHOTOGRAPHY",
 		"ULTRA-WIDE PHOTOGRAPHY",
