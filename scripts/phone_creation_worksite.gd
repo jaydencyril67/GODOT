@@ -13725,8 +13725,6 @@ func _notify_worksite_full_selection_changed() -> void:
 		str(selected_charging_speed) + "W",
 		_get_wireless_charging_summary(),
 		_get_enabled_sensor_names(),
-		_get_front_camera_mp_summary(),
-		_get_rear_camera_mp_summary(),
 		selected_memory_clock,
 		selected_refresh_rate,
 		selected_cooling_system
