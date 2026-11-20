@@ -8,6 +8,15 @@ signal design_saved(design: Dictionary)
 const ACCENT := Color("#C58A3A")
 const TEXT := Color("#EEEAE2")
 const MUTED := Color("#A9A49A")
+const PROCESSOR_COLORS := {
+	"Obsidian Black": Color("#101214"),
+	"Graphite": Color("#34383D"),
+	"Gunmetal": Color("#4B5055"),
+	"Silver": Color("#A5AAAE"),
+	"Gold": Color("#94703A"),
+	"Midnight Blue": Color("#223B5A"),
+	"Crimson": Color("#682F35")
+}
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
@@ -50,8 +59,8 @@ var processor_preview_world: Node3D
 var processor_root: Node3D
 var preview_camera: Camera3D
 var package_size: OptionButton
-var package_finish: OptionButton
-var die_finish: OptionButton
+var processor_color_option: OptionButton
+var processor_color := Color("#101214")
 var status_label: Label
 var worksite_body: BoxContainer
 var preview_region: Control
@@ -81,8 +90,7 @@ var processor_design := {
 	"design_id": "dw_silicon_01",
 	"design_name": "DW SILICON 01",
 	"package_size": "12 × 12 mm",
-	"package_finish": "Matte graphite",
-	"die_finish": "Dark silicon"
+	"processor_color": "Obsidian Black"
 }
 
 func _ready() -> void:
@@ -103,10 +111,10 @@ func configure_design(design: Dictionary) -> void:
 	_select_processor_design(restored_index, false)
 	if is_instance_valid(package_size):
 		_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
-	if is_instance_valid(package_finish):
-		_select_option(package_finish, str(processor_design.get("package_finish", "Matte graphite")))
-	if is_instance_valid(die_finish):
-		_select_option(die_finish, str(processor_design.get("die_finish", "Dark silicon")))
+	if is_instance_valid(processor_color_option):
+		var saved_color := str(processor_design.get("processor_color", "Obsidian Black"))
+		_select_option(processor_color_option, saved_color)
+		processor_color = PROCESSOR_COLORS.get(saved_color, PROCESSOR_COLORS["Obsidian Black"])
 	_apply_design()
 	if is_instance_valid(status_label):
 		status_label.text = "SAVED PROCESSOR DESIGN LOADED"
@@ -314,6 +322,20 @@ func _build_interface() -> void:
 
 
 
+	var color_page := _create_step_page("PROCESSOR COLOR")
+	var color_label := _label("CHOOSE PROCESSOR COLOR", 11, ACCENT)
+	color_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	color_page.add_child(color_label)
+	processor_color_option = OptionButton.new()
+	processor_color_option.name = "ProcessorColor"
+	processor_color_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for color_name in PROCESSOR_COLORS.keys():
+		processor_color_option.add_item(color_name)
+	_select_option(processor_color_option, str(processor_design.get("processor_color", "Obsidian Black")))
+	_style_option(processor_color_option)
+	processor_color_option.item_selected.connect(_on_processor_color_selected)
+	color_page.add_child(processor_color_option)
+
 	var dimensions_page := _create_step_page("PACKAGE DIMENSIONS")
 	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
 	dimensions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -328,38 +350,11 @@ func _build_interface() -> void:
 	package_size.item_selected.connect(_on_design_changed)
 	dimensions_page.add_child(package_size)
 
-	var package_page := _create_step_page("PACKAGE FINISH")
-	var package_label := _label("PACKAGE MATERIAL FINISH", 11, ACCENT)
-	package_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	package_page.add_child(package_label)
-	package_finish = OptionButton.new()
-	package_finish.name = "ProcessorPackageFinish"
-	package_finish.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for option in ["Matte graphite", "Deep green substrate", "Ceramic black"]:
-		package_finish.add_item(option)
-	_select_option(package_finish, str(processor_design.get("package_finish", "Matte graphite")))
-	_style_option(package_finish)
-	package_finish.item_selected.connect(_on_design_changed)
-	package_page.add_child(package_finish)
-
-	var die_page := _create_step_page("SILICON DIE FINISH")
-	var die_label := _label("DIE SURFACE", 11, ACCENT)
-	die_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	die_page.add_child(die_label)
-	die_finish = OptionButton.new()
-	die_finish.name = "ProcessorDieFinish"
-	die_finish.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for option in ["Dark silicon", "Polished silicon", "Metallic silicon cap"]:
-		die_finish.add_item(option)
-	_select_option(die_finish, str(processor_design.get("die_finish", "Dark silicon")))
-	_style_option(die_finish)
-	die_finish.item_selected.connect(_on_design_changed)
-	die_page.add_child(die_finish)
-
+	var save_page := _create_step_page("REVIEW & SAVE")
 	status_label = _label("DESIGN NOT YET SAVED", 10, MUTED)
 	status_label.name = "ProcessorDesignStatus"
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	die_page.add_child(status_label)
+	save_page.add_child(status_label)
 
 	var save_button := Button.new()
 	save_button.name = "SaveProcessorDesignButton"
@@ -368,7 +363,7 @@ func _build_interface() -> void:
 	save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(save_button, true)
 	save_button.pressed.connect(_save_design)
-	die_page.add_child(save_button)
+	save_page.add_child(save_button)
 
 
 	wizard_back_button = GlassArrowButton.new()
@@ -609,13 +604,10 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	if reset_to_preset:
 		if is_instance_valid(package_size):
 			_select_option(package_size, str(selected_profile.get("package_size", "12 × 12 mm")))
-		if is_instance_valid(package_finish):
-			_select_option(package_finish, str(selected_profile.get("package_finish", "Matte graphite")))
-		if is_instance_valid(die_finish):
-			_select_option(die_finish, str(selected_profile.get("die_finish", "Dark silicon")))
-	# All finish materials and geometry were prepared during initialization.
-	# Switching designs is now a visibility change only.
+
+	# Switching designs is a visibility change; the selected colour is reapplied.
 	_refresh_processor_design_controls()
+	_apply_processor_color()
 
 
 func _refresh_processor_design_controls() -> void:
@@ -758,27 +750,6 @@ func _on_design_changed(_value: Variant = null) -> void:
 func _apply_design() -> void:
 	if not is_instance_valid(processor_root) or not is_instance_valid(package_size):
 		return
-	var package_colors := {
-		"Matte graphite": Color("#222C31"),
-		"Deep green substrate": Color("#183B32"),
-		"Ceramic black": Color("#15191E")
-	}
-	var die_colors := {
-		"Dark silicon": Color("#171D22"),
-		"Polished silicon": Color("#454F57"),
-		"Metallic silicon cap": Color("#91999D")
-	}
-	var selected_package := package_finish.get_item_text(package_finish.selected)
-	var selected_die := die_finish.get_item_text(die_finish.selected)
-	var package_color: Color = package_colors.get(selected_package, Color("#222C31"))
-	for layer in package_layers:
-		if is_instance_valid(layer):
-			var layer_material := _material(package_color, 0.42, 0.34)
-			layer_material.albedo_color = package_color.darkened(0.12) if layer.name == "PackageLowerEdge" else package_color
-			layer.material_override = layer_material
-	for surface in die_surfaces:
-		if is_instance_valid(surface):
-			surface.material_override = _material(die_colors.get(selected_die, Color("#171D22")), 0.32, 0.25)
 	var package_size_values := {
 		"10 × 10 mm": 10.0,
 		"12 × 12 mm": 12.0,
@@ -793,16 +764,47 @@ func _apply_design() -> void:
 		base_package_size = float(package_size_values.get(str(selected_profile.get("package_size", "12 × 12 mm")), 12.0))
 	var scale_factor := target_package_size / maxf(base_package_size, 1.0)
 	processor_root.scale = Vector3.ONE * scale_factor
+	_apply_processor_color()
+
+
+func _on_processor_color_selected(index: int) -> void:
+	var color_name := processor_color_option.get_item_text(index)
+	processor_color = PROCESSOR_COLORS.get(color_name, PROCESSOR_COLORS["Obsidian Black"])
+	_apply_design()
+	if is_instance_valid(status_label):
+		status_label.text = "UNSAVED DESIGN CHANGES"
+
+
+func _apply_processor_color() -> void:
+	if not is_instance_valid(processor_root):
+		return
+	var pending_nodes: Array[Node] = [processor_root]
+	while not pending_nodes.is_empty():
+		var current_node: Node = pending_nodes.pop_back()
+		if current_node is MeshInstance3D:
+			var mesh_material := StandardMaterial3D.new()
+			mesh_material.albedo_color = processor_color
+			mesh_material.metallic = 0.62
+			mesh_material.roughness = 0.30
+			(current_node as MeshInstance3D).material_override = mesh_material
+		elif current_node is MultiMeshInstance3D:
+			var multimesh_material := StandardMaterial3D.new()
+			multimesh_material.albedo_color = processor_color
+			multimesh_material.metallic = 0.62
+			multimesh_material.roughness = 0.30
+			(current_node as MultiMeshInstance3D).material_override = multimesh_material
+		for child in current_node.get_children():
+			pending_nodes.append(child)
+
 
 func _save_design() -> void:
 	var selected_profile: Dictionary = processor_designs[selected_design_index]
 	processor_design = {
- 		"name": str(selected_profile.get("name", "DW SILICON 01")),
+		"name": str(selected_profile.get("name", "DW SILICON 01")),
 		"design_id": str(selected_profile.get("id", "dw_silicon_01")),
 		"design_name": str(selected_profile.get("name", "DW SILICON 01")),
 		"package_size": package_size.get_item_text(package_size.selected),
-		"package_finish": package_finish.get_item_text(package_finish.selected),
-		"die_finish": die_finish.get_item_text(die_finish.selected)
+		"processor_color": processor_color_option.get_item_text(processor_color_option.selected)
 	}
 	design_saved.emit(processor_design.duplicate(true))
 	status_label.text = "PROCESSOR DESIGN SAVED"
