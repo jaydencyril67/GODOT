@@ -183,6 +183,22 @@ func _run_camera_worksite_test() -> void:
 		_fail("Back-design COLOR action did not expose its normal/gradient color controls.")
 		worksite.free()
 		return
+	var device_color_toggle := worksite.find_child("CameraBackDesignUseDeviceColor", true, false) as Button
+	var chassis := worksite.find_child("PhoneChassis", true, false) as MeshInstance3D
+	var chassis_material := chassis.material_override as StandardMaterial3D if chassis != null else null
+	if device_color_toggle == null or chassis_material == null:
+		_fail("Back-design colour editor is missing device-colour inheritance.")
+		worksite.free()
+		return
+	worksite.call("_on_camera_back_design_use_device_color_toggled", true)
+	var inherited_material_node := worksite.find_child("CameraRaisedBackBox_1", true, false) as MeshInstance3D
+	var inherited_material := inherited_material_node.material_override as ShaderMaterial if inherited_material_node != null else null
+	if inherited_material == null or inherited_material.get_shader_parameter("solid_color") != chassis_material.albedo_color.lightened(0.045) or bool(inherited_material.get_shader_parameter("gradient_enabled")):
+		_fail("Back-design device-colour inheritance did not use the handset finish.")
+		worksite.free()
+		return
+	worksite.call("_on_camera_back_design_use_device_color_toggled", false)
+
 	var selected_design_color := Color("#7b9fbc")
 	worksite.call("_on_camera_back_design_color_changed", selected_design_color, false)
 	design_boxes = worksite.get("camera_back_design_boxes")
