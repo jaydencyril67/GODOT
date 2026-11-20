@@ -8,7 +8,7 @@ signal design_saved(design: Dictionary)
 const ACCENT := Color("#C58A3A")
 const TEXT := Color("#EEEAE2")
 const MUTED := Color("#A9A49A")
-const PROCESSOR_COLORS := {
+const LEGACY_PROCESSOR_COLORS := {
 	"Obsidian Black": Color("#101214"),
 	"Graphite": Color("#34383D"),
 	"Gunmetal": Color("#4B5055"),
@@ -54,21 +54,152 @@ class GlassArrowButton extends Button:
 		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), Color("#F2EDE4"), 2.8, true)
 
 
+class DeviceColorSpectrum extends Control:
+	signal color_changed(color: Color)
+	var hue := 0.0
+	var saturation := 1.0
+	var brightness := 1.0
+	var spectrum_texture: ImageTexture
+	var dragging := false
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		_rebuild_spectrum()
+		queue_redraw()
+
+	func set_hue(value: float) -> void:
+		hue = fposmod(value, 1.0)
+		_rebuild_spectrum()
+		queue_redraw()
+
+	func set_color_value(color: Color) -> void:
+		var next_hue := color.h
+		if not is_equal_approx(hue, next_hue):
+			hue = next_hue
+			_rebuild_spectrum()
+		saturation = color.s
+		brightness = color.v
+		queue_redraw()
+
+	func _rebuild_spectrum() -> void:
+		var image := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+		for y in range(128):
+			for x in range(128):
+				image.set_pixel(x, y, Color.from_hsv(hue, float(x) / 127.0, 1.0 - float(y) / 127.0))
+		spectrum_texture = ImageTexture.create_from_image(image)
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		if spectrum_texture:
+			draw_texture_rect(spectrum_texture, rect, false)
+		draw_rect(rect, Color("#C58A3A"), false, 1.0)
+		var cursor := Vector2(saturation * size.x, (1.0 - brightness) * size.y)
+		draw_circle(cursor, 7.0, Color("#071522"))
+		draw_arc(cursor, 7.0, 0.0, TAU, 32, Color.WHITE, 2.0, true)
+		draw_circle(cursor, 2.0, Color.WHITE)
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			dragging = event.pressed
+			if dragging:
+				_update_from_position(event.position)
+				accept_event()
+		elif event is InputEventMouseMotion and dragging:
+			_update_from_position(event.position)
+			accept_event()
+		elif event is InputEventScreenTouch:
+			dragging = event.pressed
+			if dragging:
+				_update_from_position(event.position)
+				accept_event()
+		elif event is InputEventScreenDrag and dragging:
+			_update_from_position(event.position)
+			accept_event()
+
+	func _update_from_position(point: Vector2) -> void:
+		if size.x <= 0.0 or size.y <= 0.0:
+			return
+		saturation = clampf(point.x / size.x, 0.0, 1.0)
+		brightness = 1.0 - clampf(point.y / size.y, 0.0, 1.0)
+		queue_redraw()
+		color_changed.emit(Color.from_hsv(hue, saturation, brightness))
+
+
+class DeviceHueBar extends Control:
+	signal hue_changed(hue: float)
+	var hue := 0.0
+	var dragging := false
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(0, 33)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		queue_redraw()
+
+	func set_hue(value: float) -> void:
+		hue = fposmod(value, 1.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		var segments := 72
+		var segment_width := size.x / float(segments)
+		for i in range(segments):
+			var x := float(i) * segment_width
+			draw_rect(Rect2(x, 2.0, segment_width + 1.0, maxf(1.0, size.y - 4.0)), Color.from_hsv(float(i) / float(segments - 1), 1.0, 1.0))
+		var marker_x := hue * size.x
+		draw_line(Vector2(marker_x, 0.0), Vector2(marker_x, size.y), Color("#071522"), 5.0)
+		draw_line(Vector2(marker_x, 0.0), Vector2(marker_x, size.y), Color.WHITE, 2.0)
+
+	func _gui_input(event: InputEvent) -> void:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			dragging = event.pressed
+			if dragging:
+				_update_hue(event.position.x)
+				accept_event()
+		elif event is InputEventMouseMotion and dragging:
+			_update_hue(event.position.x)
+			accept_event()
+		elif event is InputEventScreenTouch:
+			dragging = event.pressed
+			if dragging:
+				_update_hue(event.position.x)
+				accept_event()
+		elif event is InputEventScreenDrag and dragging:
+			_update_hue(event.position.x)
+			accept_event()
+
+	func _update_hue(x: float) -> void:
+		if size.x <= 0.0:
+			return
+		hue = clampf(x / size.x, 0.0, 1.0)
+		queue_redraw()
+		hue_changed.emit(hue)
+
+
 var preview_viewport: SubViewport
 var processor_preview_world: Node3D
 var processor_root: Node3D
 var preview_camera: Camera3D
 var package_size: OptionButton
-var processor_color_option: OptionButton
 var processor_color := Color("#101214")
-var processor_color_material: StandardMaterial3D
+var processor_gradient_color := Color("#536DFE")
+var processor_gradient_enabled := false
+var processor_gradient_direction := 0
+var processor_gradient_color_edit_mode := false
+var processor_color_material: Material
+var processor_solid_material: StandardMaterial3D
+var processor_gradient_material: ShaderMaterial
 var status_label: Label
 var worksite_body: BoxContainer
 var preview_region: Control
 var preview_holder: SubViewportContainer
+var right_panel_column: VBoxContainer
 var selection_scroll: ScrollContainer
 var selection_region: MarginContainer
 var selection_stack: VBoxContainer
+var processor_color_step_host: VBoxContainer
+var processor_color_content: VBoxContainer
+var gradient_direction_button: Button
+var worksite_color_gradient_toggle: TextureButton
 var step_pages: Array[Control] = []
 var progress_number: Label
 var progress_bar: ProgressBar
@@ -91,7 +222,10 @@ var processor_design := {
 	"design_id": "dw_silicon_01",
 	"design_name": "DW SILICON 01",
 	"package_size": "12 × 12 mm",
-	"processor_color": "Obsidian Black"
+	"processor_color": "#101214",
+	"processor_gradient_color": "#536DFE",
+	"processor_gradient_enabled": false,
+	"processor_gradient_direction": 0
 }
 
 func _ready() -> void:
@@ -112,11 +246,13 @@ func configure_design(design: Dictionary) -> void:
 	_select_processor_design(restored_index, false)
 	if is_instance_valid(package_size):
 		_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
-	if is_instance_valid(processor_color_option):
-		var saved_color := str(processor_design.get("processor_color", "Obsidian Black"))
-		_select_option(processor_color_option, saved_color)
-		processor_color = PROCESSOR_COLORS.get(saved_color, PROCESSOR_COLORS["Obsidian Black"])
+	processor_color = _parse_saved_processor_color(str(processor_design.get("processor_color", "#101214")), Color("#101214"))
+	processor_gradient_color = _parse_saved_processor_color(str(processor_design.get("processor_gradient_color", "#536DFE")), Color("#536DFE"))
+	processor_gradient_enabled = bool(processor_design.get("processor_gradient_enabled", false))
+	processor_gradient_direction = clampi(int(processor_design.get("processor_gradient_direction", 0)), 0, 3)
+	processor_gradient_color_edit_mode = false
 	_apply_design()
+	_refresh_processor_color_controls()
 	if is_instance_valid(status_label):
 		status_label.text = "SAVED PROCESSOR DESIGN LOADED"
 
@@ -255,14 +391,20 @@ func _build_interface() -> void:
 	var selection_scroll_bar := selection_scroll.get_v_scroll_bar()
 	selection_scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	selection_scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	worksite_body.add_child(selection_scroll)
+	right_panel_column = VBoxContainer.new()
+	right_panel_column.name = "ProcessorCreationRightPanel"
+	right_panel_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_panel_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_panel_column.add_theme_constant_override("separation", 8)
+	worksite_body.add_child(right_panel_column)
+	right_panel_column.add_child(selection_scroll)
 
 	selection_region = MarginContainer.new()
 	selection_region.name = "ProcessorSelectionRegion"
 	selection_region.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	selection_region.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	selection_region.add_theme_constant_override("margin_left", 24)
-	selection_region.add_theme_constant_override("margin_right", 24)
+	selection_region.add_theme_constant_override("margin_left", 22)
+	selection_region.add_theme_constant_override("margin_right", 18)
 	selection_region.add_theme_constant_override("margin_top", 20)
 	selection_region.add_theme_constant_override("margin_bottom", 20)
 	selection_scroll.add_child(selection_region)
@@ -324,18 +466,15 @@ func _build_interface() -> void:
 
 
 	var color_page := _create_step_page("PROCESSOR COLOR")
-	var color_label := _label("CHOOSE PROCESSOR COLOR", 11, ACCENT)
-	color_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	color_page.add_child(color_label)
-	processor_color_option = OptionButton.new()
-	processor_color_option.name = "ProcessorColor"
-	processor_color_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for color_name in PROCESSOR_COLORS.keys():
-		processor_color_option.add_item(color_name)
-	_select_option(processor_color_option, str(processor_design.get("processor_color", "Obsidian Black")))
-	_style_option(processor_color_option)
-	processor_color_option.item_selected.connect(_on_processor_color_selected)
-	color_page.add_child(processor_color_option)
+	color_page.alignment = BoxContainer.ALIGNMENT_BEGIN
+	color_page.add_theme_constant_override("separation", 8)
+	processor_color_step_host = VBoxContainer.new()
+	processor_color_step_host.name = "ProcessorColorStepHost"
+	processor_color_step_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_color_step_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_color_step_host.add_theme_constant_override("separation", 6)
+	color_page.add_child(processor_color_step_host)
+	_build_processor_color_controls()
 
 	var dimensions_page := _create_step_page("PACKAGE DIMENSIONS")
 	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
@@ -417,27 +556,28 @@ func _create_step_page(title_text: String) -> VBoxContainer:
 
 
 func _apply_responsive_layout() -> void:
-	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll):
+	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll) or not is_instance_valid(right_panel_column):
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var is_wide := viewport_size.x >= viewport_size.y and viewport_size.x >= 700.0
 	worksite_body.vertical = not is_wide
 	if is_wide:
 		preview_region.size_flags_stretch_ratio = 1.12
-		selection_scroll.size_flags_stretch_ratio = 0.88
+		right_panel_column.size_flags_stretch_ratio = 0.88
 		preview_region.custom_minimum_size = Vector2(0, 0)
 		preview_holder.custom_minimum_size = Vector2(0, 245)
-		selection_scroll.custom_minimum_size = Vector2(280, 0)
+		right_panel_column.custom_minimum_size = Vector2(280, 0)
+		selection_scroll.custom_minimum_size = Vector2(0, 0)
 		selection_region.add_theme_constant_override("margin_left", 24)
 		selection_region.add_theme_constant_override("margin_right", 24)
 		selection_region.add_theme_constant_override("margin_top", 20)
 		selection_region.add_theme_constant_override("margin_bottom", 20)
 	else:
 		preview_region.size_flags_stretch_ratio = 0.82
-		selection_scroll.size_flags_stretch_ratio = 1.18
-		preview_region.custom_minimum_size = Vector2(0, maxf(160.0, viewport_size.y * 0.25))
-		preview_holder.custom_minimum_size = Vector2(0, 100)
-		selection_scroll.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.50))
+		right_panel_column.size_flags_stretch_ratio = 1.18
+		preview_region.custom_minimum_size = Vector2(0, maxf(140.0, viewport_size.y * 0.24))
+		right_panel_column.custom_minimum_size = Vector2(0, maxf(300.0, viewport_size.y * 0.52))
+		selection_scroll.custom_minimum_size = Vector2(0, 0)
 		selection_region.add_theme_constant_override("margin_left", 20)
 		selection_region.add_theme_constant_override("margin_right", 20)
 		selection_region.add_theme_constant_override("margin_top", 14)
@@ -546,7 +686,7 @@ func _build_processor_preview() -> void:
 	fill_light.omni_range = 8.0
 	processor_preview_world.add_child(fill_light)
 
-	# Construct and retain all fifteen models under the world root during
+	# Construct and retain all thirty models under the world root during
 	# initialization. Selection only toggles visibility after this point.
 	processor_designs.clear()
 	for design_value in ProcessorDesignLibrary.DESIGNS:
@@ -768,10 +908,371 @@ func _apply_design() -> void:
 	_apply_processor_color()
 
 
-func _on_processor_color_selected(index: int) -> void:
-	var color_name := processor_color_option.get_item_text(index)
-	processor_color = PROCESSOR_COLORS.get(color_name, PROCESSOR_COLORS["Obsidian Black"])
-	_apply_design()
+func _parse_saved_processor_color(value: String, fallback: Color) -> Color:
+	var cleaned := value.strip_edges()
+	if LEGACY_PROCESSOR_COLORS.has(cleaned):
+		return LEGACY_PROCESSOR_COLORS[cleaned]
+	var hex_value := cleaned.trim_prefix("#")
+	if Color.html_is_valid(hex_value):
+		return Color.from_string("#" + hex_value, fallback)
+	return fallback
+
+
+func _processor_gradient_direction_name(index: int) -> String:
+	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
+	return names[clampi(index, 0, names.size() - 1)]
+
+
+func _processor_checkbox_icon(checked: bool) -> Texture2D:
+	var image := Image.new()
+	var svg := ""
+	if checked:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.30" stroke="#C58A3A" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+	else:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.10" stroke="#C58A3A" stroke-width="2.5"/></svg>"""
+	var error := image.load_svg_from_string(svg)
+	if error != OK:
+		push_warning("Could not create processor colour checkbox icon")
+		return null
+	return ImageTexture.create_from_image(image)
+
+
+func _style_processor_staff_button(button: Button, primary: bool) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.27, 0.18, 0.09, 0.90) if primary else Color(0.12, 0.13, 0.14, 0.82)
+		if state == "hover":
+			style.bg_color = Color(0.38, 0.25, 0.12, 0.94) if primary else Color(0.21, 0.22, 0.23, 0.88)
+		elif state == "pressed":
+			style.bg_color = Color(0.17, 0.11, 0.06, 0.98) if primary else Color(0.08, 0.09, 0.10, 0.94)
+		elif state == "disabled":
+			style.bg_color = Color(0.10, 0.11, 0.12, 0.58)
+		style.border_color = Color(0.80, 0.60, 0.32, 0.78) if primary else Color(0.72, 0.72, 0.68, 0.34)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(11)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+		style.shadow_size = 7
+		style.shadow_offset = Vector2(0, 2)
+		style.anti_aliasing = true
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color("#A9A092"))
+
+
+func _clear_processor_color_step_host() -> void:
+	if not is_instance_valid(processor_color_step_host):
+		return
+	for child in processor_color_step_host.get_children():
+		processor_color_step_host.remove_child(child)
+		child.queue_free()
+
+
+func _build_processor_color_controls() -> void:
+	_clear_processor_color_step_host()
+	processor_color_content = VBoxContainer.new()
+	processor_color_content.name = "ProcessorColorControls"
+	processor_color_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_color_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_color_content.add_theme_constant_override("separation", 6)
+	processor_color_step_host.add_child(processor_color_content)
+
+	var gradient_toggle_row := HBoxContainer.new()
+	gradient_toggle_row.name = "EnableProcessorGradientRow"
+	gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_toggle_row.add_theme_constant_override("separation", 6)
+	processor_color_content.add_child(gradient_toggle_row)
+
+	var gradient_toggle_label := _label("ENABLE GRADIENT", 13, Color("#D3AA6B"))
+	gradient_toggle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_toggle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	gradient_toggle_row.add_child(gradient_toggle_label)
+
+	worksite_color_gradient_toggle = TextureButton.new()
+	worksite_color_gradient_toggle.name = "EnableProcessorGradient"
+	worksite_color_gradient_toggle.custom_minimum_size = Vector2(36, 36)
+	worksite_color_gradient_toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	worksite_color_gradient_toggle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	worksite_color_gradient_toggle.ignore_texture_size = true
+	worksite_color_gradient_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	worksite_color_gradient_toggle.texture_normal = _processor_checkbox_icon(false)
+	worksite_color_gradient_toggle.texture_hover = _processor_checkbox_icon(false)
+	worksite_color_gradient_toggle.texture_pressed = _processor_checkbox_icon(true)
+	worksite_color_gradient_toggle.toggle_mode = true
+	worksite_color_gradient_toggle.button_pressed = processor_gradient_enabled
+	worksite_color_gradient_toggle.focus_mode = Control.FOCUS_NONE
+	worksite_color_gradient_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	worksite_color_gradient_toggle.pressed.connect(_on_processor_gradient_toggle_pressed.bind(worksite_color_gradient_toggle))
+	gradient_toggle_row.add_child(worksite_color_gradient_toggle)
+
+	var gradient_options := VBoxContainer.new()
+	gradient_options.name = "ProcessorGradientOptions"
+	gradient_options.add_theme_constant_override("separation", 7)
+	gradient_options.visible = processor_gradient_enabled
+	processor_color_content.add_child(gradient_options)
+
+	gradient_direction_button = Button.new()
+	gradient_direction_button.name = "ProcessorGradientDirection"
+	gradient_direction_button.text = "GRADIENT DIRECTION  ·  " + _processor_gradient_direction_name(processor_gradient_direction)
+	gradient_direction_button.custom_minimum_size.y = 40
+	gradient_direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_direction_button.focus_mode = Control.FOCUS_NONE
+	_style_processor_staff_button(gradient_direction_button, false)
+	gradient_direction_button.pressed.connect(_show_processor_gradient_direction_controls)
+	gradient_options.add_child(gradient_direction_button)
+
+	var picker_columns := HBoxContainer.new()
+	picker_columns.name = "ProcessorColorPickerColumns"
+	picker_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker_columns.add_theme_constant_override("separation", 12)
+	processor_color_content.add_child(picker_columns)
+
+	var color_viewport_size := get_viewport().get_visible_rect().size
+	picker_columns.add_child(_build_processor_color_picker_panel(false, color_viewport_size))
+	picker_columns.add_child(_build_processor_color_picker_panel(true, color_viewport_size))
+	var gradient_picker := picker_columns.get_node_or_null("ProcessorGradientColorPicker") as Control
+	_set_processor_gradient_picker_enabled(gradient_picker, processor_gradient_enabled)
+
+
+func _build_processor_color_picker_panel(use_gradient_color: bool, viewport_size: Vector2) -> VBoxContainer:
+	var picker := VBoxContainer.new()
+	picker.name = "ProcessorGradientColorPicker" if use_gradient_color else "ProcessorNormalColorPicker"
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	picker.add_theme_constant_override("separation", 5)
+	var heading := _label("GRADIENT" if use_gradient_color else "NORMAL", 14, Color("#D3AA6B"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	picker.add_child(heading)
+	var selected_color := processor_gradient_color if use_gradient_color else processor_color
+	picker.add_child(_label("COLOR SPECTRUM", 11, Color("#C58A3A")))
+
+	var spectrum := DeviceColorSpectrum.new()
+	spectrum.name = "ProcessorColorSpectrum"
+	spectrum.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spectrum.custom_minimum_size = Vector2(0, clampf(viewport_size.y * 0.22, 125.0, 175.0))
+	spectrum.set_color_value(selected_color)
+	spectrum.color_changed.connect(_on_processor_color_picker_changed.bind(use_gradient_color))
+	picker.add_child(spectrum)
+
+	picker.add_child(_label("HUE", 11, Color("#C58A3A")))
+	var hue_bar := DeviceHueBar.new()
+	hue_bar.name = "ProcessorColorHue"
+	hue_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hue_bar.set_hue(selected_color.h)
+	hue_bar.hue_changed.connect(_on_processor_color_picker_hue_changed.bind(use_gradient_color))
+	picker.add_child(hue_bar)
+
+	var selected_label := _label("#" + selected_color.to_html(false).to_upper(), 12, Color("#EEE9DF"))
+	selected_label.name = "ProcessorSelectedColorHex"
+	picker.add_child(selected_label)
+	picker.add_child(_label("HEX CODE", 11, Color("#C58A3A")))
+
+	var hex_row := HBoxContainer.new()
+	hex_row.name = "ProcessorCustomHexEntry"
+	hex_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hex_row.add_theme_constant_override("separation", 5)
+	picker.add_child(hex_row)
+
+	var hex_input := LineEdit.new()
+	hex_input.name = "ProcessorColorHexInput"
+	hex_input.placeholder_text = "#RRGGBB"
+	hex_input.text = selected_color.to_html(false).to_upper()
+	hex_input.max_length = 7
+	hex_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hex_input.custom_minimum_size = Vector2(0, 36)
+	hex_input.add_theme_color_override("font_color", Color("#EEE9DF"))
+	hex_input.add_theme_color_override("font_placeholder_color", Color("#928B80"))
+	hex_input.add_theme_color_override("caret_color", Color("#C58A3A"))
+	var hex_normal := StyleBoxFlat.new()
+	hex_normal.bg_color = Color("#202326")
+	hex_normal.set_corner_radius_all(7)
+	hex_normal.set_border_width_all(1)
+	hex_normal.border_color = Color("#514B40")
+	hex_normal.content_margin_left = 7.0
+	hex_normal.content_margin_right = 7.0
+	var hex_focus := hex_normal.duplicate() as StyleBoxFlat
+	hex_focus.border_color = Color("#C58A3A")
+	hex_focus.set_border_width_all(2)
+	hex_input.add_theme_stylebox_override("normal", hex_normal)
+	hex_input.add_theme_stylebox_override("focus", hex_focus)
+	hex_input.add_theme_stylebox_override("read_only", hex_normal)
+	hex_row.add_child(hex_input)
+
+	var apply_button := Button.new()
+	apply_button.name = "ApplyProcessorHex"
+	apply_button.text = "APPLY"
+	apply_button.custom_minimum_size = Vector2(58, 36)
+	apply_button.focus_mode = Control.FOCUS_NONE
+	apply_button.add_theme_font_size_override("font_size", 11)
+	_style_processor_staff_button(apply_button, true)
+	hex_row.add_child(apply_button)
+	apply_button.pressed.connect(_on_processor_color_hex_apply.bind(hex_input, use_gradient_color))
+	hex_input.text_submitted.connect(_on_processor_color_hex_text_submitted.bind(use_gradient_color))
+	return picker
+
+
+func _set_processor_gradient_picker_enabled(picker: Control, enabled: bool) -> void:
+	if not is_instance_valid(picker):
+		return
+	picker.modulate.a = 1.0 if enabled else 0.38
+	for child in picker.find_children("*", "Control", true, false):
+		child.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+		if child is BaseButton:
+			(child as BaseButton).disabled = not enabled
+		elif child is LineEdit:
+			(child as LineEdit).editable = enabled
+	picker.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+
+
+func _refresh_processor_color_controls() -> void:
+	if not is_instance_valid(processor_color_content):
+		return
+	for use_gradient_color in [false, true]:
+		var picker_name := "ProcessorGradientColorPicker" if use_gradient_color else "ProcessorNormalColorPicker"
+		var picker := processor_color_content.get_node_or_null("ProcessorColorPickerColumns/" + picker_name)
+		if not is_instance_valid(picker):
+			continue
+		var selected_color := processor_gradient_color if use_gradient_color else processor_color
+		var spectrum := picker.get_node_or_null("ProcessorColorSpectrum") as DeviceColorSpectrum
+		if is_instance_valid(spectrum):
+			spectrum.set_color_value(selected_color)
+		var hue_bar := picker.get_node_or_null("ProcessorColorHue") as DeviceHueBar
+		if is_instance_valid(hue_bar):
+			hue_bar.set_hue(selected_color.h)
+		var hex_label := picker.get_node_or_null("ProcessorSelectedColorHex") as Label
+		if is_instance_valid(hex_label):
+			hex_label.text = "#" + selected_color.to_html(false).to_upper()
+			hex_label.add_theme_color_override("font_color", Color("#EEE9DF"))
+		var hex_input := picker.get_node_or_null("ProcessorCustomHexEntry/ProcessorColorHexInput") as LineEdit
+		if is_instance_valid(hex_input):
+			hex_input.text = selected_color.to_html(false).to_upper()
+		if use_gradient_color:
+			_set_processor_gradient_picker_enabled(picker, processor_gradient_enabled)
+	if is_instance_valid(worksite_color_gradient_toggle):
+		worksite_color_gradient_toggle.button_pressed = processor_gradient_enabled
+		worksite_color_gradient_toggle.texture_normal = _processor_checkbox_icon(false)
+		worksite_color_gradient_toggle.texture_pressed = _processor_checkbox_icon(true)
+	var gradient_options := processor_color_content.get_node_or_null("ProcessorGradientOptions") as Control
+	if is_instance_valid(gradient_options):
+		gradient_options.visible = processor_gradient_enabled
+	if is_instance_valid(gradient_direction_button):
+		gradient_direction_button.text = "GRADIENT DIRECTION  ·  " + _processor_gradient_direction_name(processor_gradient_direction)
+
+
+func _on_processor_color_picker_changed(color: Color, use_gradient_color: bool) -> void:
+	processor_gradient_color_edit_mode = use_gradient_color
+	var selected_color := Color(color.r, color.g, color.b, 1.0)
+	if use_gradient_color:
+		processor_gradient_color = selected_color
+	else:
+		processor_color = selected_color
+	_apply_processor_color()
+	_refresh_processor_color_controls()
+	if is_instance_valid(status_label):
+		status_label.text = "UNSAVED DESIGN CHANGES"
+
+
+func _on_processor_color_picker_hue_changed(hue: float, use_gradient_color: bool) -> void:
+	var picker_name := "ProcessorGradientColorPicker" if use_gradient_color else "ProcessorNormalColorPicker"
+	var spectrum := processor_color_content.get_node_or_null("ProcessorColorPickerColumns/" + picker_name + "/ProcessorColorSpectrum") as DeviceColorSpectrum if is_instance_valid(processor_color_content) else null
+	if is_instance_valid(spectrum):
+		spectrum.set_hue(hue)
+		_on_processor_color_picker_changed(Color.from_hsv(hue, spectrum.saturation, spectrum.brightness), use_gradient_color)
+
+
+func _on_processor_color_hex_apply(hex_input: LineEdit, use_gradient_color: bool) -> void:
+	if is_instance_valid(hex_input):
+		_on_processor_color_hex_text_submitted(hex_input.text, use_gradient_color)
+
+
+func _on_processor_color_hex_text_submitted(value: String, use_gradient_color: bool) -> void:
+	var hex_value := value.strip_edges().trim_prefix("#")
+	if not Color.html_is_valid(hex_value):
+		var picker_name := "ProcessorGradientColorPicker" if use_gradient_color else "ProcessorNormalColorPicker"
+		var label := processor_color_content.get_node_or_null("ProcessorColorPickerColumns/" + picker_name + "/ProcessorSelectedColorHex") as Label if is_instance_valid(processor_color_content) else null
+		if is_instance_valid(label):
+			label.text = "INVALID HEX CODE"
+			label.add_theme_color_override("font_color", Color("#ff7373"))
+		return
+	_on_processor_color_picker_changed(Color.from_string("#" + hex_value, processor_gradient_color if use_gradient_color else processor_color), use_gradient_color)
+
+
+func _on_processor_gradient_toggle_pressed(toggle: TextureButton) -> void:
+	if not is_instance_valid(toggle):
+		return
+	processor_gradient_enabled = toggle.button_pressed
+	if not processor_gradient_enabled:
+		processor_gradient_color_edit_mode = false
+	_apply_processor_color()
+	_refresh_processor_color_controls()
+	if is_instance_valid(status_label):
+		status_label.text = "UNSAVED DESIGN CHANGES"
+
+
+func _show_processor_gradient_direction_controls() -> void:
+	_clear_processor_color_step_host()
+	var panel := VBoxContainer.new()
+	panel.name = "ProcessorGradientDirectionControls"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", 10)
+	processor_color_step_host.add_child(panel)
+
+	var header := HBoxContainer.new()
+	header.name = "ProcessorGradientDirectionHeader"
+	header.add_theme_constant_override("separation", 7)
+	panel.add_child(header)
+	var back_button := Button.new()
+	back_button.name = "ProcessorGradientDirectionBackButton"
+	back_button.text = "‹"
+	back_button.custom_minimum_size = Vector2(34, 32)
+	back_button.focus_mode = Control.FOCUS_NONE
+	_style_processor_staff_button(back_button, false)
+	back_button.add_theme_font_size_override("font_size", 25)
+	back_button.pressed.connect(_return_to_processor_color_controls)
+	header.add_child(back_button)
+	var title := _label("GRADIENT DIRECTION", 16, Color("#D3AA6B"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var options := GridContainer.new()
+	options.name = "ProcessorGradientDirectionOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 8)
+	panel.add_child(options)
+	for index in range(4):
+		var option := Button.new()
+		option.name = "ProcessorGradientDirectionOption%d" % index
+		option.text = _processor_gradient_direction_name(index) + ("  ✓" if index == processor_gradient_direction else "")
+		option.custom_minimum_size = Vector2(0, 54)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_style_processor_staff_button(option, index == processor_gradient_direction)
+		option.pressed.connect(_select_processor_gradient_direction.bind(index))
+		options.add_child(option)
+
+
+func _return_to_processor_color_controls() -> void:
+	_build_processor_color_controls()
+
+
+func _select_processor_gradient_direction(index: int) -> void:
+	processor_gradient_direction = clampi(index, 0, 3)
+	_apply_processor_color()
+	var options := processor_color_step_host.get_node_or_null("ProcessorGradientDirectionControls/ProcessorGradientDirectionOptions") as GridContainer if is_instance_valid(processor_color_step_host) else null
+	if is_instance_valid(options):
+		for child in options.get_children():
+			if child is Button:
+				var option := child as Button
+				var option_index := int(option.name.trim_prefix("ProcessorGradientDirectionOption"))
+				option.text = _processor_gradient_direction_name(option_index) + ("  ✓" if option_index == processor_gradient_direction else "")
+				_style_processor_staff_button(option, option_index == processor_gradient_direction)
+	if is_instance_valid(gradient_direction_button):
+		gradient_direction_button.text = "GRADIENT DIRECTION  ·  " + _processor_gradient_direction_name(processor_gradient_direction)
 	if is_instance_valid(status_label):
 		status_label.text = "UNSAVED DESIGN CHANGES"
 
@@ -779,11 +1280,48 @@ func _on_processor_color_selected(index: int) -> void:
 func _apply_processor_color() -> void:
 	if not is_instance_valid(processor_root):
 		return
-	if not is_instance_valid(processor_color_material):
-		processor_color_material = StandardMaterial3D.new()
-		processor_color_material.metallic = 0.62
-		processor_color_material.roughness = 0.30
-	processor_color_material.albedo_color = processor_color
+	if processor_gradient_enabled:
+		if not is_instance_valid(processor_gradient_material):
+			var shader := Shader.new()
+			shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, cull_disabled;
+uniform vec4 solid_color : source_color = vec4(0.063, 0.071, 0.078, 1.0);
+uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
+uniform int gradient_direction : hint_range(0, 3) = 0;
+varying vec2 processor_uv;
+void vertex() {
+	processor_uv = UV;
+}
+void fragment() {
+	float t = processor_uv.y;
+	if (gradient_direction == 1) {
+		t = processor_uv.x;
+	} else if (gradient_direction == 2) {
+		t = clamp((processor_uv.x + processor_uv.y) * 0.5, 0.0, 1.0);
+	} else if (gradient_direction == 3) {
+		t = clamp(length((processor_uv - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+	}
+	ALBEDO = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
+	METALLIC = 0.62;
+	ROUGHNESS = 0.30;
+	SPECULAR = 0.82;
+}
+"""
+			processor_gradient_material = ShaderMaterial.new()
+			processor_gradient_material.shader = shader
+		processor_gradient_material.set_shader_parameter("solid_color", processor_color)
+		processor_gradient_material.set_shader_parameter("gradient_color", processor_gradient_color)
+		processor_gradient_material.set_shader_parameter("gradient_direction", processor_gradient_direction)
+		processor_color_material = processor_gradient_material
+	else:
+		if not is_instance_valid(processor_solid_material):
+			processor_solid_material = StandardMaterial3D.new()
+			processor_solid_material.metallic = 0.62
+			processor_solid_material.roughness = 0.30
+		processor_solid_material.albedo_color = processor_color
+		processor_color_material = processor_solid_material
+
 	var pending_nodes: Array[Node] = [processor_root]
 	while not pending_nodes.is_empty():
 		var current_node: Node = pending_nodes.pop_back()
@@ -802,7 +1340,10 @@ func _save_design() -> void:
 		"design_id": str(selected_profile.get("id", "dw_silicon_01")),
 		"design_name": str(selected_profile.get("name", "DW SILICON 01")),
 		"package_size": package_size.get_item_text(package_size.selected),
-		"processor_color": processor_color_option.get_item_text(processor_color_option.selected)
+		"processor_color": "#" + processor_color.to_html(false).to_upper(),
+		"processor_gradient_color": "#" + processor_gradient_color.to_html(false).to_upper(),
+		"processor_gradient_enabled": processor_gradient_enabled,
+		"processor_gradient_direction": processor_gradient_direction
 	}
 	design_saved.emit(processor_design.duplicate(true))
 	status_label.text = "PROCESSOR DESIGN SAVED"
