@@ -601,39 +601,17 @@ func _calculate_camera_technology_points() -> float:
 		var rear_mp_ranges: Array = []
 		for range_index in range(1, rear_camera_mp_research_level + 1):
 			rear_mp_ranges.append(float(ResearchManagerScript.get_rear_camera_mp_max_for_level(range_index)))
-		var rear_size_ranges: Array = []
-		for range_index in range(1, rear_camera_size_research_level + 1):
-			rear_size_ranges.append(float(ResearchManagerScript.get_rear_camera_size_max_for_level(range_index)))
 		for camera_value in rear_camera_modules:
 			var camera_data: Dictionary = camera_value
 			total += _get_camera_technology_points(
 				"Rear Camera MP",
 				_get_camera_technology_range_progress(float(camera_data.get("mp", 1)), 1.0, rear_mp_ranges)
 			)
-			total += _get_camera_technology_points(
-				"Rear Camera Size",
-				_get_camera_technology_range_progress(
-					float(camera_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)),
-					ResearchManagerScript.REAR_HARDWARE_SIZE_BASE,
-					rear_size_ranges
-				)
-			)
 
 	if not rear_flash_modules.is_empty():
 		total += _get_camera_technology_points("Rear Flash Count", float(maxi(0, rear_flash_modules.size() - 1)))
-		var rear_flash_size_ranges: Array = []
-		for range_index in range(1, rear_flash_size_research_level + 1):
-			rear_flash_size_ranges.append(float(ResearchManagerScript.get_rear_flash_size_max_for_level(range_index)))
 		for flash_value in rear_flash_modules:
 			var flash_data: Dictionary = flash_value
-			total += _get_camera_technology_points(
-				"Rear Flash Size",
-				_get_camera_technology_range_progress(
-					float(flash_data.get("size", ResearchManagerScript.REAR_HARDWARE_SIZE_BASE)),
-					ResearchManagerScript.REAR_HARDWARE_SIZE_BASE,
-					rear_flash_size_ranges
-				)
-			)
 
 	if not camera_back_design_boxes.is_empty():
 		total += _get_camera_technology_points("Back Raised Design", float(camera_back_design_boxes.size()))
