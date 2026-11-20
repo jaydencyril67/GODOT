@@ -74,7 +74,22 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Power/Volume Button Length": 25.0,
 	"Power Button Position": 15.0,
 	"Volume Button Position": 15.0,
-	"Smartwatch": 310.0
+	"Smartwatch": 310.0,
+	"Control Unit": 120.0,
+	"Instruction Decoder": 130.0,
+	"Instruction Fetch Unit": 140.0,
+	"Branch Prediction Unit": 150.0,
+	"Memory Management Unit": 160.0,
+	"Translation Lookaside Buffer": 170.0,
+	"Internal Bus": 180.0,
+	"Ring Bus / Interconnect Fabric": 190.0,
+	"System Agent": 210.0,
+	"I/O Controller": 220.0,
+	"Clock Distribution Network": 230.0,
+	"Voltage Regulator Interface": 240.0,
+	"Thermal Sensor": 250.0,
+	"Debug and Test Unit": 265.0,
+	"Security Processing Unit": 280.0
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const TECHNOLOGY_POINTS_PER_RESEARCH_DAY := 0.01
@@ -246,6 +261,24 @@ const COOLING_SYSTEM_SEQUENCE := [
 	"Liquid Cooling",
 	"Advanced Liquid Cooling"
 ]
+const PROCESSOR_TECHNOLOGIES := [
+	"Control Unit",
+	"Instruction Decoder",
+	"Instruction Fetch Unit",
+	"Branch Prediction Unit",
+	"Memory Management Unit",
+	"Translation Lookaside Buffer",
+	"Internal Bus",
+	"Ring Bus / Interconnect Fabric",
+	"System Agent",
+	"I/O Controller",
+	"Clock Distribution Network",
+	"Voltage Regulator Interface",
+	"Thermal Sensor",
+	"Debug and Test Unit",
+	"Security Processing Unit"
+]
+
 const COMPONENT_CATALOGUE := [
 	"Screen Technology",
 	"Screen Width",
@@ -313,7 +346,22 @@ const COMPONENT_CATALOGUE := [
 	"Style Pen (S Pen)",
 	"Power/Volume Button Length",
 	"Power Button Position",
-	"Volume Button Position"
+	"Volume Button Position",
+	"Control Unit",
+	"Instruction Decoder",
+	"Instruction Fetch Unit",
+	"Branch Prediction Unit",
+	"Memory Management Unit",
+	"Translation Lookaside Buffer",
+	"Internal Bus",
+	"Ring Bus / Interconnect Fabric",
+	"System Agent",
+	"I/O Controller",
+	"Clock Distribution Network",
+	"Voltage Regulator Interface",
+	"Thermal Sensor",
+	"Debug and Test Unit",
+	"Security Processing Unit"
 ]
 
 const MOBILE_NETWORK_SEQUENCE := [
@@ -1083,7 +1131,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 				return _failure("Memory Clock has reached its maximum research level.")
 			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
-	if PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		var position_level_limit := 2 if component in ["Power Button Position", "Volume Button Position"] else 1
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= position_level_limit:
 			return _failure("%s research has already been approved." % component)
@@ -1171,12 +1219,12 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		if current_position_level < 2:
 			var next_position_index := current_position_level + 1
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
-	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1249,6 +1297,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif CAMERA_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s camera capability for integration with the selected rear or front camera." % component
+		elif PROCESSOR_TECHNOLOGIES.has(component):
+			project_title = "Research: %s" % component
+			project_objective = "Develop, test and validate the %s subsystem for integration into the processor architecture." % component
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
@@ -1598,6 +1649,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		protection_glass_target_index = int(project.get("research_target_index", -1))
 		if expected_protection_glass_target.is_empty() or protection_glass_target_index != int(expected_protection_glass_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_protection_glass_target.get("technology", "")):
 			return _failure("This Protection Glass project is no longer the next valid glass unlock.")
+	elif PROCESSOR_TECHNOLOGIES.has(component):
+		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != component:
+			return _failure("This processor technology is no longer a valid, unapproved research target.")
 	elif CAMERA_SENSOR_COMPONENTS.has(component):
 		camera_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or camera_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1681,6 +1735,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Box Package customization unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
+		if PROCESSOR_TECHNOLOGIES.has(result_component) and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact processor technology assigned to this project.")
 		if CAMERA_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact camera feature assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1815,6 +1871,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Protection Glass":
 		# Normal Glass is the first unlock; Privacy Glass is the second and final type.
 		component_levels[component] = protection_glass_target_index
+	elif PROCESSOR_TECHNOLOGIES.has(component):
+		# Each processor subsystem is an independent, one-time approved research unlock.
+		component_levels[component] = 1
 	elif CAMERA_SENSOR_COMPONENTS.has(component):
 		# Every camera capability is an independent, one-time approved research unlock.
 		component_levels[component] = 1
