@@ -2983,6 +2983,7 @@ func _activate_camera_creation_worksite() -> void:
 			ui_layer = create_ui_layer
 			ui_root = create_ui_root
 		return
+	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 
 	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
