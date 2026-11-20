@@ -139,7 +139,6 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	design_add_button.emit_signal("pressed")
-	await process_frame
 	var design_boxes: Array = worksite.get("camera_back_design_boxes")
 	if design_boxes.size() != 1 or worksite.find_child("CameraBackDesignRaisedSections", true, false) == null:
 		_fail("DESIGN mode could not add and render a raised back-design box.")
@@ -170,7 +169,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	var design_color_button := worksite.find_child("CameraBackDesignColorButton", true, false) as Button
+	var active_design_panel := worksite.get("camera_back_design_view") as VBoxContainer
+	var design_color_button := active_design_panel.find_child("CameraBackDesignColorButton", true, false) as Button if active_design_panel != null else null
 	if design_color_button == null or design_color_button.disabled:
 		_fail("Back-design COLOR action is unavailable for the selected box.")
 		worksite.free()
@@ -256,14 +256,16 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 	design_mode_button.emit_signal("pressed")
-	await process_frame
-	var restored_design_panel := worksite.find_child("CameraBackDesignControls", true, false) as VBoxContainer
-	if component_selection.is_inside_tree() or restored_design_panel == null or not restored_design_panel.visible:
+	var restored_design_panel := worksite.get("camera_back_design_view") as VBoxContainer
+	if not component_selection.is_queued_for_deletion() or restored_design_panel == null or not restored_design_panel.visible:
 		_fail("Switching from Camera component selection to DESIGN left overlapping panels.")
 		worksite.free()
 		return
 	camera_mode_button.emit_signal("pressed")
-	await process_frame
+	if restored_design_panel.visible:
+		_fail("Switching back to CAMERA did not hide the Back Design panel.")
+		worksite.free()
+		return
 
 	var initial_camera_position: Vector2 = camera_modules[0]["position"]
 	worksite.call("_on_rear_hardware_size_changed", 0.06)
