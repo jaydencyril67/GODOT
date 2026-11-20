@@ -2,6 +2,7 @@ extends SceneTree
 
 const PhoneResearchDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const CameraResearchDashboardScene: PackedScene = preload("res://scenes/camera_research_dashboard.tscn")
+const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/processor_research_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 
@@ -39,6 +40,18 @@ func _run_checks() -> void:
 			"staff_ids": []
 		},
 		{
+			"id": "RDP-PROCESSOR-ACTIVE",
+			"component": "Control Unit",
+			"status": ResearchManagerScript.STATUS_ACTIVE,
+			"staff_ids": ["processor_researcher"]
+		},
+		{
+			"id": "RDP-PROCESSOR-PENDING",
+			"component": "Security Processing Unit",
+			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
+			"staff_ids": []
+		},
+		{
 			"id": "RDP-CAMERA-PENDING",
 			"component": "Front Camera MP",
 			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
@@ -57,7 +70,8 @@ func _run_checks() -> void:
 		"staff_employees": [
 			{"id": "phone_researcher", "full_name": "Phone Researcher", "department": "Research"},
 			{"id": "camera_researcher", "full_name": "Camera Researcher", "department": "Research"},
-			{"id": "camera_count_researcher", "full_name": "Camera Count Researcher", "department": "Research"}
+			{"id": "camera_count_researcher", "full_name": "Camera Count Researcher", "department": "Research"},
+			{"id": "processor_researcher", "full_name": "Processor Researcher", "department": "Research"}
 		],
 		"research_projects": sample_projects,
 		"research_technologies": {},
@@ -84,7 +98,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _has_active_staff(phone_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher"]):
+	if not _has_active_staff(phone_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher", "processor_researcher"]):
 		_fail("Phone Research lost the shared staff-availability lock for an active Camera project.")
 		host.queue_free()
 		quit(1)
@@ -117,7 +131,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _has_active_staff(camera_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher"]):
+	if not _has_active_staff(camera_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher", "processor_researcher"]):
 		_fail("Camera Research lost the shared staff-availability lock for an active Phone project.")
 		host.queue_free()
 		quit(1)
@@ -157,9 +171,68 @@ func _run_checks() -> void:
 		quit(1)
 		return
 
+	var processor_dashboard := ProcessorResearchDashboardScene.instantiate() as Control
+	host.add_child(processor_dashboard)
+	await process_frame
+	processor_dashboard.call("configure", dashboard_data)
+	if not _has_full_dashboard_shell(processor_dashboard):
+		_fail("Processor Research did not reproduce the full Phone Research dashboard structure.")
+		host.queue_free()
+		quit(1)
+		return
+	if _project_ids(processor_dashboard.call("_get_active_projects")) != ["RDP-PROCESSOR-ACTIVE"]:
+		_fail("Processor Research is displaying a Phone or Camera active project, or hiding its own active project.")
+		host.queue_free()
+		quit(1)
+		return
+	if _project_ids(processor_dashboard.call("_get_pending_validation_projects")) != ["RDP-PROCESSOR-PENDING"]:
+		_fail("Processor Research is displaying a Phone or Camera validation project, or hiding its own validation project.")
+		host.queue_free()
+		quit(1)
+		return
+	if not _has_active_staff(processor_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher", "processor_researcher"]):
+		_fail("Processor Research lost the shared staff-availability lock for active Phone or Camera projects.")
+		host.queue_free()
+		quit(1)
+		return
+	processor_dashboard.call("_open_creation_scene")
+	var processor_options: Array = processor_dashboard.get("component_buttons")
+	var processor_labels := _button_labels(processor_options)
+	var expected_processor_labels: Array[String] = [
+		"CONTROL UNIT",
+		"INSTRUCTION DECODER",
+		"INSTRUCTION FETCH UNIT",
+		"BRANCH PREDICTION UNIT",
+		"MEMORY MANAGEMENT UNIT",
+		"TRANSLATION LOOKASIDE BUFFER",
+		"INTERNAL BUS",
+		"RING BUS / INTERCONNECT FABRIC",
+		"SYSTEM AGENT",
+		"I/O CONTROLLER",
+		"CLOCK DISTRIBUTION NETWORK",
+		"VOLTAGE REGULATOR INTERFACE",
+		"THERMAL SENSOR",
+		"DEBUG AND TEST UNIT",
+		"SECURITY PROCESSING UNIT"
+	]
+	if processor_labels != expected_processor_labels:
+		_fail("Processor Research must expose only the 15 approved Processor Technologies in their approved order.")
+		host.queue_free()
+		quit(1)
+		return
+	if not _check_processor_technology_research():
+		host.queue_free()
+		quit(1)
+		return
+	if not processor_dashboard.has_signal("project_commission_requested") or not processor_dashboard.has_signal("project_approve_requested") or not processor_dashboard.has_signal("project_retry_requested") or not processor_dashboard.has_signal("project_cancel_requested"):
+		_fail("Processor Research is missing one or more of the full R&D management signals.")
+		host.queue_free()
+		quit(1)
+		return
+
 	host.queue_free()
 	await process_frame
-	print("PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST: PASS")
+	print("PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS")
 	quit(0)
 
 
@@ -302,6 +375,84 @@ func _check_camera_one_time_research() -> bool:
 		var duplicate := ResearchManagerScript.commission_project(test_career, {
 			"component": feature,
 			"staff_ids": ["camera_unlock_researcher"]
+		}, 3000.0)
+		if bool(duplicate.get("ok", false)):
+			_fail("%s could be commissioned again after its one-time unlock was approved." % feature)
+			return false
+	return true
+
+
+
+func _check_processor_technology_research() -> bool:
+	var expected_durations := {
+		"Control Unit": 120.0,
+		"Instruction Decoder": 130.0,
+		"Instruction Fetch Unit": 140.0,
+		"Branch Prediction Unit": 150.0,
+		"Memory Management Unit": 160.0,
+		"Translation Lookaside Buffer": 170.0,
+		"Internal Bus": 180.0,
+		"Ring Bus / Interconnect Fabric": 190.0,
+		"System Agent": 210.0,
+		"I/O Controller": 220.0,
+		"Clock Distribution Network": 230.0,
+		"Voltage Regulator Interface": 240.0,
+		"Thermal Sensor": 250.0,
+		"Debug and Test Unit": 265.0,
+		"Security Processing Unit": 280.0
+	}
+	if ResearchManagerScript.PROCESSOR_TECHNOLOGIES.size() != 15:
+		_fail("Processor Research must contain exactly 15 approved Processor Technologies.")
+		return false
+	var test_career := {
+		"staff_employees": [
+			{"id": "processor_unlock_researcher", "department": "Research", "efficiency": 90}
+		],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	for feature_value in ResearchManagerScript.PROCESSOR_TECHNOLOGIES:
+		var feature := str(feature_value)
+		var expected_days := float(expected_durations.get(feature, -1.0))
+		if expected_days < 120.0 or expected_days > 280.0 or not ResearchManagerScript.COMPONENT_CATALOGUE.has(feature):
+			_fail("%s is missing its assigned 120–280 day research duration or catalogue entry." % feature)
+			return false
+		var actual_days := ResearchManagerScript.get_component_research_duration_days(feature, 1)
+		var expected_points := expected_days * ResearchManagerScript.TECHNOLOGY_POINTS_PER_RESEARCH_DAY
+		var actual_points := ResearchManagerScript.get_technology_points_for_progress(feature, 1.0)
+		if not is_equal_approx(actual_days, expected_days) or not is_equal_approx(actual_points, expected_points):
+			_fail("%s does not use its assigned duration and the shared Technology Points conversion." % feature)
+			return false
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": feature,
+			"staff_ids": ["processor_unlock_researcher"]
+		}, 1000.0)
+		if not bool(commission.get("ok", false)):
+			_fail("%s could not be commissioned as a Processor Technology unlock: %s" % [feature, str(commission.get("error", ""))])
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != feature or not is_equal_approx(float(project.get("required_research_days", 0.0)), expected_days):
+			_fail("%s project did not preserve its one-time target or assigned research duration." % feature)
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": feature,
+			"metric": "Processor subsystem functionality and architecture integration",
+			"value": feature
+		}], 2000.0)
+		if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get(feature, 0)) != 1:
+			_fail("%s approval did not persist its one-time processor unlock: %s" % [feature, str(approval.get("error", ""))])
+			return false
+		var duplicate := ResearchManagerScript.commission_project(test_career, {
+			"component": feature,
+			"staff_ids": ["processor_unlock_researcher"]
 		}, 3000.0)
 		if bool(duplicate.get("ok", false)):
 			_fail("%s could be commissioned again after its one-time unlock was approved." % feature)
