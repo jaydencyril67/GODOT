@@ -1945,11 +1945,26 @@ func _run_transition_checks() -> void:
 		return
 	camera_dashboard.call("_open_creation_scene")
 	var camera_component_buttons: Array = camera_dashboard.get("component_buttons")
-	if camera_component_buttons.size() != 2:
-		_fail("Camera Research must initially expose exactly Rear Camera MP and Front Camera MP.")
-		return
-	if str(camera_component_buttons[0].get("text")) != "REAR CAMERA MP" or str(camera_component_buttons[1].get("text")) != "FRONT CAMERA MP":
-		_fail("Camera Research component ordering or labels are incorrect.")
+	var expected_camera_components: Array[String] = [
+		"REAR CAMERA MP",
+		"FRONT CAMERA MP",
+		"PORTRAIT MODE",
+		"MACRO PHOTOGRAPHY",
+		"ULTRA-WIDE PHOTOGRAPHY",
+		"TELEPHOTO PHOTOGRAPHY",
+		"PANORAMA PHOTOGRAPHY",
+		"RAW PHOTOGRAPHY",
+		"BURST PHOTOGRAPHY",
+		"SUPER SLOW-MOTION RECORDING",
+		"TIME-LAPSE RECORDING",
+		"HYPERLAPSE RECORDING",
+		"CINEMATIC VIDEO"
+	]
+	var actual_camera_components: Array[String] = []
+	for component_button in camera_component_buttons:
+		actual_camera_components.append(str(component_button.get("text")))
+	if actual_camera_components != expected_camera_components:
+		_fail("Camera Research must expose both MP projects and all 11 one-time camera unlocks in their approved order.")
 		return
 	game._return_from_research_allocation_dashboard()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
