@@ -27,6 +27,12 @@ func _run_checks() -> void:
 			"staff_ids": ["camera_researcher"]
 		},
 		{
+			"id": "RDP-CAMERA-COUNT-ACTIVE",
+			"component": "Rear Camera Count",
+			"status": ResearchManagerScript.STATUS_ACTIVE,
+			"staff_ids": ["camera_count_researcher"]
+		},
+		{
 			"id": "RDP-PHONE-PENDING",
 			"component": "Charging Speed",
 			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
@@ -37,6 +43,12 @@ func _run_checks() -> void:
 			"component": "Front Camera MP",
 			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
 			"staff_ids": []
+		},
+		{
+			"id": "RDP-CAMERA-FLASH-PENDING",
+			"component": "Rear Flash Count",
+			"status": ResearchManagerScript.STATUS_AWAITING_VALIDATION,
+			"staff_ids": []
 		}
 	]
 	var dashboard_data := {
@@ -44,7 +56,8 @@ func _run_checks() -> void:
 		"balance": 5000000.0,
 		"staff_employees": [
 			{"id": "phone_researcher", "full_name": "Phone Researcher", "department": "Research"},
-			{"id": "camera_researcher", "full_name": "Camera Researcher", "department": "Research"}
+			{"id": "camera_researcher", "full_name": "Camera Researcher", "department": "Research"},
+			{"id": "camera_count_researcher", "full_name": "Camera Count Researcher", "department": "Research"}
 		],
 		"research_projects": sample_projects,
 		"research_technologies": {},
@@ -71,7 +84,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _has_active_staff(phone_dashboard, ["phone_researcher", "camera_researcher"]):
+	if not _has_active_staff(phone_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher"]):
 		_fail("Phone Research lost the shared staff-availability lock for an active Camera project.")
 		host.queue_free()
 		quit(1)
@@ -79,7 +92,7 @@ func _run_checks() -> void:
 	phone_dashboard.call("_open_creation_scene")
 	var phone_options: Array = phone_dashboard.get("component_buttons")
 	var phone_labels := _button_labels(phone_options)
-	if phone_labels.has("FRONT CAMERA MP") or phone_labels.has("REAR CAMERA MP") or not phone_labels.has("RAM"):
+	if phone_labels.has("FRONT CAMERA MP") or phone_labels.has("REAR CAMERA MP") or phone_labels.has("REAR CAMERA COUNT") or phone_labels.has("REAR FLASH COUNT") or not phone_labels.has("RAM"):
 		_fail("Phone Research still exposes a Camera MP category or lost its normal Phone categories.")
 		host.queue_free()
 		quit(1)
@@ -94,17 +107,17 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if _project_ids(camera_dashboard.call("_get_active_projects")) != ["RDP-CAMERA-ACTIVE"]:
+	if _project_ids(camera_dashboard.call("_get_active_projects")) != ["RDP-CAMERA-COUNT-ACTIVE", "RDP-CAMERA-ACTIVE"]:
 		_fail("Camera Research is displaying a Phone active project or hiding a Camera active project.")
 		host.queue_free()
 		quit(1)
 		return
-	if _project_ids(camera_dashboard.call("_get_pending_validation_projects")) != ["RDP-CAMERA-PENDING"]:
+	if _project_ids(camera_dashboard.call("_get_pending_validation_projects")) != ["RDP-CAMERA-FLASH-PENDING", "RDP-CAMERA-PENDING"]:
 		_fail("Camera Research is displaying a Phone validation project or hiding a Camera validation project.")
 		host.queue_free()
 		quit(1)
 		return
-	if not _has_active_staff(camera_dashboard, ["phone_researcher", "camera_researcher"]):
+	if not _has_active_staff(camera_dashboard, ["phone_researcher", "camera_researcher", "camera_count_researcher"]):
 		_fail("Camera Research lost the shared staff-availability lock for an active Phone project.")
 		host.queue_free()
 		quit(1)
@@ -115,6 +128,8 @@ func _run_checks() -> void:
 	var expected_camera_labels: Array[String] = [
 		"REAR CAMERA MP",
 		"FRONT CAMERA MP",
+		"REAR CAMERA COUNT",
+		"REAR FLASH COUNT",
 		"PORTRAIT MODE",
 		"MACRO PHOTOGRAPHY",
 		"ULTRA-WIDE PHOTOGRAPHY",
@@ -132,7 +147,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_camera_one_time_research():
+	if not _check_camera_one_time_research() or not _check_rear_hardware_count_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -146,6 +161,75 @@ func _run_checks() -> void:
 	await process_frame
 	print("PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST: PASS")
 	quit(0)
+
+
+func _check_rear_hardware_count_research() -> bool:
+	var test_career := {
+		"staff_employees": [
+			{"id": "count_researcher", "department": "Research", "efficiency": 90}
+		],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var expected_days := {
+		"Rear Camera Count": 360.0,
+		"Rear Flash Count": 200.0
+	}
+	for component_value in ["Rear Camera Count", "Rear Flash Count"]:
+		var component := str(component_value)
+		var expected_duration := float(expected_days[component])
+		if not ResearchManagerScript.COMPONENT_CATALOGUE.has(component):
+			_fail("%s is missing from the shared research catalogue." % component)
+			return false
+		if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(component, 1), expected_duration):
+			_fail("%s lost its existing research duration." % component)
+			return false
+		var expected_points := expected_duration * ResearchManagerScript.TECHNOLOGY_POINTS_PER_RESEARCH_DAY
+		if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 1.0), expected_points):
+			_fail("%s is not using the shared Technology Points conversion." % component)
+			return false
+
+		for level in range(5):
+			var levels := {component: level}
+			var target: Dictionary = ResearchManagerScript.get_rear_camera_count_research_target(levels) if component == "Rear Camera Count" else ResearchManagerScript.get_rear_flash_count_research_target(levels)
+			var maximum := ResearchManagerScript.get_rear_camera_count_max_for_level(level) if component == "Rear Camera Count" else ResearchManagerScript.get_rear_flash_count_max_for_level(level)
+			if level == 4:
+				if not target.is_empty() or maximum != 5:
+					_fail("%s did not stop at its five-module maximum." % component)
+					return false
+			elif int(target.get("index", -1)) != level + 1 or int(target.get("max_count", -1)) != level + 2 or maximum != level + 1:
+				_fail("%s did not unlock exactly one additional module per approval." % component)
+				return false
+
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": component,
+			"staff_ids": ["count_researcher"]
+		}, 1000.0)
+		if not bool(commission.get("ok", false)):
+			_fail("%s could not be commissioned from Camera Research: %s" % [component, str(commission.get("error", ""))])
+			return false
+		var project: Dictionary = commission.get("project", {})
+		var expected_target := "2 cameras" if component == "Rear Camera Count" else "2 flashes"
+		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != expected_target:
+			_fail("%s did not commission the next capacity target." % component)
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": component,
+			"metric": "Maximum number of supported rear hardware modules",
+			"value": expected_target
+		}], 2000.0)
+		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(component, 0)) != 1:
+			_fail("%s approval did not save the first additional module unlock." % component)
+			return false
+	return true
 
 
 func _check_camera_one_time_research() -> bool:
