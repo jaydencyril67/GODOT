@@ -287,7 +287,7 @@ func _build_interface() -> void:
 	selector_column.add_theme_constant_override("separation", 9)
 	design_selector_zone.add_child(selector_column)
 
-	design_position_label = _label("DESIGN 01 / 15", 10, ACCENT)
+	design_position_label = _label("DESIGN 01 / 30", 10, ACCENT)
 	design_position_label.name = "ProcessorDesignPositionLabel"
 	design_position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	selector_column.add_child(design_position_label)
@@ -605,9 +605,9 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 		if is_instance_valid(package_size):
 			_select_option(package_size, str(selected_profile.get("package_size", "12 × 12 mm")))
 
-	# Switching designs is a visibility change; the selected colour is reapplied.
+	# Apply the selected design's default package size and current colour.
 	_refresh_processor_design_controls()
-	_apply_processor_color()
+	_apply_design()
 
 
 func _refresh_processor_design_controls() -> void:
