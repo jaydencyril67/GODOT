@@ -1,10 +1,10 @@
 extends Node3D
 
 const CameraLessPhoneModelScript = preload("res://scripts/camera_worksite_phone_model.gd")
-const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
+const MAX_CAMERA_BACK_DESIGN_BOXES := 20
 const REAR_HARDWARE_GRID_STEP := 0.04
 const REAR_HARDWARE_SPAWN_GRID_INTERVALS := 3
 const REAR_HARDWARE_SIZE_MIN := 0.05
@@ -629,7 +629,7 @@ func _build_rear_hardware_step_controls() -> void:
 
 
 func set_back_raised_design_research_level(level: int) -> void:
-	var updated_level := ResearchManagerScript.get_back_raised_design_max_for_level(level)
+	var updated_level := clampi(level, 0, MAX_CAMERA_BACK_DESIGN_BOXES)
 	if updated_level == camera_back_design_research_level:
 		return
 	camera_back_design_research_level = updated_level
@@ -725,11 +725,11 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 
 	var research_button := Button.new()
 	research_button.name = "CameraBackDesignResearchButton"
-	research_button.text = "RESEARCH" if camera_back_design_research_level < ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES else "MAX 20"
+	research_button.text = "RESEARCH" if camera_back_design_research_level < MAX_CAMERA_BACK_DESIGN_BOXES else "MAX 20"
 	research_button.custom_minimum_size = Vector2(0, 36 if tight else 39)
 	research_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	research_button.focus_mode = Control.FOCUS_NONE
-	research_button.disabled = camera_back_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+	research_button.disabled = camera_back_design_research_level >= MAX_CAMERA_BACK_DESIGN_BOXES
 	research_button.tooltip_text = "Research to unlock more raised boxes, up to 20." if not research_button.disabled else "Maximum of 20 raised boxes unlocked."
 	_style_button(research_button, false)
 	research_button.pressed.connect(_request_camera_back_raised_design_research)
@@ -849,7 +849,7 @@ func _build_camera_back_design_controls() -> VBoxContainer:
 
 
 func _request_camera_back_raised_design_research() -> void:
-	if camera_back_design_research_level >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+	if camera_back_design_research_level >= MAX_CAMERA_BACK_DESIGN_BOXES:
 		return
 	research_requested.emit()
 
@@ -867,12 +867,12 @@ func _toggle_camera_back_design_size_action() -> void:
 
 
 func _get_camera_back_design_addition_limit() -> int:
-	return clampi(camera_back_design_research_level, 0, ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES)
+	return clampi(camera_back_design_research_level, 0, MAX_CAMERA_BACK_DESIGN_BOXES)
 
 
 func _add_camera_back_design_box() -> void:
 	var addition_limit := _get_camera_back_design_addition_limit()
-	if addition_limit <= 0 or camera_back_design_boxes.size() >= addition_limit or camera_back_design_boxes.size() >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES:
+	if addition_limit <= 0 or camera_back_design_boxes.size() >= addition_limit or camera_back_design_boxes.size() >= MAX_CAMERA_BACK_DESIGN_BOXES:
 		_refresh_camera_back_design_panel()
 		return
 	var box_size := Vector2(0.34, 0.34)
@@ -1294,7 +1294,7 @@ func _refresh_camera_back_design_panel() -> void:
 	if is_instance_valid(add_button):
 		add_button.disabled = addition_limit <= 0 or camera_back_design_boxes.size() >= addition_limit
 	if is_instance_valid(research_button):
-		research_button.disabled = addition_limit >= ResearchManagerScript.BACK_RAISED_DESIGN_MAX_BOXES
+		research_button.disabled = addition_limit >= MAX_CAMERA_BACK_DESIGN_BOXES
 		research_button.text = "RESEARCH" if not research_button.disabled else "MAX 20"
 	if is_instance_valid(camera_back_design_capacity_label):
 		camera_back_design_capacity_label.text = "RAISED BOXES  %d / %d" % [camera_back_design_boxes.size(), addition_limit]
