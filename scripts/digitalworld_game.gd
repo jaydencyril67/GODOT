@@ -2588,7 +2588,7 @@ func _show_research_allocation_dashboard(camera_research: bool = false, processo
 		dashboard_scene = ProcessorResearchDashboardScene
 	research_allocation_dashboard = dashboard_scene.instantiate() as Control
 	if not is_instance_valid(research_allocation_dashboard):
-		push_error("Could not instantiate the %s Research Allocation Dashboard." % ("Camera" if camera_research else "Phone"))
+		push_error("Could not instantiate the %s Research Allocation Dashboard." % ("Processor" if processor_research else ("Camera" if camera_research else "Phone"))
 		return
 	research_allocation_dashboard.name = "CompanyCameraResearchDashboard" if camera_research else ("CompanyProcessorResearchDashboard" if processor_research else "CompanyResearchAllocationDashboard")
 	research_allocation_dashboard.call("configure", _get_research_dashboard_data(), confirm_modal)
