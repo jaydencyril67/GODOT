@@ -49,6 +49,7 @@ const CAMERA_SENSOR_COMPONENTS := [
 	"Panorama Photography",
 	"RAW Photography",
 	"Burst Photography",
+	"HDR Photography",
 	"Super Slow-Motion Recording",
 	"Time-Lapse Recording",
 	"Hyperlapse Recording",
