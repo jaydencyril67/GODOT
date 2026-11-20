@@ -150,6 +150,29 @@ func _run_test() -> void:
 		_fail("The digital clock set must retain unique designs and a broad range of imported time fonts.")
 		return
 
+	# Production initially keeps the digital renderer hidden while Analog is selected.
+	# Its cached labels must still be measurable, rather than waiting for the 12-frame invalid-bounds fallback.
+	var hidden_host := Control.new()
+	hidden_host.name = "HiddenAnalogClockHost"
+	hidden_host.size = Vector2(680.0, 1360.0)
+	hidden_host.visible = false
+	root.add_child(hidden_host)
+	var hidden_clock: Control = DigitalClockScript.new()
+	hidden_clock.name = "HiddenDigitalClockAssetSmokeTest"
+	hidden_clock.size = Vector2(680.0, 1360.0)
+	hidden_host.add_child(hidden_clock)
+	hidden_clock.call("configure", 41, test_palette, {"show_details": true})
+	var hidden_start_frame := Engine.get_process_frames()
+	if not bool(await hidden_clock.call("prepare_all_styles", 3)):
+		_fail("The hidden digital renderer could not prepare its 41 cached clock styles.")
+		return
+	var hidden_elapsed_frames := Engine.get_process_frames() - hidden_start_frame
+	if hidden_elapsed_frames > 100 or not bool(hidden_clock.call("is_time_layout_normalized")):
+		_fail("Hidden digital clock layouts took too long to normalize (%d frames)." % hidden_elapsed_frames)
+		return
+	hidden_clock.free()
+	hidden_host.free()
+
 	var widgets := WidgetAssetLibrary.new()
 	var notification_widget := widgets.get_widget("40_notifications")
 	for required_layer in ["bg", "nicon", "count"]:
