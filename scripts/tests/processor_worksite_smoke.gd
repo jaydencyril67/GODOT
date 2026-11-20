@@ -174,8 +174,8 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	worksite.call("_on_processor_design_decrease_pressed")
-	if int(worksite.get("selected_design_index")) != 13:
-		_fail("The processor design minus button did not move back one design.")
+	if int(worksite.get("selected_design_index")) != 28:
+		_fail("The processor design minus button did not move back from Design 30 to Design 29.")
 		worksite.free()
 		return
 	worksite.call("_select_processor_design", 0, true)
