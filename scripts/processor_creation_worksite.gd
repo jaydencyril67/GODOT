@@ -1322,15 +1322,15 @@ void fragment() {
 		processor_solid_material.albedo_color = processor_color
 		processor_color_material = processor_solid_material
 
-	var pending_nodes: Array[Node] = [processor_root]
-	while not pending_nodes.is_empty():
-		var current_node: Node = pending_nodes.pop_back()
-		if current_node is MeshInstance3D:
-			(current_node as MeshInstance3D).material_override = processor_color_material
-		elif current_node is MultiMeshInstance3D:
-			(current_node as MultiMeshInstance3D).material_override = processor_color_material
-		for child in current_node.get_children():
-			pending_nodes.append(child)
+	# Recolour only the actual processor package and die surfaces.
+	# Precision details (gold traces, light ceramic passives, BGA/LGA contacts,
+	# bond frames and etched markings) retain their original physical materials.
+	for layer in package_layers:
+		if is_instance_valid(layer):
+			layer.material_override = processor_color_material
+	for surface in die_surfaces:
+		if is_instance_valid(surface):
+			surface.material_override = processor_color_material
 
 
 func _save_design() -> void:
