@@ -15,9 +15,9 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
-const COMPONENT_VALUES := ["Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
-const PROCESSOR_RESEARCH_COMPONENTS := ["Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const COMPONENT_LABELS := ["CPU CORES","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const COMPONENT_VALUES := ["CPU Cores","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const PROCESSOR_RESEARCH_COMPONENTS := ["CPU Cores","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -446,6 +446,8 @@ func _default_validation_metric(component: String) -> String:
 			return "Phone case design or finish"
 		"Protection Glass":
 			return "Normal or side-angle privacy screen protection"
+		"CPU Cores":
+			return "Supported CPU core count"
 		"Battery Capacity":
 			return "Maximum battery capacity"
 		"Power Bank":
@@ -566,11 +568,19 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
-		elif COMPONENT_VALUES[index] in ["Phone Type", "Refresh Rate", "Speakers", "Speaker Quality", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
+		elif COMPONENT_VALUES[index] in ["CPU Cores", "Phone Type", "Refresh Rate", "Speakers", "Speaker Quality", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
 			var component_name := str(COMPONENT_VALUES[index])
 			var current_level := int(research_component_levels.get(component_name, 0))
 			var maximum_level := 0
 			match component_name:
+				"CPU Cores":
+					var cpu_target: Dictionary = ResearchManagerScript.get_cpu_cores_research_target(research_component_levels)
+					maximum_level = ResearchManagerScript.CPU_CORE_MAX_RESEARCH_LEVEL
+					if cpu_target.is_empty():
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 30 CORES"
+						component_button.disabled = true
+					else:
+						component_button.tooltip_text = "Next approval unlocks support for %s." % str(cpu_target.get("technology", ""))
 				"Phone Type":
 					var phone_type_target: Dictionary = ResearchManagerScript.get_phone_type_research_target(research_component_levels)
 					maximum_level = ResearchManagerScript.PHONE_TYPE_SEQUENCE.size() - 1
@@ -1221,6 +1231,9 @@ func _update_research_estimate() -> void:
 	if component == "Wireless Charging":
 		var wireless_target: Dictionary = ResearchManagerScript.get_wireless_charging_research_target(research_component_levels)
 		target_index = int(wireless_target.get("index", -1))
+	elif component == "CPU Cores":
+		var cpu_target: Dictionary = ResearchManagerScript.get_cpu_cores_research_target(research_component_levels)
+		target_index = int(cpu_target.get("index", -1))
 	var estimate := ResearchManagerScript.estimate_research(component, assigned_staff_ids, staff_employees, target_index)
 	start_button.disabled = not bool(estimate.get("ok", false))
 
