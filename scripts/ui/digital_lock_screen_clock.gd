@@ -108,6 +108,8 @@ func _get_normalization_progress_ratio() -> float:
 		var face_progress := 0.0
 		if bool(state.get("normalized", false)):
 			face_progress = 1.0
+		elif not bool(state.get("normalization_started", false)):
+			face_progress = 0.0
 		elif bool(state.get("shift_applied", false)):
 			face_progress = 0.82
 		else:
@@ -414,6 +416,7 @@ func _build_face_variant(face_index: int) -> bool:
 		"shift_attempts": 0,
 		"bounds_wait_frames": 0,
 		"layout_wait_frames": 0,
+		"normalization_started": false,
 		"normalized": false
 	}
 	return true
@@ -440,6 +443,7 @@ func refresh_cached_face_layouts() -> void:
 		state["shift_attempts"] = 0
 		state["bounds_wait_frames"] = 0
 		state["layout_wait_frames"] = 0
+		state["normalization_started"] = false
 		# Keep every cached layout in the normalization queue, but render only
 		# the selected face. Showing 41 transparent Control trees at once adds
 		# avoidable layout and draw work on low-memory Android devices.
@@ -489,6 +493,7 @@ func _process_face_normalization_queue(max_faces_per_frame: int = 3) -> void:
 			completed_indices.append(face_index)
 			continue
 		var state: Dictionary = _face_variants[face_index]
+		state["normalization_started"] = true
 		var frame := state.get("frame") as Control
 		var root_node := state.get("root") as Control
 		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree():
