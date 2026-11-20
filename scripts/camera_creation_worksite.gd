@@ -610,8 +610,6 @@ func _calculate_camera_technology_points() -> float:
 
 	if not rear_flash_modules.is_empty():
 		total += _get_camera_technology_points("Rear Flash Count", float(maxi(0, rear_flash_modules.size() - 1)))
-		for flash_value in rear_flash_modules:
-			var flash_data: Dictionary = flash_value
 
 	if not camera_back_design_boxes.is_empty():
 		total += _get_camera_technology_points("Back Raised Design", float(camera_back_design_boxes.size()))
