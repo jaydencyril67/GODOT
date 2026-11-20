@@ -47,7 +47,7 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	else:
 		_initial_build_pending = true
 
-func prepare_all_styles(batch_size: int = 3) -> void:
+func prepare_all_styles(batch_size: int = 3) -> bool:
 	# The clock can be attached before its parent layout has calculated a size.
 	# Wait for that layout, but never let a failed layout stall OS startup forever.
 	var size_wait_frames := 0
@@ -56,7 +56,7 @@ func prepare_all_styles(batch_size: int = 3) -> void:
 		size_wait_frames += 1
 	if size.x <= 0.0 or size.y <= 0.0:
 		push_warning("XMorph clock styles skipped normalization because the clock has no usable size.")
-		return
+		return false
 
 	var selected_index := _style_index
 	var total := get_style_count()
@@ -67,7 +67,7 @@ func prepare_all_styles(batch_size: int = 3) -> void:
 			await get_tree().process_frame
 	_faces_initialized = not _face_variants.is_empty()
 	if not _faces_initialized:
-		return
+		return false
 
 	refresh_cached_face_layouts()
 	var normalization_wait_frames := 0
@@ -87,6 +87,7 @@ func prepare_all_styles(batch_size: int = 3) -> void:
 
 	_select_cached_face(selected_index)
 	_refresh_all_cached_time_labels()
+	return true
 
 
 func set_style_index(index: int) -> bool:
