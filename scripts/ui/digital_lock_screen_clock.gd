@@ -48,8 +48,16 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 		_initial_build_pending = true
 
 func prepare_all_styles(batch_size: int = 3) -> void:
-	while size.x <= 0.0 or size.y <= 0.0:
+	# The clock can be attached before its parent layout has calculated a size.
+	# Wait for that layout, but never let a failed layout stall OS startup forever.
+	var size_wait_frames := 0
+	while (size.x <= 0.0 or size.y <= 0.0) and size_wait_frames < 120:
 		await get_tree().process_frame
+		size_wait_frames += 1
+	if size.x <= 0.0 or size.y <= 0.0:
+		push_warning("XMorph clock styles skipped normalization because the clock has no usable size.")
+		return
+
 	var selected_index := _style_index
 	var total := get_style_count()
 	var safe_batch_size := maxi(1, batch_size)
@@ -60,9 +68,23 @@ func prepare_all_styles(batch_size: int = 3) -> void:
 	_faces_initialized = not _face_variants.is_empty()
 	if not _faces_initialized:
 		return
+
 	refresh_cached_face_layouts()
-	while not _face_normalization_queue.is_empty():
+	var normalization_wait_frames := 0
+	while not _face_normalization_queue.is_empty() and normalization_wait_frames < 180:
 		await get_tree().process_frame
+		normalization_wait_frames += 1
+
+	# A malformed face must not block every later OS setup stage. Its layout
+	# remains cached and selectable; only its optional centering pass is skipped.
+	if not _face_normalization_queue.is_empty():
+		for face_index in _face_normalization_queue:
+			if _face_variants.has(face_index):
+				var state: Dictionary = _face_variants[face_index]
+				state["normalized"] = true
+				push_warning("XMorph clock face %02d skipped centering after the layout timeout." % face_index)
+		_face_normalization_queue.clear()
+
 	_select_cached_face(selected_index)
 	_refresh_all_cached_time_labels()
 
