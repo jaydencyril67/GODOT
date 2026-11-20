@@ -192,7 +192,8 @@ func _check_rear_hardware_count_research() -> bool:
 			return false
 
 		for level in range(5):
-			var levels := {component: level}
+			var levels: Dictionary = {}
+			levels[component] = level
 			var target: Dictionary = ResearchManagerScript.get_rear_camera_count_research_target(levels) if component == "Rear Camera Count" else ResearchManagerScript.get_rear_flash_count_research_target(levels)
 			var maximum := ResearchManagerScript.get_rear_camera_count_max_for_level(level) if component == "Rear Camera Count" else ResearchManagerScript.get_rear_flash_count_max_for_level(level)
 			if level == 4:
