@@ -1,7 +1,9 @@
 extends SceneTree
 
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
-const MIN_DISPLAY_BACK_Z := 0.109
+# The chassis is 0.13 units deep, centered on Z=0. The display glass must
+# extend beyond its front face (0.065), not beyond an unrelated 0.109 offset.
+const MIN_DISPLAY_BACK_Z := 0.065
 const EXPECTED_BEZEL_WIDTH := 0.020
 
 
