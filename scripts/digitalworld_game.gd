@@ -2625,6 +2625,7 @@ func _on_rd_project_approve_requested(project_id: String, results: Array) -> voi
 		camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 		camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 		camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
+		camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 	var approved_component := str(result.get("project", {}).get("component", ""))
 	var next_mobile_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Mobile Network" else {}
 	var next_wifi_project: Dictionary = result.get("auto_next_project", {}) if approved_component == "Wi-Fi" else {}
@@ -2803,6 +2804,7 @@ func _return_from_research_allocation_dashboard() -> void:
 				camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 				camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 				camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
+				camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 				camera_creation_worksite.show()
 				for child in camera_creation_worksite.get_children():
 					if child is CanvasLayer:
@@ -2967,6 +2969,7 @@ func _prepare_camera_creation_worksite() -> void:
 	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 	camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
+	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -3000,6 +3003,7 @@ func _activate_camera_creation_worksite() -> void:
 	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 	camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
 	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
+	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 
 	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
