@@ -357,10 +357,35 @@ func _run_test() -> void:
 		return
 
 	worksite.call("_select_lock_screen_clock_type", "analog")
+	await process_frame
 	analog_artwork = lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
+	var analog_container := lock_screen.find_child("AnalogClock", true, false) as Control
 	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
 		_fail("Analog Style 41 did not render the matching uploaded artwork.")
 		return
+	if analog_container == null or not analog_container.visible or not analog_artwork.visible or not analog_artwork.is_visible_in_tree() or digital_clock.visible:
+		_fail("Switching from Digital back to Analog must restore the visible analog renderer and hide Digital.")
+		return
+
+	# Exercise repeated type changes at both ends and in the middle of the
+	# style library. The active face must remain visible after every handoff.
+	for style_index in [1, 20, 41]:
+		if not bool(lock_screen.call("set_clock_style_index", style_index, false)):
+			_fail("Clock Style %02d could not be selected during renderer handoff testing." % style_index)
+			return
+		worksite.call("_select_lock_screen_clock_type", "digital")
+		await process_frame
+		if not digital_clock.visible or analog_container.visible or analog_artwork.visible:
+			_fail("Digital Style %02d did not become the only visible clock renderer." % style_index)
+			return
+		worksite.call("_select_lock_screen_clock_type", "analog")
+		await process_frame
+		if not analog_container.visible or not analog_artwork.visible or not analog_artwork.is_visible_in_tree() or digital_clock.visible:
+			_fail("Analog Style %02d disappeared after switching back from Digital." % style_index)
+			return
+		if analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(style_index):
+			_fail("Analog Style %02d did not restore its matching artwork after switching back." % style_index)
+			return
 
 	worksite.call("_show_step", 2)
 	if heading.text != "LOCK-SCREEN":
