@@ -87,12 +87,30 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 2 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+	if progress_bar.max_value != 3 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
 		_fail("Processor worksite does not initialize its two-step progress navigation.")
 		worksite.free()
 		return
 	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
 		_fail("Removed package-dimensions UI remains, or the save action was not retained on the colour step.")
+		worksite.free()
+		return
+
+	var technology_name_label := worksite.find_child("SelectedProcessorTechnology", true, false) as Label
+	var technology_toggle := worksite.find_child("ProcessorTechnologyEnabledToggle", true, false) as TextureButton
+	var technology_previous := worksite.find_child("PreviousProcessorTechnologyButton", true, false) as Button
+	var technology_next := worksite.find_child("NextProcessorTechnologyButton", true, false) as Button
+	var technology_states: Dictionary = worksite.get("processor_technology_enabled_states")
+	if technology_name_label == null or technology_toggle == null or technology_previous == null or technology_next == null or technology_states.size() != 15:
+		_fail("Processor Technologies step is missing its selector, enable control, or all 15 entries.")
+		worksite.free()
+		return
+	if technology_name_label.text != "Control Unit" or not technology_previous.disabled or technology_next.disabled:
+		_fail("Processor Technologies does not initialize on the first entry with correct minus/plus states.")
+		worksite.free()
+		return
+	if worksite.find_child("ProcessorTechnologyCameraSwitcher", true, false) != null or worksite.find_child("ProcessorTechnologyLevelPanel", true, false) != null:
+		_fail("Processor Technologies contains an unwanted top switcher or technology-level footer.")
 		worksite.free()
 		return
 	if not back_step_button.disabled or next_step_button.disabled:
@@ -265,8 +283,36 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
-	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not next_step_button.disabled:
-		_fail("Processor wizard did not stop at the second and final colour step.")
+	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or not next_step_button.disabled:
+		_fail("Processor Next navigation did not advance from colour to the final Technologies step.")
+		worksite.free()
+		return
+	worksite.call("_on_processor_technology_toggled", true)
+	technology_states = worksite.get("processor_technology_enabled_states")
+	if not technology_toggle.button_pressed or not bool(technology_states.get("Control Unit", false)):
+		_fail("Processor Technologies enable toggle did not update the selected technology state.")
+		worksite.free()
+		return
+	for technology_index in range(14):
+		worksite.call("_on_processor_technology_next_pressed")
+	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or technology_next.disabled or technology_previous.disabled:
+		_fail("Processor Technologies plus navigation did not reach the fifteenth and final entry.")
+		worksite.free()
+		return
+	worksite.call("_on_processor_technology_previous_pressed")
+	if technology_name_label.text != "Debug and Test Unit":
+		_fail("Processor Technologies minus navigation did not move to the previous entry.")
+		worksite.free()
+		return
+	for technology_index in range(14):
+		worksite.call("_on_processor_technology_previous_pressed")
+	if technology_name_label.text != "Control Unit" or not technology_previous.disabled:
+		_fail("Processor Technologies did not return to its first entry or disable the minus control.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from Technologies to colour.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
