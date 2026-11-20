@@ -69,17 +69,19 @@ func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Calla
 		return false
 
 	refresh_cached_face_layouts()
-	var normalization_total := _face_normalization_queue.size()
-	var last_normalized_count := -1
 	var normalization_wait_frames := 0
+	var last_normalization_progress := 75.0
 	while not _face_normalization_queue.is_empty() and normalization_wait_frames < 180:
 		await get_tree().process_frame
 		normalization_wait_frames += 1
-		var normalized_count := normalization_total - _face_normalization_queue.size()
-		if progress_callback.is_valid() and normalized_count != last_normalized_count:
-			var normalization_progress := 75.0 + 25.0 * float(normalized_count) / maxf(float(normalization_total), 1.0)
+		# Normalization has several real stages (layout settling, bounds checks,
+		# centering and verification). Report that work as it advances instead
+		# of waiting for an entire face to become normalized before moving past 75%.
+		var normalization_progress := 75.0 + 25.0 * _get_normalization_progress_ratio()
+		normalization_progress = maxf(normalization_progress, last_normalization_progress)
+		if progress_callback.is_valid() and normalization_progress > last_normalization_progress + 0.02:
 			progress_callback.call("Preparing lock-screen clock styles", normalization_progress)
-			last_normalized_count = normalized_count
+			last_normalization_progress = normalization_progress
 
 	# A malformed face must not block every later OS setup stage. Its layout
 	# remains cached and selectable; only its optional centering pass is skipped.
@@ -96,6 +98,30 @@ func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Calla
 	if progress_callback.is_valid():
 		progress_callback.call("Preparing lock-screen clock styles", 100.0)
 	return true
+
+func _get_normalization_progress_ratio() -> float:
+	if _face_variants.is_empty():
+		return 1.0
+	var total_progress := 0.0
+	for face_value in _face_variants.keys():
+		var state: Dictionary = _face_variants[face_value]
+		var face_progress := 0.0
+		if bool(state.get("normalized", false)):
+			face_progress = 1.0
+		elif bool(state.get("shift_applied", false)):
+			face_progress = 0.82
+		else:
+			var wait_frames := maxi(
+				int(state.get("bounds_wait_frames", 0)),
+				int(state.get("layout_wait_frames", 0))
+			)
+			if wait_frames > 0:
+				face_progress = 0.08 + 0.72 * clampf(float(wait_frames) / 12.0, 0.0, 1.0)
+			else:
+				var stable_frames := int(state.get("stable_frames", 0))
+				face_progress = 0.08 + 0.24 * clampf(float(stable_frames) / 2.0, 0.0, 1.0)
+		total_progress += face_progress
+	return clampf(total_progress / float(_face_variants.size()), 0.0, 1.0)
 
 
 func set_style_index(index: int) -> bool:
