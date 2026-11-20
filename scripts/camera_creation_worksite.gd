@@ -485,8 +485,17 @@ func _build_rear_hardware_step_controls() -> void:
 
 	var size_header := HBoxContainer.new()
 	size_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_header.add_theme_constant_override("separation", 8)
 	size_section.add_child(size_header)
-	size_header.add_child(_label("SIZE", 10, Color("#B8AFA2")))
+
+	var size_heading := _label("SIZE", 10, Color("#B8AFA2"))
+	size_heading.name = "RearHardwareSizeHeading"
+	size_heading.custom_minimum_size = Vector2(42, 0)
+	size_heading.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	size_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	size_heading.autowrap_mode = TextServer.AUTOWRAP_OFF
+	size_heading.clip_text = true
+	size_header.add_child(size_heading)
 
 	rear_hardware_size_label = _label("ADD A COMPONENT TO BEGIN", 11, Color("#E5E0D6"))
 	rear_hardware_size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
