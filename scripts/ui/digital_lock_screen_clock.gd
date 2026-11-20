@@ -10,6 +10,7 @@ const TIME_LABEL_SIDE_PADDING := 0.02
 var _face_variants: Dictionary = {}
 var _face_normalization_queue: Array[int] = []
 var _faces_initialized := false
+var _normalization_preparation_active := false
 const DATE_FONT_FRACTION := 0.045
 const DATE_TIME_GAP_RATIO := 0.012
 const DATE_TIME_GAP_MIN := 5.0
@@ -45,13 +46,13 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 
 func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Callable()) -> bool:
 	# The clock can be attached before its parent layout has calculated a size.
-	# Wait for that layout, but never let a failed layout stall OS startup forever.
+	# Wait for that layout before constructing and measuring the cached faces.
 	var size_wait_frames := 0
 	while (size.x <= 0.0 or size.y <= 0.0) and size_wait_frames < 120:
 		await get_tree().process_frame
 		size_wait_frames += 1
 	if size.x <= 0.0 or size.y <= 0.0:
-		push_warning("XMorph clock styles skipped normalization because the clock has no usable size.")
+		push_warning("XMorph clock styles could not be prepared because the clock has no usable size.")
 		return false
 
 	var selected_index := _style_index
@@ -64,34 +65,33 @@ func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Calla
 				var digital_build_progress := 25.0 + 50.0 * float(face_index) / maxf(float(total), 1.0)
 				progress_callback.call("Preparing lock-screen clock styles", digital_build_progress)
 			await get_tree().process_frame
-	_faces_initialized = not _face_variants.is_empty()
+	_faces_initialized = _face_variants.size() == total
 	if not _faces_initialized:
+		push_error("XMorph clock preparation did not construct all %d styles." % total)
 		return false
 
+	# Drive normalization from this coroutine instead of _process(). The OS
+	# Worksite is intentionally process-disabled while hidden during startup,
+	# so a queue that depends on _process() can never drain in that lifecycle.
+	# Each pass still handles only one small batch, then yields a frame for
+	# Godot's Control layout to settle before measuring the next pass.
+	_normalization_preparation_active = true
 	refresh_cached_face_layouts()
-	var normalization_wait_frames := 0
 	var last_normalization_progress := 75.0
-	while not _face_normalization_queue.is_empty() and normalization_wait_frames < 180:
-		await get_tree().process_frame
-		normalization_wait_frames += 1
-		# Normalization has several real stages (layout settling, bounds checks,
-		# centering and verification). Report that work as it advances instead
-		# of waiting for an entire face to become normalized before moving past 75%.
-		var normalization_progress := 75.0 + 25.0 * _get_normalization_progress_ratio()
-		normalization_progress = maxf(normalization_progress, last_normalization_progress)
+	while not _face_normalization_queue.is_empty():
+		_process_face_normalization_queue(safe_batch_size)
+		var normalization_progress := 75.0 + 24.0 * _get_normalization_progress_ratio()
+		normalization_progress = clampf(maxf(normalization_progress, last_normalization_progress), 75.0, 99.0)
 		if progress_callback.is_valid() and normalization_progress > last_normalization_progress + 0.02:
 			progress_callback.call("Preparing lock-screen clock styles", normalization_progress)
 			last_normalization_progress = normalization_progress
+		if not _face_normalization_queue.is_empty():
+			await get_tree().process_frame
+	_normalization_preparation_active = false
 
-	# A malformed face must not block every later OS setup stage. Its layout
-	# remains cached and selectable; only its optional centering pass is skipped.
-	if not _face_normalization_queue.is_empty():
-		for face_index in _face_normalization_queue:
-			if _face_variants.has(face_index):
-				var state: Dictionary = _face_variants[face_index]
-				state["normalized"] = true
-				push_warning("XMorph clock face %02d skipped centering after the layout timeout." % face_index)
-		_face_normalization_queue.clear()
+	if not are_all_styles_normalized():
+		push_error("XMorph clock preparation ended before every cached face was normalized.")
+		return false
 
 	_select_cached_face(selected_index)
 	_refresh_all_cached_time_labels()
@@ -165,10 +165,22 @@ func is_time_layout_normalized() -> bool:
 		return false
 	return bool(_face_variants[_style_index].get("normalized", false))
 
+
+func are_all_styles_normalized() -> bool:
+	if _face_variants.size() != get_style_count() or not _face_normalization_queue.is_empty():
+		return false
+	for face_index in range(1, get_style_count() + 1):
+		if not _face_variants.has(face_index):
+			return false
+		if not bool(_face_variants[face_index].get("normalized", false)):
+			return false
+	return true
+
 func _process(_delta: float) -> void:
 	if not _faces_initialized:
 		return
-	_process_face_normalization_queue()
+	if not _normalization_preparation_active:
+		_process_face_normalization_queue()
 	var now := Time.get_time_dict_from_system()
 	var current_minute := int(now.get("minute", -1))
 	if current_minute != _last_minute:
