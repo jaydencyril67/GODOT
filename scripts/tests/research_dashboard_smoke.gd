@@ -93,7 +93,7 @@ func _run_checks() -> void:
 	var phone_options: Array = phone_dashboard.get("component_buttons")
 	var phone_labels := _button_labels(phone_options)
 	if phone_labels.has("FRONT CAMERA MP") or phone_labels.has("REAR CAMERA MP") or phone_labels.has("REAR CAMERA COUNT") or phone_labels.has("REAR FLASH COUNT") or not phone_labels.has("RAM"):
-		_fail("Phone Research still exposes a Camera MP category or lost its normal Phone categories.")
+		_fail("Phone Research still exposes a camera-only category or lost its normal Phone categories.")
 		host.queue_free()
 		quit(1)
 		return
@@ -143,7 +143,7 @@ func _run_checks() -> void:
 		"CINEMATIC VIDEO"
 	]
 	if camera_labels != expected_camera_labels:
-		_fail("Camera Research must expose both camera MP projects and all 11 one-time camera unlocks in the approved order.")
+		_fail("Camera Research must expose both camera MP projects, both rear-hardware capacity projects, and all 11 one-time camera unlocks in the approved order.")
 		host.queue_free()
 		quit(1)
 		return
