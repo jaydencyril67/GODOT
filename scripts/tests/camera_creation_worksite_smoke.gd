@@ -323,7 +323,7 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("_on_next_pressed")
 	var mp_panel := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
 	var mp_row := worksite.find_child("RearCameraMegapixelOptions", true, false) as HBoxContainer
-	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not next_step_button.disabled or rare_camera_panel.visible or mp_panel == null or not mp_panel.visible or mp_row == null or mp_row.get_child_count() != 2:
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or next_step_button.disabled or rare_camera_panel.visible or mp_panel == null or not mp_panel.visible or mp_row == null or mp_row.get_child_count() != 2:
 		_fail("Step 2 did not show one independent megapixel slider for each rear camera.")
 		worksite.free()
 		return
