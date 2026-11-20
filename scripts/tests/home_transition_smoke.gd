@@ -1957,6 +1957,7 @@ func _run_transition_checks() -> void:
 		"PANORAMA PHOTOGRAPHY",
 		"RAW PHOTOGRAPHY",
 		"BURST PHOTOGRAPHY",
+		"HDR PHOTOGRAPHY",
 		"SUPER SLOW-MOTION RECORDING",
 		"TIME-LAPSE RECORDING",
 		"HYPERLAPSE RECORDING",
@@ -1966,7 +1967,7 @@ func _run_transition_checks() -> void:
 	for component_button in camera_component_buttons:
 		actual_camera_components.append(str(component_button.get("text")))
 	if actual_camera_components != expected_camera_components:
-		_fail("Camera Research must expose both MP projects and all 11 one-time camera unlocks in their approved order.")
+		_fail("Camera Research must expose both MP projects and all 12 one-time camera unlocks in their approved order.")
 		return
 	game._return_from_research_allocation_dashboard()
 	if game.current_screen != "research" or game.ui_layer != research_page_layer or not research_page_layer.visible:
