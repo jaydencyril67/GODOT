@@ -166,6 +166,14 @@ func _initialize_worksite() -> void:
 	_update_lock_screen_status(initial_design)
 	_emit_setup_progress("Generating the default lock screen", 100.0)
 
+	var clocks_ready: bool = await lock_screen_designer.call(
+		"prepare_clock_styles_for_loading",
+		Callable(self, "_emit_setup_progress")
+	)
+	if not clocks_ready:
+		setup_failed.emit("The lock-screen clock styles could not be prepared.")
+		return
+
 	var home_ready: bool = await home_screen_designer.call(
 		"configure_for_loading",
 		initial_design,
