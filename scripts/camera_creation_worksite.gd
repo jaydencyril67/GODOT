@@ -897,7 +897,8 @@ func _add_camera_back_design_box() -> void:
 					"custom_color": camera_back_design_color,
 					"gradient_color": Color("#536dfe"),
 					"gradient_enabled": false,
-					"gradient_direction": 0
+					"gradient_direction": 0,
+					"use_device_color": false
 				})
 				camera_back_design_selected_index = camera_back_design_boxes.size() - 1
 				next_camera_back_design_id += 1
@@ -1012,6 +1013,26 @@ func _show_camera_back_design_color_controls() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
 
+	var use_device_color_row := HBoxContainer.new()
+	use_device_color_row.name = "CameraBackDesignUseDeviceColorRow"
+	use_device_color_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	use_device_color_row.add_theme_constant_override("separation", 6)
+	color_view.add_child(use_device_color_row)
+	var use_device_color_label := _label("USE DEVICE COLOR", 12, Color("#D3AA6B"))
+	use_device_color_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	use_device_color_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	use_device_color_row.add_child(use_device_color_label)
+	var use_device_color_toggle := Button.new()
+	use_device_color_toggle.name = "CameraBackDesignUseDeviceColor"
+	use_device_color_toggle.text = "ON" if bool(selected.get("use_device_color", false)) else "OFF"
+	use_device_color_toggle.toggle_mode = true
+	use_device_color_toggle.button_pressed = bool(selected.get("use_device_color", false))
+	use_device_color_toggle.custom_minimum_size = Vector2(64, 36)
+	use_device_color_toggle.focus_mode = Control.FOCUS_NONE
+	_style_button(use_device_color_toggle, use_device_color_toggle.button_pressed)
+	use_device_color_toggle.toggled.connect(_on_camera_back_design_use_device_color_toggled)
+	use_device_color_row.add_child(use_device_color_toggle)
+
 	var gradient_toggle_row := HBoxContainer.new()
 	gradient_toggle_row.name = "CameraBackDesignGradientToggleRow"
 	gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1028,6 +1049,7 @@ func _show_camera_back_design_color_controls() -> void:
 	gradient_toggle.button_pressed = gradient_enabled
 	gradient_toggle.custom_minimum_size = Vector2(64, 36)
 	gradient_toggle.focus_mode = Control.FOCUS_NONE
+	gradient_toggle.disabled = bool(selected.get("use_device_color", false))
 	_style_button(gradient_toggle, gradient_enabled)
 	gradient_toggle.toggled.connect(_on_camera_back_design_gradient_toggled)
 	gradient_toggle_row.add_child(gradient_toggle)
@@ -1038,7 +1060,7 @@ func _show_camera_back_design_color_controls() -> void:
 	direction_button.custom_minimum_size.y = 40
 	direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	direction_button.focus_mode = Control.FOCUS_NONE
-	direction_button.visible = gradient_enabled
+	direction_button.visible = gradient_enabled and not bool(selected.get("use_device_color", false))
 	_style_button(direction_button, false)
 	direction_button.pressed.connect(_show_camera_back_design_gradient_direction_controls)
 	color_view.add_child(direction_button)
@@ -1060,6 +1082,7 @@ func _show_camera_back_design_color_controls() -> void:
 	normal_picker.name = "CameraBackDesignNormalColorPicker"
 	normal_picker.color = Color(selected.get("custom_color", camera_back_design_color))
 	normal_picker.edit_alpha = false
+	normal_picker.disabled = bool(selected.get("use_device_color", false))
 	normal_picker.custom_minimum_size = Vector2(0, 48)
 	normal_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	normal_picker.color_changed.connect(_on_camera_back_design_color_changed.bind(false))
@@ -1078,23 +1101,34 @@ func _show_camera_back_design_color_controls() -> void:
 	gradient_picker.edit_alpha = false
 	gradient_picker.custom_minimum_size = Vector2(0, 48)
 	gradient_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gradient_picker.disabled = not gradient_enabled
+	gradient_picker.disabled = not gradient_enabled or bool(selected.get("use_device_color", false))
 	gradient_picker.color_changed.connect(_on_camera_back_design_color_changed.bind(true))
 	gradient_column.add_child(gradient_picker)
 
 
+func _on_camera_back_design_use_device_color_toggled(enabled: bool) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_boxes[camera_back_design_selected_index]["use_device_color"] = enabled
+	_refresh_camera_back_design_visuals()
+	_show_camera_back_design_color_controls()
+
+
 func _on_camera_back_design_gradient_toggled(enabled: bool) -> void:
 	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	if bool(camera_back_design_boxes[camera_back_design_selected_index].get("use_device_color", false)):
 		return
 	camera_back_design_boxes[camera_back_design_selected_index]["gradient_enabled"] = enabled
 	_refresh_camera_back_design_visuals()
 	var direction_button := camera_back_design_selection_view.find_child("CameraBackDesignGradientDirectionButton", true, false) as Button if is_instance_valid(camera_back_design_selection_view) else null
 	var gradient_picker := camera_back_design_selection_view.find_child("CameraBackDesignGradientColorPicker", true, false) as ColorPickerButton if is_instance_valid(camera_back_design_selection_view) else null
 	var toggle := camera_back_design_selection_view.find_child("CameraBackDesignGradientToggle", true, false) as Button if is_instance_valid(camera_back_design_selection_view) else null
+	var use_device_color := bool(camera_back_design_boxes[camera_back_design_selected_index].get("use_device_color", false))
 	if is_instance_valid(direction_button):
-		direction_button.visible = enabled
+		direction_button.visible = enabled and not use_device_color
 	if is_instance_valid(gradient_picker):
-		gradient_picker.disabled = not enabled
+		gradient_picker.disabled = not enabled or use_device_color
 	if is_instance_valid(toggle):
 		toggle.text = "ON" if enabled else "OFF"
 		_style_button(toggle, enabled)
@@ -1400,14 +1434,25 @@ void fragment() {
 """
 	var material := ShaderMaterial.new()
 	material.shader = shader
-	var base_color := Color(box.get("custom_color", camera_back_design_color))
+	var uses_device_color := bool(box.get("use_device_color", false))
+	var base_color := _get_camera_back_design_device_color() if uses_device_color else Color(box.get("custom_color", camera_back_design_color))
 	base_color = base_color.lightened(0.045) if selected else base_color.darkened(0.10)
 	material.set_shader_parameter("solid_color", base_color)
 	material.set_shader_parameter("gradient_color", Color(box.get("gradient_color", Color("#536dfe"))))
-	material.set_shader_parameter("gradient_enabled", bool(box.get("gradient_enabled", false)))
+	material.set_shader_parameter("gradient_enabled", bool(box.get("gradient_enabled", false)) and not uses_device_color)
 	material.set_shader_parameter("gradient_direction", int(box.get("gradient_direction", 0)))
 	material.set_shader_parameter("box_size", box_size)
 	return material
+
+
+func _get_camera_back_design_device_color() -> Color:
+	if not is_instance_valid(phone_model):
+		return camera_back_design_color
+	var chassis := phone_model.get_node_or_null("PhoneChassis") as MeshInstance3D
+	if not is_instance_valid(chassis):
+		return camera_back_design_color
+	var chassis_material := chassis.material_override as StandardMaterial3D
+	return chassis_material.albedo_color if is_instance_valid(chassis_material) else camera_back_design_color
 
 
 func _refresh_camera_back_design_visuals() -> void:
