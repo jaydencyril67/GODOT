@@ -111,7 +111,8 @@ func _run_processor_worksite_test() -> void:
 		return
 	var initial_viewport_child_count := viewport.get_child_count()
 	var first_package_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
-	if first_package_surface == null or first_package_surface.material_override == null or first_package_surface.material_override.albedo_color != Color("#101214"):
+	var first_package_material := first_package_surface.material_override as StandardMaterial3D if first_package_surface != null else null
+	if first_package_surface == null or first_package_material == null or first_package_material.albedo_color != Color("#101214"):
 		_fail("The original processor package does not start in the required black finish.")
 		worksite.free()
 		return
@@ -168,7 +169,8 @@ func _run_processor_worksite_test() -> void:
 	processor_color_control.select(silver_index)
 	worksite.call("_on_processor_color_selected", silver_index)
 	var recolored_surface := model.find_child("PackageSubstrate", true, false) as MeshInstance3D
-	if recolored_surface == null or recolored_surface.material_override == null or recolored_surface.material_override.albedo_color != Color("#A5AAAE"):
+	var recolored_material := recolored_surface.material_override as StandardMaterial3D if recolored_surface != null else null
+	if recolored_surface == null or recolored_material == null or recolored_material.albedo_color != Color("#A5AAAE"):
 		_fail("Processor colour selection did not apply to the model.")
 		worksite.free()
 		return
