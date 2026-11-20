@@ -77,7 +77,8 @@ func _run_camera_worksite_test() -> void:
 		return
 	worksite.call("_on_next_pressed")
 	var no_camera_hint := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
-	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not initial_rear_panel.visible == false or no_camera_hint == null or no_camera_hint.find_child("RearCameraMegapixelOptions", true, false) != null or no_camera_hint.find_child("Label", true, false) == null:
+	var empty_mp_message := no_camera_hint.get_child(1) as Label if no_camera_hint != null and no_camera_hint.get_child_count() > 1 else null
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or initial_rear_panel.visible or no_camera_hint == null or no_camera_hint.find_child("RearCameraMegapixelOptions", true, false) != null or empty_mp_message == null or empty_mp_message.text != "Add rear cameras in Step 1 first":
 		_fail("Step 2 should show the empty rear-camera MP prompt when no cameras exist.")
 		worksite.free()
 		return
