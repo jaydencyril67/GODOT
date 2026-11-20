@@ -444,10 +444,9 @@ func refresh_cached_face_layouts() -> void:
 		state["bounds_wait_frames"] = 0
 		state["layout_wait_frames"] = 0
 		state["normalization_started"] = false
-		# Keep every cached layout in the normalization queue, but render only
-		# the selected face. Showing 41 transparent Control trees at once adds
-		# avoidable layout and draw work on low-memory Android devices.
-		frame.visible = face_index == _style_index
+		# All styles remain cached. Only the active normalization batch is
+		# layout-visible, preventing 41 face trees from recalculating together.
+		frame.visible = false
 		frame.modulate = Color.WHITE
 		_face_normalization_queue.append(face_index)
 
@@ -557,12 +556,25 @@ func _process_face_normalization_queue(max_faces_per_frame: int = 3) -> void:
 		state["stable_frames"] = 0
 	for face_index in completed_indices:
 		_face_normalization_queue.erase(face_index)
-	if _face_normalization_queue.is_empty():
-		for cached_index in _face_variants.keys():
-			var cached_frame: Control = _face_variants[cached_index].get("frame") as Control
-			if is_instance_valid(cached_frame):
-				cached_frame.visible = int(cached_index) == _style_index
-				cached_frame.modulate = Color.WHITE
+	_update_normalization_visibility(safe_batch_size)
+
+
+func _update_normalization_visibility(batch_size: int) -> void:
+	var active_batch: Dictionary = {}
+	var active_count := mini(maxi(1, batch_size), _face_normalization_queue.size())
+	for queue_index in range(active_count):
+		active_batch[int(_face_normalization_queue[queue_index])] = true
+	for face_value in _face_variants.keys():
+		var face_index := int(face_value)
+		var frame := _face_variants[face_index].get("frame") as Control
+		if not is_instance_valid(frame):
+			continue
+		var is_selected := face_index == _style_index
+		var is_in_active_batch := active_batch.has(face_index)
+		frame.visible = is_selected or is_in_active_batch
+		# Transparent active faces still receive container layout, but only the
+		# selected style is drawn to the screen.
+		frame.modulate = Color.WHITE if is_selected else Color(1.0, 1.0, 1.0, 0.0)
 
 func _refresh_all_cached_time_labels() -> void:
 	for face_index in _face_variants.keys():
