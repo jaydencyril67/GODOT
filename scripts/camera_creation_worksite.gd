@@ -19,9 +19,25 @@ const MIN_PREVIEW_DISTANCE := 3.2
 const MAX_PREVIEW_DISTANCE := 7.2
 const DEFAULT_PREVIEW_DISTANCE := 4.6
 
+const FRONT_CAMERA_STYLES := [
+	"Bezel Camera",
+	"Waterdrop Notch",
+	"Punch-Hole",
+	"Side Punch-Hole",
+	"Dual Punch-Hole",
+	"Pop-Up Camera",
+	"Dynamic Island",
+	"Under-Display Camera"
+]
+const FRONT_CAMERA_PREVIEW_SCREEN_WIDTH := 1.41
+const FRONT_CAMERA_PREVIEW_SCREEN_HEIGHT := 2.88
+const FRONT_CAMERA_PREVIEW_FACE_Z := 0.075
+
 const WIZARD_STEPS := [
 	{"title": "RARE CAMERA"},
-	{"title": "REAR CAMERA MP"}
+	{"title": "REAR CAMERA MP"},
+	{"title": "FRONT CAMERA"},
+	{"title": "FRONT CAMERA MP"}
 ]
 
 
@@ -58,6 +74,23 @@ var rear_camera_mp_value_labels: Array[Label] = []
 var rear_camera_mp_max_labels: Array[Label] = []
 var rear_camera_mp_slider_camera_ids: Array[int] = []
 var rear_camera_mp_step_content: VBoxContainer
+
+var front_camera_enabled := false
+var front_camera_style := "Bezel Camera"
+var front_camera_research_level := 0
+var front_camera_mp_research_level := 0
+var front_camera_megapixels := 1
+var front_camera_secondary_megapixels := 1
+var front_camera_step_content: VBoxContainer
+var front_camera_mp_step_content: VBoxContainer
+var front_camera_enable_button: Button
+var front_camera_style_label: Label
+var front_camera_research_label: Label
+var front_camera_style_previous_button: Button
+var front_camera_style_next_button: Button
+var front_camera_mp_sliders: Array[VSlider] = []
+var front_camera_mp_value_labels: Array[Label] = []
+var front_camera_mp_max_labels: Array[Label] = []
 var rear_hardware_mode := "CAMERA"
 var rear_camera_selected_index := -1
 var rear_flash_selected_index := -1
@@ -342,6 +375,8 @@ func _build_interface() -> void:
 
 	_build_rear_hardware_step_controls()
 	_build_rear_camera_mp_step_controls()
+	_build_front_camera_step_controls()
+	_build_front_camera_mp_step_controls()
 
 
 	var progress := VBoxContainer.new()
@@ -357,7 +392,7 @@ func _build_interface() -> void:
 	progress.add_theme_constant_override("separation", 4)
 	worksite_root.add_child(progress)
 
-	progress_number = _label("STEP 1 / 2", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 4", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.name = "WorksiteProgressNumber"
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
@@ -442,6 +477,16 @@ func _set_wizard_step(step: int) -> void:
 		rear_camera_mp_step_content.visible = current_wizard_step == 2
 		if current_wizard_step == 2:
 			_refresh_rear_camera_mp_controls()
+	if is_instance_valid(front_camera_step_content):
+		front_camera_step_content.visible = current_wizard_step == 3
+		if current_wizard_step == 3:
+			_refresh_front_camera_step_controls()
+	if is_instance_valid(front_camera_mp_step_content):
+		front_camera_mp_step_content.visible = current_wizard_step == 4
+		if current_wizard_step == 4:
+			_refresh_front_camera_mp_controls()
+	if is_instance_valid(phone_model):
+		phone_model.rotation = Vector3(0.0, PI, 0.0) if current_wizard_step >= 3 else Vector3.ZERO
 	wizard_back_button.disabled = current_wizard_step <= 1
 	next_button.disabled = current_wizard_step >= WIZARD_STEPS.size()
 	wizard_back_button.queue_redraw()
