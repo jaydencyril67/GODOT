@@ -305,11 +305,11 @@ func _run_processor_worksite_test() -> void:
 		worksite.call("_on_processor_technology_next_pressed")
 	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or not technology_next.disabled or technology_previous.disabled or technology_toggle.disabled:
 		_fail("Processor Technologies plus navigation did not reach the unlocked fifteenth and final entry.")
+		worksite.free()
+		return
 	worksite.call("_on_processor_technology_toggled", true)
 	if not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 4.00) or technology_level_value.text != "4.00 TP":
 		_fail("Processor Technologies did not add the approved unlocks to the shared TP total.")
-		worksite.free()
-		return
 		worksite.free()
 		return
 	worksite.call("_on_processor_technology_previous_pressed")
