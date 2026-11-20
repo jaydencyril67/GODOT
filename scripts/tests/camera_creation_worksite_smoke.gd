@@ -114,12 +114,83 @@ func _run_camera_worksite_test() -> void:
 	var rare_camera_panel := worksite.find_child("RareCameraStepControls", true, false) as VBoxContainer
 	var camera_mode_button := worksite.find_child("RearHardwareModeCamera", true, false) as Button
 	var flash_mode_button := worksite.find_child("RearHardwareModeFlash", true, false) as Button
+	var design_mode_button := worksite.find_child("RearHardwareModeDesign", true, false) as Button
+	var mode_switchers := worksite.find_child("RearHardwareModeSwitchers", true, false) as HBoxContainer
 	var add_button := worksite.find_child("RearHardwareAddButton", true, false) as Button
 	var remove_button := worksite.find_child("RearHardwareRemoveButton", true, false) as Button
 	var size_slider := worksite.find_child("RearHardwareHorizontalSizeSlider", true, false) as HSlider
 	var direction_pad := worksite.find_child("RearHardwareDirectionPad", true, false) as GridContainer
-	if rare_camera_panel == null or not rare_camera_panel.visible or camera_mode_button == null or flash_mode_button == null or add_button == null or remove_button == null or size_slider == null or direction_pad == null:
-		_fail("Rare Camera step is missing its camera/flash, add/remove, resize or movement controls.")
+	if rare_camera_panel == null or not rare_camera_panel.visible or camera_mode_button == null or flash_mode_button == null or design_mode_button == null or mode_switchers == null or mode_switchers.get_child_count() != 3 or add_button == null or remove_button == null or size_slider == null or direction_pad == null:
+		_fail("Rare Camera step is missing its three mode tabs or existing camera/flash controls.")
+		worksite.free()
+		return
+
+	worksite.call("set_back_raised_design_research_level", 2)
+	design_mode_button.emit_signal("pressed")
+	var design_panel := worksite.find_child("CameraBackDesignControls", true, false) as VBoxContainer
+	var design_selector := worksite.find_child("CameraBackDesignBoxSelector", true, false) as Button
+	var design_add_button := worksite.find_child("CameraBackDesignAddButton", true, false) as Button
+	var design_remove_button := worksite.find_child("CameraBackDesignRemoveButton", true, false) as Button
+	var design_rounding_slider := worksite.find_child("CameraBackDesignHorizontalRoundingSlider", true, false) as HSlider
+	var design_direction_pad := worksite.find_child("CameraBackDesignDirectionPad", true, false) as GridContainer
+	if design_panel == null or not design_panel.visible or design_selector == null or design_add_button == null or design_remove_button == null or design_rounding_slider == null or design_direction_pad == null:
+		_fail("DESIGN mode did not reproduce the Back Raised Design editor structure.")
+		worksite.free()
+		return
+
+	design_add_button.emit_signal("pressed")
+	var design_boxes: Array = worksite.get("camera_back_design_boxes")
+	if design_boxes.size() != 1 or worksite.find_child("CameraBackDesignRaisedSections", true, false) == null:
+		_fail("DESIGN mode could not add and render a raised back-design box.")
+		worksite.free()
+		return
+
+	var initial_design_position: Vector2 = design_boxes[0]["position"]
+	worksite.call("_on_camera_back_design_pad_pressed", Vector2i(1, 0))
+	design_boxes = worksite.get("camera_back_design_boxes")
+	if design_boxes[0]["position"] == initial_design_position:
+		_fail("Back-design movement controller did not move the selected raised box.")
+		worksite.free()
+		return
+
+	worksite.call("_set_camera_back_design_mode", "SIZE")
+	var initial_design_size: Vector2 = design_boxes[0]["size"]
+	worksite.call("_on_camera_back_design_pad_pressed", Vector2i(1, 0))
+	design_boxes = worksite.get("camera_back_design_boxes")
+	if design_boxes[0]["size"] == initial_design_size:
+		_fail("Back-design SIZE mode did not resize the selected raised box.")
+		worksite.free()
+		return
+
+	worksite.call("_on_camera_back_design_rounding_changed", 0.18)
+	design_boxes = worksite.get("camera_back_design_boxes")
+	if not is_equal_approx(float(design_boxes[0]["border"]), 0.18):
+		_fail("Back-design rounding slider did not update the selected raised box.")
+		worksite.free()
+		return
+
+	var design_color_button := worksite.find_child("CameraBackDesignColorButton", true, false) as Button
+	if design_color_button == null or design_color_button.disabled:
+		_fail("Back-design COLOR action is unavailable for the selected box.")
+		worksite.free()
+		return
+	design_color_button.emit_signal("pressed")
+	var color_picker := worksite.find_child("CameraBackDesignColorPicker", true, false) as ColorPicker
+	if color_picker == null:
+		_fail("Back-design COLOR action did not open its color editor.")
+		worksite.free()
+		return
+	var selected_design_color := Color("#7b9fbc")
+	worksite.call("_on_camera_back_design_color_changed", selected_design_color)
+	design_boxes = worksite.get("camera_back_design_boxes")
+	if design_boxes[0]["custom_color"] != selected_design_color:
+		_fail("Back-design color editor did not update the raised box material.")
+		worksite.free()
+		return
+
+	camera_mode_button.emit_signal("pressed")
+	if not worksite.find_child("RearHardwareControls", true, false).visible or design_panel.visible:
+		_fail("Switching from DESIGN back to CAMERA did not restore the original camera controls.")
 		worksite.free()
 		return
 
