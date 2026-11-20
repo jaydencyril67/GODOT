@@ -15,9 +15,51 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["Rear Camera MP", "Front Camera MP"]
-const COMPONENT_VALUES := ["Rear Camera MP", "Front Camera MP"]
-const CAMERA_RESEARCH_COMPONENTS := ["Rear Camera MP", "Front Camera MP"]
+const COMPONENT_LABELS := [
+	"Rear Camera MP",
+	"Front Camera MP",
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video"
+]
+const COMPONENT_VALUES := [
+	"Rear Camera MP",
+	"Front Camera MP",
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video"
+]
+const CAMERA_RESEARCH_COMPONENTS := [
+	"Rear Camera MP",
+	"Front Camera MP",
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video"
+]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -411,6 +453,8 @@ func _request_research_retry(project_id: String) -> void:
 
 
 func _default_validation_metric(component: String) -> String:
+	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(component):
+		return "Camera feature functionality and integration"
 	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(component):
 		return "Sensor functionality and integration"
 	if ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(component):
@@ -646,7 +690,7 @@ func _build_component_selection_scene() -> void:
 					component_button.tooltip_text = "RESEARCH ALREADY IN PROGRESS OR AWAITING VALIDATION"
 					component_button.disabled = true
 					break
-		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(str(COMPONENT_VALUES[index])):
+		elif ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.SIDE_BUTTON_COMPONENTS.has(str(COMPONENT_VALUES[index])) or ResearchManagerScript.POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(str(COMPONENT_VALUES[index])):
 			var unlock_component := str(COMPONENT_VALUES[index])
 			var component_researched := int(research_component_levels.get(unlock_component, 0)) >= 1
 			var component_project_in_progress := false
