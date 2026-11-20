@@ -59,8 +59,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Camera Worksite does not initialize its four-stage camera workflow.")
+	if progress_bar.max_value != 5 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Camera Worksite does not initialize its five-stage camera workflow.")
 		worksite.free()
 		return
 
@@ -73,8 +73,9 @@ func _run_camera_worksite_test() -> void:
 	var initial_mp_panel := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
 	var initial_front_panel := worksite.find_child("FrontCameraStepControls", true, false) as VBoxContainer
 	var initial_front_mp_panel := worksite.find_child("FrontCameraMegapixelStepControls", true, false) as VBoxContainer
-	if initial_rear_panel == null or not initial_rear_panel.visible or initial_mp_panel == null or initial_mp_panel.visible or initial_front_panel == null or initial_front_panel.visible or initial_front_mp_panel == null or initial_front_mp_panel.visible:
-		_fail("Only the Rare Camera editor should be visible at the start of the four-step workflow.")
+	var initial_sensor_panel := worksite.find_child("CameraSensorStepControls", true, false) as VBoxContainer
+	if initial_rear_panel == null or not initial_rear_panel.visible or initial_mp_panel == null or initial_mp_panel.visible or initial_front_panel == null or initial_front_panel.visible or initial_front_mp_panel == null or initial_front_mp_panel.visible or initial_sensor_panel == null or initial_sensor_panel.visible:
+		_fail("Only the Rare Camera editor should be visible at the start of the five-step workflow.")
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
@@ -444,6 +445,41 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("_on_wizard_back_pressed")
 	if int(worksite.get("current_wizard_step")) != 2 or not is_equal_approx(float(phone_model.rotation.y), 0.0):
 		_fail("Returning to the rear-camera steps did not restore the handset rear view.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	worksite.call("_on_next_pressed")
+	worksite.call("_on_next_pressed")
+	var camera_sensor_panel := worksite.find_child("CameraSensorStepControls", true, false) as VBoxContainer
+	var camera_sensor_heading := camera_sensor_panel.get_child(0) as Label if camera_sensor_panel != null and camera_sensor_panel.get_child_count() > 0 else null
+	var camera_sensor_toggle := worksite.find_child("CameraSensorEnabledToggle", true, false) as TextureButton
+	var camera_sensor_label := worksite.find_child("SelectedCameraSensor", true, false) as Label
+	var camera_sensor_previous := worksite.find_child("PreviousCameraSensorButton", true, false) as Button
+	var camera_sensor_next := worksite.find_child("NextCameraSensorButton", true, false) as Button
+	var camera_sensor_states: Dictionary = worksite.get("camera_sensor_enabled_states")
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or camera_sensor_states.size() != 11:
+		_fail("Stage 5 did not expose all 11 camera sensor options through the Phone Sensors selector structure.")
+		worksite.free()
+		return
+
+	camera_sensor_toggle.emit_signal("toggled", true)
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	if not bool(camera_sensor_states.get("Portrait Mode", false)):
+		_fail("Camera sensor ENABLE toggle did not save the selected capability state.")
+		worksite.free()
+		return
+
+	camera_sensor_next.emit_signal("pressed")
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	if camera_sensor_label.text != "Macro Photography" or camera_sensor_toggle.button_pressed or bool(camera_sensor_states.get("Macro Photography", true)) or not bool(camera_sensor_states.get("Portrait Mode", false)):
+		_fail("Camera sensor navigation did not preserve independent enabled states between options.")
+		worksite.free()
+		return
+
+	camera_sensor_previous.emit_signal("pressed")
+	if camera_sensor_label.text != "Portrait Mode" or not camera_sensor_toggle.button_pressed or not camera_sensor_previous.disabled:
+		_fail("Camera sensor previous navigation did not restore the selected option and its enabled state.")
 		worksite.free()
 		return
 
