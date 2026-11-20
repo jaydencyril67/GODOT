@@ -2324,6 +2324,146 @@ func _refresh_rear_hardware_panel() -> void:
 	_refresh_rear_hardware_visuals()
 
 
+func _refresh_front_camera_visuals() -> void:
+	if not is_instance_valid(phone_model):
+		return
+	var previous := phone_model.get_node_or_null("FrontCameraHardware")
+	if is_instance_valid(previous):
+		previous.free()
+	if not front_camera_enabled:
+		return
+
+	var root := Node3D.new()
+	root.name = "FrontCameraHardware"
+	phone_model.add_child(root)
+
+	var cutout_material := StandardMaterial3D.new()
+	cutout_material.albedo_color = Color("#020407")
+	cutout_material.metallic = 0.08
+	cutout_material.roughness = 0.20
+	var lens_material := StandardMaterial3D.new()
+	lens_material.albedo_color = Color("#142d49")
+	lens_material.metallic = 0.72
+	lens_material.roughness = 0.13
+	lens_material.clearcoat_enabled = true
+	lens_material.clearcoat = 0.85
+	lens_material.clearcoat_roughness = 0.08
+	var ring_material := StandardMaterial3D.new()
+	ring_material.albedo_color = Color("#46515e")
+	ring_material.metallic = 0.82
+	ring_material.roughness = 0.24
+	var camera_y := FRONT_CAMERA_PREVIEW_SCREEN_HEIGHT * 0.5 - 0.065
+	var camera_z := FRONT_CAMERA_PREVIEW_FACE_Z
+
+	match front_camera_style:
+		"Bezel Camera":
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(0.0, 1.448, camera_z), 0.021, lens_material, ring_material)
+		"Waterdrop Notch":
+			_add_front_camera_capsule(root, "WaterdropNotchCutout", Vector3(0.0, camera_y, camera_z - 0.001), 0.19, 0.105, cutout_material)
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(0.0, camera_y - 0.012, camera_z + 0.006), 0.024, lens_material, ring_material)
+		"Punch-Hole":
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(0.0, camera_y, camera_z), 0.038, lens_material, ring_material)
+		"Side Punch-Hole":
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(-FRONT_CAMERA_PREVIEW_SCREEN_WIDTH * 0.40, camera_y, camera_z), 0.037, lens_material, ring_material)
+		"Dual Punch-Hole":
+			_add_front_camera_lens(root, "FrontCameraLens01", Vector3(-0.052, camera_y, camera_z), 0.030, lens_material, ring_material)
+			_add_front_camera_lens(root, "FrontCameraLens02", Vector3(0.052, camera_y, camera_z), 0.030, lens_material, ring_material)
+		"Pop-Up Camera":
+			var popup_housing := MeshInstance3D.new()
+			popup_housing.name = "PopUpCameraHousing"
+			var popup_mesh := BoxMesh.new()
+			popup_mesh.size = Vector3(0.15, 0.13, 0.035)
+			popup_housing.mesh = popup_mesh
+			popup_housing.position = Vector3(0.0, 1.505, camera_z - 0.012)
+			popup_housing.material_override = ring_material
+			popup_housing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(popup_housing)
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(0.0, 1.505, camera_z + 0.010), 0.032, lens_material, ring_material)
+		"Dynamic Island":
+			_add_front_camera_capsule(root, "DynamicIslandCutout", Vector3(0.0, camera_y, camera_z - 0.001), 0.36, 0.105, cutout_material)
+			_add_front_camera_lens(root, "FrontCameraLens", Vector3(0.075, camera_y, camera_z + 0.006), 0.022, lens_material, cutout_material)
+			_add_front_camera_sensor_dot(root, Vector3(-0.075, camera_y, camera_z + 0.006), 0.009, ring_material)
+		"Under-Display Camera":
+			var hidden_lens := MeshInstance3D.new()
+			hidden_lens.name = "UnderDisplayCameraOpticalWindow"
+			var hidden_mesh := CylinderMesh.new()
+			hidden_mesh.top_radius = 0.026
+			hidden_mesh.bottom_radius = 0.026
+			hidden_mesh.height = 0.0015
+			hidden_mesh.radial_segments = 40
+			hidden_lens.mesh = hidden_mesh
+			hidden_lens.rotation_degrees.x = 90.0
+			hidden_lens.position = Vector3(0.0, camera_y, camera_z)
+			var hidden_material := StandardMaterial3D.new()
+			hidden_material.albedo_color = Color(0.025, 0.055, 0.085, 0.22)
+			hidden_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			hidden_material.roughness = 0.28
+			hidden_lens.material_override = hidden_material
+			hidden_lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(hidden_lens)
+
+
+func _add_front_camera_capsule(parent: Node3D, node_name: String, centre: Vector3, width: float, height: float, material: Material) -> void:
+	var capsule := MeshInstance3D.new()
+	capsule.name = node_name
+	var capsule_mesh := CapsuleMesh.new()
+	capsule_mesh.radius = height * 0.5
+	capsule_mesh.height = width
+	capsule_mesh.radial_segments = 32
+	capsule_mesh.rings = 12
+	capsule.mesh = capsule_mesh
+	capsule.rotation_degrees.z = 90.0
+	capsule.position = centre
+	capsule.material_override = material
+	capsule.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(capsule)
+
+
+func _add_front_camera_lens(parent: Node3D, node_name: String, lens_position: Vector3, radius: float, lens_material: Material, ring_material: Material) -> void:
+	var ring := MeshInstance3D.new()
+	ring.name = node_name + "Ring"
+	var ring_mesh := CylinderMesh.new()
+	ring_mesh.top_radius = radius
+	ring_mesh.bottom_radius = radius
+	ring_mesh.height = 0.008
+	ring_mesh.radial_segments = 32
+	ring.mesh = ring_mesh
+	ring.rotation_degrees.x = 90.0
+	ring.position = lens_position
+	ring.material_override = ring_material
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(ring)
+
+	var lens := MeshInstance3D.new()
+	lens.name = node_name
+	var lens_mesh := CylinderMesh.new()
+	lens_mesh.top_radius = radius * 0.72
+	lens_mesh.bottom_radius = radius * 0.72
+	lens_mesh.height = 0.003
+	lens_mesh.radial_segments = 32
+	lens.mesh = lens_mesh
+	lens.rotation_degrees.x = 90.0
+	lens.position = lens_position + Vector3(0.0, 0.0, 0.005)
+	lens.material_override = lens_material
+	lens.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(lens)
+
+
+func _add_front_camera_sensor_dot(parent: Node3D, dot_position: Vector3, radius: float, material: Material) -> void:
+	var dot := MeshInstance3D.new()
+	dot.name = "FrontCameraProximitySensor"
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 24
+	mesh.rings = 12
+	dot.mesh = mesh
+	dot.position = dot_position
+	dot.material_override = material
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(dot)
+
+
 func _refresh_rear_hardware_visuals() -> void:
 	if not is_instance_valid(phone_model):
 		return
