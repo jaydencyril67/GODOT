@@ -116,6 +116,13 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor Technologies contains an unwanted camera-style top switcher.")
 		worksite.free()
 		return
+	var research_request_count := 0
+	worksite.research_requested.connect(func(): research_request_count += 1)
+	processor_research_button.emit_signal("pressed")
+	if research_request_count != 1:
+		_fail("Processor Research button did not emit its navigation request.")
+		worksite.free()
+		return
 	if not back_step_button.disabled or next_step_button.disabled:
 		_fail("Processor worksite step arrows have incorrect initial enabled states.")
 		worksite.free()
