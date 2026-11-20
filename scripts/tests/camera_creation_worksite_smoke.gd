@@ -33,13 +33,15 @@ func _run_camera_worksite_test() -> void:
 	var charging_port := worksite.find_child("ChargingPortFrame", true, false) as MeshInstance3D
 	var bottom_speaker := worksite.find_child("BottomSpeaker_L_01", true, false) as MeshInstance3D
 	var selection_scroll := worksite.find_child("CameraSelectionScroll", true, false) as ScrollContainer
+	var technology_level_panel := worksite.find_child("CameraTechnologyLevelPanel", true, false) as PanelContainer
+	var technology_level_value := worksite.find_child("CameraTechnologyLevelValue", true, false) as Label
 	var selection_controls := worksite.find_child("CameraSelectionControls", true, false) as VBoxContainer
 	var progress_bar := worksite.find_child("WizardProgressBar", true, false) as ProgressBar
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
 	var camera := worksite.find_child("CameraStudioPreviewCamera", true, false) as Camera3D
 
-	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
+	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or technology_level_panel == null or technology_level_value == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
 		_fail("Camera Worksite is missing part of the shared Phone Creation Worksite layout or 3D handset preview.")
 		worksite.free()
 		return
@@ -51,6 +53,11 @@ func _run_camera_worksite_test() -> void:
 
 	if viewport.size.x <= 0 or viewport.size.y <= 0 or viewport.msaa_3d != Viewport.MSAA_DISABLED or viewport.screen_space_aa != Viewport.SCREEN_SPACE_AA_DISABLED or viewport.render_target_update_mode != SubViewport.UPDATE_WHEN_VISIBLE:
 		_fail("Camera handset preview is not using the expected low-end-device rendering settings.")
+		worksite.free()
+		return
+
+	if technology_level_panel.get_parent().name != "CameraTechnologyLevelSafeArea" or technology_level_value.text != "0.00 TP":
+		_fail("Camera Worksite is missing its pinned Technology Level footer or its zero baseline score.")
 		worksite.free()
 		return
 
@@ -467,7 +474,44 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	if str(worksite.get("camera_sensor_enable_label").text) != "LOCKED" or not camera_sensor_toggle.disabled:
+		_fail("Camera features must remain locked until their one-time research is approved.")
+		worksite.free()
+		return
+
+	worksite.call("set_camera_sensor_research_levels", {
+		"Portrait Mode": 1,
+		"Macro Photography": 1
+	})
+	if camera_sensor_toggle.disabled or str(worksite.get("camera_sensor_enable_label").text) != "ENABLE":
+		_fail("Approved camera research did not unlock the feature controls.")
+		worksite.free()
+		return
+
+	camera_sensor_next.emit_signal("pressed")
+	camera_sensor_next.emit_signal("pressed")
+	if camera_sensor_label.text != "Ultra-Wide Photography" or not camera_sensor_toggle.disabled or str(worksite.get("camera_sensor_enable_label").text) != "LOCKED":
+		_fail("An unresearched camera feature was not kept locked.")
+		worksite.free()
+		return
 	camera_sensor_toggle.emit_signal("toggled", true)
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	if bool(rear_sensor_states.get("Ultra-Wide Photography", false)):
+		_fail("A locked camera feature accepted an enable action.")
+		worksite.free()
+		return
+	camera_sensor_previous.emit_signal("pressed")
+	camera_sensor_previous.emit_signal("pressed")
+
+	var points_before_rear_portrait := float(worksite.call("_calculate_camera_technology_points"))
+	camera_sensor_toggle.emit_signal("toggled", true)
+	worksite.call("_refresh_camera_technology_level_display")
+	var points_after_rear_portrait := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_rear_portrait - points_before_rear_portrait, 2.60) or technology_level_value.text != "%.2f TP" % points_after_rear_portrait:
+		_fail("Enabling Rear Portrait Mode did not add its 2.60 TP unlock value to the Camera Technology Level.")
+		worksite.free()
+		return
 	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
 	rear_sensor_states = camera_sensor_states.get("REAR", {})
 	front_sensor_states = camera_sensor_states.get("FRONT", {})
@@ -492,7 +536,14 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	var points_before_front_macro := float(worksite.call("_calculate_camera_technology_points"))
 	camera_sensor_toggle.emit_signal("toggled", true)
+	worksite.call("_refresh_camera_technology_level_display")
+	var points_after_front_macro := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_front_macro - points_before_front_macro, 2.50):
+		_fail("Enabling Front Macro Photography did not add its 2.50 TP unlock value.")
+		worksite.free()
+		return
 	camera_sensor_previous.emit_signal("pressed")
 	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
 	rear_sensor_states = camera_sensor_states.get("REAR", {})
@@ -502,7 +553,14 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	var points_before_front_portrait := float(worksite.call("_calculate_camera_technology_points"))
 	camera_sensor_toggle.emit_signal("toggled", true)
+	worksite.call("_refresh_camera_technology_level_display")
+	var points_after_front_portrait := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_front_portrait - points_before_front_portrait, 2.60):
+		_fail("Enabling Front Portrait Mode did not add a separate 2.60 TP camera contribution.")
+		worksite.free()
+		return
 	rear_camera_selector.emit_signal("pressed")
 	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
 	rear_sensor_states = camera_sensor_states.get("REAR", {})
