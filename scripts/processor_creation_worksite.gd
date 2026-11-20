@@ -61,6 +61,7 @@ var preview_camera: Camera3D
 var package_size: OptionButton
 var processor_color_option: OptionButton
 var processor_color := Color("#101214")
+var processor_color_material: StandardMaterial3D
 var status_label: Label
 var worksite_body: BoxContainer
 var preview_region: Control
@@ -778,21 +779,18 @@ func _on_processor_color_selected(index: int) -> void:
 func _apply_processor_color() -> void:
 	if not is_instance_valid(processor_root):
 		return
+	if not is_instance_valid(processor_color_material):
+		processor_color_material = StandardMaterial3D.new()
+		processor_color_material.metallic = 0.62
+		processor_color_material.roughness = 0.30
+	processor_color_material.albedo_color = processor_color
 	var pending_nodes: Array[Node] = [processor_root]
 	while not pending_nodes.is_empty():
 		var current_node: Node = pending_nodes.pop_back()
 		if current_node is MeshInstance3D:
-			var mesh_material := StandardMaterial3D.new()
-			mesh_material.albedo_color = processor_color
-			mesh_material.metallic = 0.62
-			mesh_material.roughness = 0.30
-			(current_node as MeshInstance3D).material_override = mesh_material
+			(current_node as MeshInstance3D).material_override = processor_color_material
 		elif current_node is MultiMeshInstance3D:
-			var multimesh_material := StandardMaterial3D.new()
-			multimesh_material.albedo_color = processor_color
-			multimesh_material.metallic = 0.62
-			multimesh_material.roughness = 0.30
-			(current_node as MultiMeshInstance3D).material_override = multimesh_material
+			(current_node as MultiMeshInstance3D).material_override = processor_color_material
 		for child in current_node.get_children():
 			pending_nodes.append(child)
 
