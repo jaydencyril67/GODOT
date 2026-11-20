@@ -47,7 +47,7 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 	else:
 		_initial_build_pending = true
 
-func prepare_all_styles(batch_size: int = 3) -> bool:
+func prepare_all_styles(batch_size: int = 3, progress_callback: Callable = Callable()) -> bool:
 	# The clock can be attached before its parent layout has calculated a size.
 	# Wait for that layout, but never let a failed layout stall OS startup forever.
 	var size_wait_frames := 0
@@ -64,16 +64,26 @@ func prepare_all_styles(batch_size: int = 3) -> bool:
 	for face_index in range(1, total + 1):
 		_build_face_variant(face_index)
 		if face_index % safe_batch_size == 0 or face_index == total:
+			if progress_callback.is_valid():
+				var digital_build_progress := 25.0 + 50.0 * float(face_index) / maxf(float(total), 1.0)
+				progress_callback.call("Preparing lock-screen clock styles", digital_build_progress)
 			await get_tree().process_frame
 	_faces_initialized = not _face_variants.is_empty()
 	if not _faces_initialized:
 		return false
 
 	refresh_cached_face_layouts()
+	var normalization_total := _face_normalization_queue.size()
+	var last_normalized_count := -1
 	var normalization_wait_frames := 0
 	while not _face_normalization_queue.is_empty() and normalization_wait_frames < 180:
 		await get_tree().process_frame
 		normalization_wait_frames += 1
+		var normalized_count := normalization_total - _face_normalization_queue.size()
+		if progress_callback.is_valid() and normalized_count != last_normalized_count:
+			var normalization_progress := 75.0 + 25.0 * float(normalized_count) / maxf(float(normalization_total), 1.0)
+			progress_callback.call("Preparing lock-screen clock styles", normalization_progress)
+			last_normalized_count = normalized_count
 
 	# A malformed face must not block every later OS setup stage. Its layout
 	# remains cached and selectable; only its optional centering pass is skipped.
@@ -87,6 +97,8 @@ func prepare_all_styles(batch_size: int = 3) -> bool:
 
 	_select_cached_face(selected_index)
 	_refresh_all_cached_time_labels()
+	if progress_callback.is_valid():
+		progress_callback.call("Preparing lock-screen clock styles", 100.0)
 	return true
 
 
