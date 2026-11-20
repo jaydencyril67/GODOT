@@ -48,12 +48,15 @@ func configure(index: int, palette: Dictionary = {}, _design: Dictionary = {}) -
 func set_style_index(index: int) -> bool:
 	if index < 1 or index > get_style_count():
 		return false
-	if not _faces_initialized:
+	if size.x <= 0.0 or size.y <= 0.0:
 		_style_index = index
+		_initial_build_pending = true
 		return false
-	if not _face_variants.has(index):
+	if not _face_variants.has(index) and not _build_face_variant(index):
 		return false
+	_faces_initialized = not _face_variants.is_empty()
 	_select_cached_face(index)
+	_refresh_all_cached_time_labels()
 	return true
 
 
@@ -311,53 +314,61 @@ func _build_layout_node(spec: Dictionary, available_size: Vector2, face_override
 
 
 func _initialize_face_variants() -> void:
-	if _faces_initialized or size.x <= 0.0 or size.y <= 0.0:
+	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	var selected_index := _style_index
-	var faces := _library.get_faces()
-	var frame_size := Vector2(size.x * FACE_FRAME_RECT.size.x, size.y * FACE_FRAME_RECT.size.y)
-	for face_offset in range(faces.size()):
-		var face_index := face_offset + 1
-		var face: Dictionary = faces[face_offset]
-		var large: Dictionary = face.get("large", {})
-		var layout_key := ""
-		for key in ["row", "column", "stack"]:
-			if large.has(key):
-				layout_key = key
-				break
-		if layout_key.is_empty():
-			continue
-		_face = face
-		var frame := Control.new()
-		frame.name = "XMorphClockFace_%02d" % face_index
-		_set_normalized_rect(frame, FACE_FRAME_RECT)
-		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame.visible = false
-		add_child(frame)
-		var root_node := _build_layout_node(large, frame_size, face)
-		if root_node == null:
-			remove_child(frame)
-			frame.free()
-			continue
-		root_node.name = "XMorphClockLayout_%02d" % face_index
-		root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		frame.add_child(root_node)
-		_face_variants[face_index] = {
-			"frame": frame,
-			"root": root_node,
-			"face": face,
-			"last_bounds": Rect2(),
-			"stable_frames": 0,
-			"shift_applied": false,
-			"shift_attempts": 0,
-			"normalized": false
-		}
+	if not _face_variants.has(_style_index):
+		_build_face_variant(_style_index)
 	_faces_initialized = not _face_variants.is_empty()
 	_last_minute = int(Time.get_time_dict_from_system().get("minute", -1))
-	_select_cached_face(selected_index)
-	_refresh_all_cached_time_labels()
+	if _faces_initialized:
+		_select_cached_face(_style_index)
+		_refresh_all_cached_time_labels()
 
+
+func _build_face_variant(face_index: int) -> bool:
+	if _face_variants.has(face_index):
+		return true
+	if size.x <= 0.0 or size.y <= 0.0:
+		return false
+	var face := _library.get_face(face_index)
+	if face.is_empty():
+		return false
+	var large: Dictionary = face.get("large", {})
+	var layout_key := ""
+	for key in ["row", "column", "stack"]:
+		if large.has(key):
+			layout_key = key
+			break
+	if layout_key.is_empty():
+		return false
+	var frame_size := Vector2(size.x * FACE_FRAME_RECT.size.x, size.y * FACE_FRAME_RECT.size.y)
+	_face = face
+	var frame := Control.new()
+	frame.name = "XMorphClockFace_%02d" % face_index
+	_set_normalized_rect(frame, FACE_FRAME_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.visible = false
+	add_child(frame)
+	var root_node := _build_layout_node(large, frame_size, face)
+	if root_node == null:
+		remove_child(frame)
+		frame.free()
+		return false
+	root_node.name = "XMorphClockLayout_%02d" % face_index
+	root_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(root_node)
+	_face_variants[face_index] = {
+		"frame": frame,
+		"root": root_node,
+		"face": face,
+		"last_bounds": Rect2(),
+		"stable_frames": 0,
+		"shift_applied": false,
+		"shift_attempts": 0,
+		"normalized": false
+	}
+	return true
 
 func refresh_cached_face_layouts() -> void:
 	if not _faces_initialized:
