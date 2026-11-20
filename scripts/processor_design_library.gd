@@ -645,11 +645,11 @@ static func _build_contacts(parent: Node3D, grid_count: int, field_size: float, 
 	parent.add_child(contact_array)
 
 
-static func _material(_color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
+static func _material(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	# Keep every preset monochrome black; the user-facing colour step applies
-	# a selected finish to the complete processor model.
-	material.albedo_color = Color("#101214")
+	# Preserve the physical accent materials: gold traces, light ceramic
+	# passives, metal contacts and other model-specific details.
+	material.albedo_color = color
 	material.metallic = metallic
 	material.roughness = roughness
 	return material
