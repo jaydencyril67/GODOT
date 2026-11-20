@@ -894,7 +894,10 @@ func _add_camera_back_design_box() -> void:
 					"position": candidate,
 					"size": box_size,
 					"border": 0.08,
-					"custom_color": camera_back_design_color
+					"custom_color": camera_back_design_color,
+					"gradient_color": Color("#536dfe"),
+					"gradient_enabled": false,
+					"gradient_direction": 0
 				})
 				camera_back_design_selected_index = camera_back_design_boxes.size() - 1
 				next_camera_back_design_id += 1
@@ -982,11 +985,14 @@ func _show_camera_back_design_color_controls() -> void:
 	if is_instance_valid(camera_back_design_selection_view):
 		camera_back_design_selection_view.queue_free()
 		camera_back_design_selection_view = null
+
+	var selected: Dictionary = camera_back_design_boxes[camera_back_design_selected_index]
+	var gradient_enabled := bool(selected.get("gradient_enabled", false))
 	var color_view := VBoxContainer.new()
 	color_view.name = "CameraBackDesignColorControls"
 	color_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	color_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	color_view.add_theme_constant_override("separation", 10)
+	color_view.add_theme_constant_override("separation", 8)
 	camera_back_design_selection_view = color_view
 	rear_hardware_step_content.add_child(color_view)
 
@@ -1006,23 +1012,166 @@ func _show_camera_back_design_color_controls() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(title)
 
-	var picker := ColorPicker.new()
-	picker.name = "CameraBackDesignColorPicker"
-	picker.color = Color(camera_back_design_boxes[camera_back_design_selected_index].get("custom_color", camera_back_design_color))
-	picker.edit_alpha = false
-	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	picker.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	picker.custom_minimum_size = Vector2(0, 220)
-	picker.color_changed.connect(_on_camera_back_design_color_changed)
-	color_view.add_child(picker)
+	var gradient_toggle_row := HBoxContainer.new()
+	gradient_toggle_row.name = "CameraBackDesignGradientToggleRow"
+	gradient_toggle_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_toggle_row.add_theme_constant_override("separation", 6)
+	color_view.add_child(gradient_toggle_row)
+	var gradient_toggle_label := _label("ENABLE GRADIENT", 12, Color("#D3AA6B"))
+	gradient_toggle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_toggle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	gradient_toggle_row.add_child(gradient_toggle_label)
+	var gradient_toggle := Button.new()
+	gradient_toggle.name = "CameraBackDesignGradientToggle"
+	gradient_toggle.text = "ON" if gradient_enabled else "OFF"
+	gradient_toggle.toggle_mode = true
+	gradient_toggle.button_pressed = gradient_enabled
+	gradient_toggle.custom_minimum_size = Vector2(64, 36)
+	gradient_toggle.focus_mode = Control.FOCUS_NONE
+	_style_button(gradient_toggle, gradient_enabled)
+	gradient_toggle.toggled.connect(_on_camera_back_design_gradient_toggled)
+	gradient_toggle_row.add_child(gradient_toggle)
+
+	var direction_button := Button.new()
+	direction_button.name = "CameraBackDesignGradientDirectionButton"
+	direction_button.text = "GRADIENT DIRECTION  ·  " + _camera_back_design_gradient_direction_name(int(selected.get("gradient_direction", 0)))
+	direction_button.custom_minimum_size.y = 40
+	direction_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	direction_button.focus_mode = Control.FOCUS_NONE
+	direction_button.visible = gradient_enabled
+	_style_button(direction_button, false)
+	direction_button.pressed.connect(_show_camera_back_design_gradient_direction_controls)
+	color_view.add_child(direction_button)
+
+	var color_columns := HBoxContainer.new()
+	color_columns.name = "CameraBackDesignColorPickers"
+	color_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	color_columns.add_theme_constant_override("separation", 10)
+	color_view.add_child(color_columns)
+
+	var normal_column := VBoxContainer.new()
+	normal_column.name = "CameraBackDesignNormalColorColumn"
+	normal_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	normal_column.add_theme_constant_override("separation", 5)
+	color_columns.add_child(normal_column)
+	var normal_heading := _label("NORMAL", 12, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	normal_column.add_child(normal_heading)
+	var normal_picker := ColorPickerButton.new()
+	normal_picker.name = "CameraBackDesignNormalColorPicker"
+	normal_picker.color = Color(selected.get("custom_color", camera_back_design_color))
+	normal_picker.edit_alpha = false
+	normal_picker.custom_minimum_size = Vector2(0, 48)
+	normal_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	normal_picker.color_changed.connect(_on_camera_back_design_color_changed.bind(false))
+	normal_column.add_child(normal_picker)
+
+	var gradient_column := VBoxContainer.new()
+	gradient_column.name = "CameraBackDesignGradientColorColumn"
+	gradient_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_column.add_theme_constant_override("separation", 5)
+	color_columns.add_child(gradient_column)
+	var gradient_heading := _label("GRADIENT", 12, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	gradient_column.add_child(gradient_heading)
+	var gradient_picker := ColorPickerButton.new()
+	gradient_picker.name = "CameraBackDesignGradientColorPicker"
+	gradient_picker.color = Color(selected.get("gradient_color", Color("#536dfe")))
+	gradient_picker.edit_alpha = false
+	gradient_picker.custom_minimum_size = Vector2(0, 48)
+	gradient_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gradient_picker.disabled = not gradient_enabled
+	gradient_picker.color_changed.connect(_on_camera_back_design_color_changed.bind(true))
+	gradient_column.add_child(gradient_picker)
 
 
-func _on_camera_back_design_color_changed(color: Color) -> void:
+func _on_camera_back_design_gradient_toggled(enabled: bool) -> void:
 	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
 		return
-	camera_back_design_boxes[camera_back_design_selected_index]["custom_color"] = color
-	camera_back_design_color = color
+	camera_back_design_boxes[camera_back_design_selected_index]["gradient_enabled"] = enabled
 	_refresh_camera_back_design_visuals()
+	var direction_button := camera_back_design_selection_view.find_child("CameraBackDesignGradientDirectionButton", true, false) as Button if is_instance_valid(camera_back_design_selection_view) else null
+	var gradient_picker := camera_back_design_selection_view.find_child("CameraBackDesignGradientColorPicker", true, false) as ColorPickerButton if is_instance_valid(camera_back_design_selection_view) else null
+	var toggle := camera_back_design_selection_view.find_child("CameraBackDesignGradientToggle", true, false) as Button if is_instance_valid(camera_back_design_selection_view) else null
+	if is_instance_valid(direction_button):
+		direction_button.visible = enabled
+	if is_instance_valid(gradient_picker):
+		gradient_picker.disabled = not enabled
+	if is_instance_valid(toggle):
+		toggle.text = "ON" if enabled else "OFF"
+		_style_button(toggle, enabled)
+
+
+func _on_camera_back_design_color_changed(color: Color, use_gradient_color: bool = false) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	if use_gradient_color:
+		camera_back_design_boxes[camera_back_design_selected_index]["gradient_color"] = color
+	else:
+		camera_back_design_boxes[camera_back_design_selected_index]["custom_color"] = color
+		camera_back_design_color = color
+	_refresh_camera_back_design_visuals()
+
+
+func _camera_back_design_gradient_direction_name(index: int) -> String:
+	var names := ["VERTICAL", "HORIZONTAL", "DIAGONAL", "RADIAL"]
+	return names[clampi(index, 0, names.size() - 1)]
+
+
+func _show_camera_back_design_gradient_direction_controls() -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	if is_instance_valid(camera_back_design_selection_view):
+		camera_back_design_selection_view.queue_free()
+		camera_back_design_selection_view = null
+	var direction_view := VBoxContainer.new()
+	direction_view.name = "CameraBackDesignGradientDirectionControls"
+	direction_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	direction_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	direction_view.add_theme_constant_override("separation", 10)
+	camera_back_design_selection_view = direction_view
+	rear_hardware_step_content.add_child(direction_view)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 7)
+	direction_view.add_child(header)
+	var back := Button.new()
+	back.name = "CameraBackDesignGradientDirectionBackButton"
+	back.text = "‹"
+	back.custom_minimum_size = Vector2(36, 34)
+	back.focus_mode = Control.FOCUS_NONE
+	_style_button(back, false)
+	back.pressed.connect(_show_camera_back_design_color_controls)
+	header.add_child(back)
+	var title := _label("GRADIENT DIRECTION", 15, Color("#E5E0D6"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(title)
+
+	var options := GridContainer.new()
+	options.name = "CameraBackDesignGradientDirectionOptions"
+	options.columns = 2
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.add_theme_constant_override("h_separation", 8)
+	options.add_theme_constant_override("v_separation", 8)
+	direction_view.add_child(options)
+	var selected_direction := int(camera_back_design_boxes[camera_back_design_selected_index].get("gradient_direction", 0))
+	for index in range(4):
+		var option := Button.new()
+		option.name = "CameraBackDesignGradientDirectionOption%d" % index
+		option.text = _camera_back_design_gradient_direction_name(index) + ("  ✓" if index == selected_direction else "")
+		option.custom_minimum_size = Vector2(0, 54)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		option.focus_mode = Control.FOCUS_NONE
+		_style_button(option, index == selected_direction)
+		option.pressed.connect(_select_camera_back_design_gradient_direction.bind(index))
+		options.add_child(option)
+
+
+func _select_camera_back_design_gradient_direction(index: int) -> void:
+	if camera_back_design_selected_index < 0 or camera_back_design_selected_index >= camera_back_design_boxes.size():
+		return
+	camera_back_design_boxes[camera_back_design_selected_index]["gradient_direction"] = clampi(index, 0, 3)
+	_refresh_camera_back_design_visuals()
+	_show_camera_back_design_color_controls()
 
 
 func _camera_back_design_candidate_position_is_free(candidate_position: Vector2, box_size: Vector2, ignore_index: int) -> bool:
@@ -1037,7 +1186,7 @@ func _camera_back_design_candidate_position_is_free(candidate_position: Vector2,
 			continue
 		var other: Dictionary = camera_back_design_boxes[index]
 		var other_half: Vector2 = other["size"] * 0.5
-		var other_candidate_position: Vector2 = other["candidate_position"]
+		var other_position: Vector2 = other["position"]
 		if absf(candidate_position.x - other_candidate_position.x) < half.x + other_half.x and absf(candidate_position.y - other_candidate_position.y) < half.y + other_half.y:
 			return false
 	return true
@@ -1214,6 +1363,53 @@ func _add_camera_design_mesh_triangle(surface: SurfaceTool, a: Vector3, b: Vecto
 	surface.add_vertex(c)
 
 
+func _create_camera_back_design_material(box: Dictionary, box_size: Vector2, selected: bool) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, cull_disabled;
+uniform vec4 solid_color : source_color = vec4(0.65, 0.68, 0.71, 1.0);
+uniform vec4 gradient_color : source_color = vec4(0.325, 0.427, 0.996, 1.0);
+uniform bool gradient_enabled = false;
+uniform int gradient_direction : hint_range(0, 3) = 0;
+uniform vec2 box_size = vec2(0.8, 0.8);
+varying vec3 local_position;
+varying vec3 local_normal;
+void vertex() {
+	local_position = VERTEX;
+	local_normal = NORMAL;
+}
+void fragment() {
+	if (local_normal.z > 0.5 || !gradient_enabled) {
+		ALBEDO = solid_color.rgb;
+	} else {
+		vec2 p = local_position.xy / max(box_size, vec2(0.001)) + vec2(0.5);
+		float t = p.y;
+		if (gradient_direction == 1) {
+			t = p.x;
+		} else if (gradient_direction == 2) {
+			t = clamp((p.x + p.y) * 0.5, 0.0, 1.0);
+		} else if (gradient_direction == 3) {
+			t = clamp(length((p - vec2(0.5)) * vec2(1.0, 1.8)) * 1.4142, 0.0, 1.0);
+		}
+		ALBEDO = mix(solid_color.rgb, gradient_color.rgb, clamp(t, 0.0, 1.0));
+	}
+	METALLIC = 0.34;
+	ROUGHNESS = 0.48;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	var base_color := Color(box.get("custom_color", camera_back_design_color))
+	base_color = base_color.lightened(0.045) if selected else base_color.darkened(0.10)
+	material.set_shader_parameter("solid_color", base_color)
+	material.set_shader_parameter("gradient_color", Color(box.get("gradient_color", Color("#536dfe"))))
+	material.set_shader_parameter("gradient_enabled", bool(box.get("gradient_enabled", false)))
+	material.set_shader_parameter("gradient_direction", int(box.get("gradient_direction", 0)))
+	material.set_shader_parameter("box_size", box_size)
+	return material
+
+
 func _refresh_camera_back_design_visuals() -> void:
 	if not is_instance_valid(phone_model):
 		return
@@ -1231,12 +1427,7 @@ func _refresh_camera_back_design_visuals() -> void:
 			var raised := MeshInstance3D.new()
 			raised.name = "CameraRaisedBackBox_%d" % int(box["id"])
 			raised.mesh = _make_camera_back_design_mesh(size, minf(size.x, size.y) * float(box["border"]), CAMERA_BACK_DESIGN_BOX_DEPTH)
-			var material := StandardMaterial3D.new()
-			var box_color: Color = Color(box.get("custom_color", camera_back_design_color))
-			material.albedo_color = box_color.lightened(0.045) if index == camera_back_design_selected_index else box_color.darkened(0.10)
-			material.metallic = 0.34
-			material.roughness = 0.48
-			raised.material_override = material
+			raised.material_override = _create_camera_back_design_material(box, size, index == camera_back_design_selected_index)
 			raised.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			var box_center: Vector2 = box["position"]
 			raised.position = Vector3(box_center.x, box_center.y, surface_z)
