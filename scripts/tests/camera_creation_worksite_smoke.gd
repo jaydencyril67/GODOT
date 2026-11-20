@@ -524,8 +524,8 @@ func _run_camera_worksite_test() -> void:
 	var camera_sensor_states: Dictionary = worksite.get("camera_sensor_enabled_states")
 	var rear_sensor_states: Dictionary = camera_sensor_states.get("REAR", {})
 	var front_sensor_states: Dictionary = camera_sensor_states.get("FRONT", {})
-	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or rear_camera_selector == null or front_camera_selector == null or str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not rear_camera_selector.button_pressed or front_camera_selector.button_pressed or rear_sensor_states.size() != 11 or front_sensor_states.size() != 11:
-		_fail("Stage 5 did not expose the shared 11-capability selector with separate Rear and Front camera controls.")
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or rear_camera_selector == null or front_camera_selector == null or str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not rear_camera_selector.button_pressed or front_camera_selector.button_pressed or rear_sensor_states.size() != 12 or front_sensor_states.size() != 12:
+		_fail("Stage 5 did not expose the shared 12-capability selector with separate Rear and Front camera controls.")
 		worksite.free()
 		return
 
@@ -637,6 +637,44 @@ func _run_camera_worksite_test() -> void:
 	front_camera_selector.emit_signal("pressed")
 	if not camera_sensor_toggle.button_pressed or str(worksite.get("camera_sensor_selected_camera")) != "FRONT":
 		_fail("Switching back to Front Camera did not restore its saved Macro Photography state.")
+		worksite.free()
+		return
+
+	worksite.call("set_camera_sensor_research_levels", {
+		"Portrait Mode": 1,
+		"Macro Photography": 1,
+		"HDR Photography": 1
+	})
+	var hdr_index := ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.find("HDR Photography")
+	if hdr_index < 0:
+		_fail("HDR Photography is missing from the one-time camera capability selector.")
+		worksite.free()
+		return
+	worksite.set("camera_sensor_selected_index", hdr_index)
+	worksite.call("_refresh_camera_sensor_controls")
+	if camera_sensor_label.text != "HDR Photography" or camera_sensor_toggle.disabled or camera_sensor_enable_label.text != "ENABLE":
+		_fail("Approved HDR Photography research did not unlock its camera controls.")
+		worksite.free()
+		return
+
+	var points_before_front_hdr := float(worksite.call("_calculate_camera_technology_points"))
+	camera_sensor_toggle.emit_signal("toggled", true)
+	var points_after_front_hdr := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_front_hdr - points_before_front_hdr, 2.10):
+		_fail("Enabling Front HDR Photography did not add its 2.10 TP unlock value.")
+		worksite.free()
+		return
+
+	rear_camera_selector.emit_signal("pressed")
+	if camera_sensor_toggle.button_pressed:
+		_fail("Rear HDR Photography inherited the Front Camera enablement state.")
+		worksite.free()
+		return
+	var points_before_rear_hdr := float(worksite.call("_calculate_camera_technology_points"))
+	camera_sensor_toggle.emit_signal("toggled", true)
+	var points_after_rear_hdr := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_rear_hdr - points_before_rear_hdr, 2.10):
+		_fail("Enabling Rear HDR Photography did not add its separate 2.10 TP unlock value.")
 		worksite.free()
 		return
 
