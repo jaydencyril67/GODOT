@@ -250,7 +250,8 @@ func _get_time_layer_bounds(search_root: Node, face_override: Dictionary = {}) -
 	var bounds := Rect2()
 	for label_value in search_root.find_children("*", "Label", true, false):
 		var clock_label := label_value as Label
-		if not clock_label.is_visible_in_tree() or clock_label.text.is_empty():
+		# Measure the cached face even when its parent renderer is hidden (for example, while Analog is selected).
+		if not clock_label.visible or clock_label.text.is_empty():
 			continue
 		var layer := _get_layer(_layer_id_for_label(clock_label), face_override)
 		if str(layer.get("type", "")) not in TIME_LAYER_TYPES:
