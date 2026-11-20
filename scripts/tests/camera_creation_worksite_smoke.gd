@@ -434,7 +434,8 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	worksite.call("set_front_camera_research_level", 0)
-	if str(worksite.get("front_camera_style")) != "Bezel Camera" or front_mp_row.get_child_count() != 1:
+	front_mp_row = worksite.find_child("FrontCameraMegapixelOptions", true, false) as HBoxContainer
+	if str(worksite.get("front_camera_style")) != "Bezel Camera" or front_mp_row == null or front_mp_row.get_child_count() != 1:
 		_fail("Reducing Front Camera research did not restore the baseline design and single-camera MP layout.")
 		worksite.free()
 		return
