@@ -385,6 +385,8 @@ func _build_face_variant(face_index: int) -> bool:
 		"stable_frames": 0,
 		"shift_applied": false,
 		"shift_attempts": 0,
+		"bounds_wait_frames": 0,
+		"layout_wait_frames": 0,
 		"normalized": false
 	}
 	return true
@@ -409,6 +411,8 @@ func refresh_cached_face_layouts() -> void:
 		state["stable_frames"] = 0
 		state["shift_applied"] = false
 		state["shift_attempts"] = 0
+		state["bounds_wait_frames"] = 0
+		state["layout_wait_frames"] = 0
 		frame.visible = true
 		frame.modulate.a = 1.0 if face_index == _style_index else 0.0
 		_face_normalization_queue.append(face_index)
@@ -440,11 +444,16 @@ func _select_cached_face(face_index: int) -> void:
 		frame.visible = int(cached_index) == face_index
 		frame.modulate = Color.WHITE
 
-func _process_face_normalization_queue() -> void:
+func _process_face_normalization_queue(max_faces_per_frame: int = 3) -> void:
 	if _face_normalization_queue.is_empty():
 		return
 	var completed_indices: Array[int] = []
+	var processed_count := 0
+	var safe_batch_size := maxi(1, max_faces_per_frame)
 	for face_value in _face_normalization_queue:
+		if processed_count >= safe_batch_size:
+			break
+		processed_count += 1
 		var face_index := int(face_value)
 		if not _face_variants.has(face_index):
 			completed_indices.append(face_index)
@@ -453,11 +462,25 @@ func _process_face_normalization_queue() -> void:
 		var frame := state.get("frame") as Control
 		var root_node := state.get("root") as Control
 		if not is_instance_valid(frame) or not is_instance_valid(root_node) or not frame.is_inside_tree():
+			var layout_wait_frames := int(state.get("layout_wait_frames", 0)) + 1
+			state["layout_wait_frames"] = layout_wait_frames
+			if layout_wait_frames >= 12:
+				state["normalized"] = true
+				push_warning("XMorph clock face %02d skipped centering because its layout node was unavailable." % face_index)
+				completed_indices.append(face_index)
 			continue
 		var face: Dictionary = state.get("face", {})
 		var time_bounds := _get_time_layer_bounds(root_node, face)
 		if time_bounds.size.x <= 0.0 or time_bounds.size.y <= 0.0:
+			var bounds_wait_frames := int(state.get("bounds_wait_frames", 0)) + 1
+			state["bounds_wait_frames"] = bounds_wait_frames
+			if bounds_wait_frames >= 12:
+				state["normalized"] = true
+				push_warning("XMorph clock face %02d skipped centering because its time bounds stayed invalid." % face_index)
+				completed_indices.append(face_index)
 			continue
+		state["layout_wait_frames"] = 0
+		state["bounds_wait_frames"] = 0
 		var frame_rect := frame.get_global_rect()
 		var time_local := Rect2(time_bounds.position - frame_rect.position, time_bounds.size)
 		var target_center := frame.size * 0.5
@@ -469,7 +492,8 @@ func _process_face_normalization_queue() -> void:
 				continue
 			var attempts := int(state.get("shift_attempts", 0)) + 1
 			if attempts > 3:
-				push_warning("XMorph clock face %02d could not reach its centered layout." % face_index)
+				state["normalized"] = true
+				push_warning("XMorph clock face %02d could not reach its centered layout; retaining its cached layout." % face_index)
 				completed_indices.append(face_index)
 				continue
 			root_node.offset_left += residual.x
@@ -500,10 +524,10 @@ func _process_face_normalization_queue() -> void:
 		_face_normalization_queue.erase(face_index)
 	if _face_normalization_queue.is_empty():
 		for cached_index in _face_variants.keys():
-			var frame: Control = _face_variants[cached_index].get("frame") as Control
-			if is_instance_valid(frame):
-				frame.visible = int(cached_index) == _style_index
-				frame.modulate = Color.WHITE
+			var cached_frame: Control = _face_variants[cached_index].get("frame") as Control
+			if is_instance_valid(cached_frame):
+				cached_frame.visible = int(cached_index) == _style_index
+				cached_frame.modulate = Color.WHITE
 
 func _refresh_all_cached_time_labels() -> void:
 	for face_index in _face_variants.keys():
@@ -546,6 +570,8 @@ func _refresh_all_cached_time_labels() -> void:
 			state["stable_frames"] = 0
 			state["shift_applied"] = false
 			state["shift_attempts"] = 0
+			state["bounds_wait_frames"] = 0
+			state["layout_wait_frames"] = 0
 			if not _face_normalization_queue.has(int(face_index)):
 				_face_normalization_queue.append(int(face_index))
 
