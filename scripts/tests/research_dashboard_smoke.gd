@@ -112,8 +112,27 @@ func _run_checks() -> void:
 	camera_dashboard.call("_open_creation_scene")
 	var camera_options: Array = camera_dashboard.get("component_buttons")
 	var camera_labels := _button_labels(camera_options)
-	if camera_labels != ["REAR CAMERA MP", "FRONT CAMERA MP"]:
-		_fail("Camera Research must expose only Rear Camera MP and Front Camera MP, in that order.")
+	var expected_camera_labels: Array[String] = [
+		"REAR CAMERA MP",
+		"FRONT CAMERA MP",
+		"PORTRAIT MODE",
+		"MACRO PHOTOGRAPHY",
+		"ULTRA-WIDE PHOTOGRAPHY",
+		"TELEPHOTO PHOTOGRAPHY",
+		"PANORAMA PHOTOGRAPHY",
+		"RAW PHOTOGRAPHY",
+		"BURST PHOTOGRAPHY",
+		"SUPER SLOW-MOTION RECORDING",
+		"TIME-LAPSE RECORDING",
+		"HYPERLAPSE RECORDING",
+		"CINEMATIC VIDEO"
+	]
+	if camera_labels != expected_camera_labels:
+		_fail("Camera Research must expose both camera MP projects and all 11 one-time camera unlocks in the approved order.")
+		host.queue_free()
+		quit(1)
+		return
+	if not _check_camera_one_time_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -127,6 +146,82 @@ func _run_checks() -> void:
 	await process_frame
 	print("PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST: PASS")
 	quit(0)
+
+
+func _check_camera_one_time_research() -> bool:
+	var expected_durations := {
+		"Portrait Mode": 260.0,
+		"Macro Photography": 250.0,
+		"Ultra-Wide Photography": 270.0,
+		"Telephoto Photography": 310.0,
+		"Panorama Photography": 280.0,
+		"RAW Photography": 320.0,
+		"Burst Photography": 240.0,
+		"Super Slow-Motion Recording": 370.0,
+		"Time-Lapse Recording": 290.0,
+		"Hyperlapse Recording": 340.0,
+		"Cinematic Video": 360.0
+	}
+	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.size() != 11:
+		_fail("Camera research must contain exactly the 11 approved one-time unlock features.")
+		return false
+
+	var test_career := {
+		"staff_employees": [
+			{"id": "camera_unlock_researcher", "department": "Research", "efficiency": 90}
+		],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	for feature_value in ResearchManagerScript.CAMERA_SENSOR_COMPONENTS:
+		var feature := str(feature_value)
+		var expected_days := float(expected_durations.get(feature, -1.0))
+		if expected_days < 240.0 or expected_days > 370.0 or not ResearchManagerScript.COMPONENT_CATALOGUE.has(feature):
+			_fail("%s is missing its approved one-time research duration or catalogue entry." % feature)
+			return false
+		var actual_days := ResearchManagerScript.get_component_research_duration_days(feature, 1)
+		var expected_points := expected_days * ResearchManagerScript.TECHNOLOGY_POINTS_PER_RESEARCH_DAY
+		var actual_points := ResearchManagerScript.get_technology_points_for_progress(feature, 1.0)
+		if not is_equal_approx(actual_days, expected_days) or not is_equal_approx(actual_points, expected_points):
+			_fail("%s does not use its assigned duration and the shared Technology Points conversion." % feature)
+			return false
+
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": feature,
+			"staff_ids": ["camera_unlock_researcher"]
+		}, 1000.0)
+		if not bool(commission.get("ok", false)):
+			_fail("%s could not be commissioned as a one-time camera unlock: %s" % [feature, str(commission.get("error", ""))])
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != feature or not is_equal_approx(float(project.get("required_research_days", 0.0)), expected_days):
+			_fail("%s research project did not preserve its one-time target or fixed duration." % feature)
+			return false
+
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": feature,
+			"metric": "Camera feature functionality and integration",
+			"value": feature
+		}], 2000.0)
+		if not bool(approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get(feature, 0)) != 1:
+			_fail("%s approval did not persist its one-time camera feature unlock: %s" % [feature, str(approval.get("error", ""))])
+			return false
+		var duplicate := ResearchManagerScript.commission_project(test_career, {
+			"component": feature,
+			"staff_ids": ["camera_unlock_researcher"]
+		}, 3000.0)
+		if bool(duplicate.get("ok", false)):
+			_fail("%s could be commissioned again after its one-time unlock was approved." % feature)
+			return false
+	return true
 
 
 func _has_full_dashboard_shell(dashboard: Control) -> bool:
