@@ -449,6 +449,7 @@ func refresh_cached_face_layouts() -> void:
 		frame.visible = false
 		frame.modulate = Color.WHITE
 		_face_normalization_queue.append(face_index)
+	_update_normalization_visibility(3)
 
 
 func _select_cached_face(face_index: int) -> void:
@@ -621,6 +622,7 @@ func _refresh_all_cached_time_labels() -> void:
 			state["layout_wait_frames"] = 0
 			if not _face_normalization_queue.has(int(face_index)):
 				_face_normalization_queue.append(int(face_index))
+	_update_normalization_visibility(3)
 
 func _place_stack_child(child: Control, child_spec: Dictionary, available_size: Vector2) -> void:
 	var nested_stack: Dictionary = child_spec.get("stack", {})
