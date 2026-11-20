@@ -20,7 +20,7 @@ const LEGACY_PROCESSOR_COLORS := {
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
-const WIZARD_STEP_COUNT := 4
+const WIZARD_STEP_COUNT := 2
 
 class GlassArrowButton extends Button:
 	var points_right := true
@@ -476,25 +476,10 @@ func _build_interface() -> void:
 	color_page.add_child(processor_color_step_host)
 	_build_processor_color_controls()
 
-	var dimensions_page := _create_step_page("PACKAGE DIMENSIONS")
-	var dimensions_label := _label("PACKAGE SIZE", 11, ACCENT)
-	dimensions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dimensions_page.add_child(dimensions_label)
-	package_size = OptionButton.new()
-	package_size.name = "ProcessorPackageSize"
-	package_size.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for option in ["10 × 10 mm", "12 × 12 mm", "14 × 14 mm", "16 × 16 mm"]:
-		package_size.add_item(option)
-	_select_option(package_size, str(processor_design.get("package_size", "12 × 12 mm")))
-	_style_option(package_size)
-	package_size.item_selected.connect(_on_design_changed)
-	dimensions_page.add_child(package_size)
-
-	var save_page := _create_step_page("REVIEW & SAVE")
 	status_label = _label("DESIGN NOT YET SAVED", 10, MUTED)
 	status_label.name = "ProcessorDesignStatus"
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	save_page.add_child(status_label)
+	color_page.add_child(status_label)
 
 	var save_button := Button.new()
 	save_button.name = "SaveProcessorDesignButton"
@@ -503,7 +488,7 @@ func _build_interface() -> void:
 	save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(save_button, true)
 	save_button.pressed.connect(_save_design)
-	save_page.add_child(save_button)
+	color_page.add_child(save_button)
 
 
 	wizard_back_button = GlassArrowButton.new()
@@ -889,22 +874,11 @@ func _on_design_changed(_value: Variant = null) -> void:
 		status_label.text = "UNSAVED DESIGN CHANGES"
 
 func _apply_design() -> void:
-	if not is_instance_valid(processor_root) or not is_instance_valid(package_size):
+	if not is_instance_valid(processor_root):
 		return
-	var package_size_values := {
-		"10 × 10 mm": 10.0,
-		"12 × 12 mm": 12.0,
-		"14 × 14 mm": 14.0,
-		"16 × 16 mm": 16.0
-	}
-	var selected_size_label := package_size.get_item_text(package_size.selected)
-	var target_package_size := float(package_size_values.get(selected_size_label, 12.0))
-	var base_package_size := 12.0
-	if selected_design_index >= 0 and selected_design_index < processor_designs.size():
-		var selected_profile: Dictionary = processor_designs[selected_design_index]
-		base_package_size = float(package_size_values.get(str(selected_profile.get("package_size", "12 × 12 mm")), 12.0))
-	var scale_factor := target_package_size / maxf(base_package_size, 1.0)
-	processor_root.scale = Vector3.ONE * scale_factor
+	# Package dimensions are no longer a creation step. Keep the selected
+	# preset at its native size while preserving legacy saved package metadata.
+	processor_root.scale = Vector3.ONE
 	_apply_processor_color()
 
 
@@ -1339,7 +1313,7 @@ func _save_design() -> void:
 		"name": str(selected_profile.get("name", "DW SILICON 01")),
 		"design_id": str(selected_profile.get("id", "dw_silicon_01")),
 		"design_name": str(selected_profile.get("name", "DW SILICON 01")),
-		"package_size": package_size.get_item_text(package_size.selected),
+		"package_size": str(processor_design.get("package_size", selected_profile.get("package_size", "12 × 12 mm"))),
 		"processor_color": "#" + processor_color.to_html(false).to_upper(),
 		"processor_gradient_color": "#" + processor_gradient_color.to_html(false).to_upper(),
 		"processor_gradient_enabled": processor_gradient_enabled,
