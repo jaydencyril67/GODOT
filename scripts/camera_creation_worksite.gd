@@ -806,6 +806,241 @@ func _get_rear_camera_mp_maximum() -> int:
 	return ResearchManagerScript.get_rear_camera_mp_max_for_level(rear_camera_mp_research_level)
 
 
+func _build_front_camera_step_controls() -> void:
+	front_camera_step_content = VBoxContainer.new()
+	front_camera_step_content.name = "FrontCameraStepControls"
+	front_camera_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	front_camera_step_content.add_theme_constant_override("separation", 12)
+	front_camera_step_content.visible = false
+	selection_stack.add_child(front_camera_step_content)
+
+	var heading := _label("FRONT CAMERA", 19, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_step_content.add_child(heading)
+
+	var enable_row := HBoxContainer.new()
+	enable_row.name = "FrontCameraEnablementRow"
+	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	enable_row.add_theme_constant_override("separation", 9)
+	front_camera_step_content.add_child(enable_row)
+
+	front_camera_enable_button = Button.new()
+	front_camera_enable_button.name = "FrontCameraEnablement"
+	front_camera_enable_button.text = "ENABLED" if front_camera_enabled else "DISABLED"
+	front_camera_enable_button.toggle_mode = true
+	front_camera_enable_button.button_pressed = front_camera_enabled
+	front_camera_enable_button.custom_minimum_size = Vector2(112, 38)
+	front_camera_enable_button.focus_mode = Control.FOCUS_NONE
+	_style_button(front_camera_enable_button, front_camera_enabled)
+	front_camera_enable_button.toggled.connect(_on_front_camera_enabled_toggled)
+	enable_row.add_child(front_camera_enable_button)
+
+	var enable_description := _label("Front Camera", 13, Color("#E5E0D6"))
+	enable_description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	enable_row.add_child(enable_description)
+
+	front_camera_style_label = _label("", 15, Color("#F2EDE4"), HORIZONTAL_ALIGNMENT_CENTER)
+	front_camera_style_label.name = "FrontCameraStyleValue"
+	front_camera_style_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_step_content.add_child(front_camera_style_label)
+
+	var style_controls := HBoxContainer.new()
+	style_controls.name = "FrontCameraStyleControls"
+	style_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	style_controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	style_controls.add_theme_constant_override("separation", 18)
+	front_camera_step_content.add_child(style_controls)
+
+	front_camera_style_previous_button = Button.new()
+	front_camera_style_previous_button.name = "DecreaseFrontCameraButton"
+	front_camera_style_previous_button.text = "‹"
+	front_camera_style_previous_button.custom_minimum_size = Vector2(52, 44)
+	front_camera_style_previous_button.focus_mode = Control.FOCUS_NONE
+	_style_button(front_camera_style_previous_button, false)
+	front_camera_style_previous_button.pressed.connect(_change_front_camera_style.bind(-1))
+	style_controls.add_child(front_camera_style_previous_button)
+
+	front_camera_style_next_button = Button.new()
+	front_camera_style_next_button.name = "IncreaseFrontCameraButton"
+	front_camera_style_next_button.text = "›"
+	front_camera_style_next_button.custom_minimum_size = Vector2(52, 44)
+	front_camera_style_next_button.focus_mode = Control.FOCUS_NONE
+	_style_button(front_camera_style_next_button, false)
+	front_camera_style_next_button.pressed.connect(_change_front_camera_style.bind(1))
+	style_controls.add_child(front_camera_style_next_button)
+
+	front_camera_research_label = _label("", 10, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+	front_camera_research_label.name = "FrontCameraResearchProgress"
+	front_camera_research_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	front_camera_step_content.add_child(front_camera_research_label)
+	_refresh_front_camera_step_controls()
+
+
+func _refresh_front_camera_step_controls() -> void:
+	if not is_instance_valid(front_camera_step_content):
+		return
+	var style_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if style_index < 0:
+		style_index = 0
+		front_camera_style = FRONT_CAMERA_STYLES[0]
+	if is_instance_valid(front_camera_enable_button):
+		front_camera_enable_button.set_pressed_no_signal(front_camera_enabled)
+		front_camera_enable_button.text = "ENABLED" if front_camera_enabled else "DISABLED"
+		_style_button(front_camera_enable_button, front_camera_enabled)
+	if is_instance_valid(front_camera_style_label):
+		front_camera_style_label.text = front_camera_style.to_upper()
+	if is_instance_valid(front_camera_style_previous_button):
+		front_camera_style_previous_button.disabled = not front_camera_enabled or style_index <= 0
+	if is_instance_valid(front_camera_style_next_button):
+		front_camera_style_next_button.disabled = not front_camera_enabled or style_index >= front_camera_research_level
+	if is_instance_valid(front_camera_research_label):
+		front_camera_research_label.text = "DESIGNS UNLOCKED  ·  %d / %d" % [front_camera_research_level + 1, FRONT_CAMERA_STYLES.size()]
+
+
+func _on_front_camera_enabled_toggled(enabled: bool) -> void:
+	front_camera_enabled = enabled
+	_refresh_front_camera_step_controls()
+	_refresh_front_camera_visuals()
+	_refresh_front_camera_mp_controls()
+
+
+func _change_front_camera_style(direction: int) -> void:
+	if not front_camera_enabled:
+		return
+	var current_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if current_index < 0:
+		current_index = 0
+	var next_index := clampi(current_index + direction, 0, front_camera_research_level)
+	if next_index == current_index:
+		return
+	front_camera_style = FRONT_CAMERA_STYLES[next_index]
+	_refresh_front_camera_step_controls()
+	_refresh_front_camera_visuals()
+	_refresh_front_camera_mp_controls()
+
+
+func set_front_camera_research_level(level: int) -> void:
+	front_camera_research_level = clampi(level, 0, FRONT_CAMERA_STYLES.size() - 1)
+	var style_index := FRONT_CAMERA_STYLES.find(front_camera_style)
+	if style_index < 0 or style_index > front_camera_research_level:
+		front_camera_style = FRONT_CAMERA_STYLES[front_camera_research_level]
+	_refresh_front_camera_step_controls()
+	_refresh_front_camera_visuals()
+	_refresh_front_camera_mp_controls()
+
+
+func _build_front_camera_mp_step_controls() -> void:
+	front_camera_mp_step_content = VBoxContainer.new()
+	front_camera_mp_step_content.name = "FrontCameraMegapixelStepControls"
+	front_camera_mp_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_mp_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	front_camera_mp_step_content.add_theme_constant_override("separation", 8)
+	front_camera_mp_step_content.visible = false
+	selection_stack.add_child(front_camera_mp_step_content)
+	_refresh_front_camera_mp_controls()
+
+
+func _refresh_front_camera_mp_controls() -> void:
+	if not is_instance_valid(front_camera_mp_step_content):
+		return
+	for child in front_camera_mp_step_content.get_children():
+		front_camera_mp_step_content.remove_child(child)
+		child.free()
+	front_camera_mp_sliders.clear()
+	front_camera_mp_value_labels.clear()
+	front_camera_mp_max_labels.clear()
+
+	var heading := _label("FRONT CAMERA MP", 19, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_mp_step_content.add_child(heading)
+
+	if not front_camera_enabled:
+		var hint := _label("Enable the front camera in Step 3 first", 11, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+		front_camera_mp_step_content.add_child(hint)
+		return
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "FrontCameraMegapixelOptions"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 12)
+	front_camera_mp_step_content.add_child(slider_row)
+	slider_row.add_child(_make_front_camera_mp_slider_card(1, front_camera_megapixels))
+	if front_camera_style == "Dual Punch-Hole":
+		slider_row.add_child(_make_front_camera_mp_slider_card(2, front_camera_secondary_megapixels))
+
+
+func _make_front_camera_mp_slider_card(camera_number: int, current_mp: int) -> VBoxContainer:
+	var card := VBoxContainer.new()
+	card.name = "FrontCameraMegapixelCard_%d" % camera_number
+	card.custom_minimum_size = Vector2(64, 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	card.add_theme_constant_override("separation", 2)
+
+	var title := _label("%02d" % camera_number, 11, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	card.add_child(title)
+
+	var available_maximum := _get_front_camera_mp_maximum()
+	var selected_mp := clampi(current_mp, ResearchManagerScript.FRONT_CAMERA_MP_BASE, available_maximum)
+	var value_label := _label("%d MP" % selected_mp, 12, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	value_label.name = "FrontCameraMPValueLabel"
+	card.add_child(value_label)
+	front_camera_mp_value_labels.append(value_label)
+
+	var maximum_label := _label(str(available_maximum), 9, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+	maximum_label.name = "FrontCameraMPMaximumLabel"
+	card.add_child(maximum_label)
+	front_camera_mp_max_labels.append(maximum_label)
+
+	var slider := VSlider.new()
+	slider.name = "FrontCameraMPValueSlider"
+	slider.min_value = ResearchManagerScript.FRONT_CAMERA_MP_BASE
+	slider.max_value = available_maximum
+	slider.step = 1
+	slider.value = selected_mp
+	slider.custom_minimum_size = Vector2(30, 320)
+	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_style_rear_hardware_slider(slider)
+	slider.value_changed.connect(_on_front_camera_mp_slider_changed.bind(camera_number - 1))
+	card.add_child(slider)
+	front_camera_mp_sliders.append(slider)
+
+	var minimum_label := _label(str(ResearchManagerScript.FRONT_CAMERA_MP_BASE), 9, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+	card.add_child(minimum_label)
+	return card
+
+
+func _on_front_camera_mp_slider_changed(value: float, camera_index: int) -> void:
+	_set_front_camera_mp_value(roundi(value), camera_index)
+	if camera_index >= 0 and camera_index < front_camera_mp_value_labels.size():
+		front_camera_mp_value_labels[camera_index].text = "%d MP" % roundi(value)
+
+
+func _set_front_camera_mp_value(megapixels: int, camera_index: int) -> void:
+	var selected_mp := clampi(megapixels, ResearchManagerScript.FRONT_CAMERA_MP_BASE, _get_front_camera_mp_maximum())
+	if camera_index == 0:
+		front_camera_megapixels = selected_mp
+	elif camera_index == 1:
+		front_camera_secondary_megapixels = selected_mp
+
+
+func set_front_camera_mp_research_level(level: int) -> void:
+	front_camera_mp_research_level = clampi(level, 0, ResearchManagerScript.FRONT_CAMERA_MP_RESEARCH_UPGRADES)
+	var available_maximum := _get_front_camera_mp_maximum()
+	front_camera_megapixels = clampi(front_camera_megapixels, ResearchManagerScript.FRONT_CAMERA_MP_BASE, available_maximum)
+	front_camera_secondary_megapixels = clampi(front_camera_secondary_megapixels, ResearchManagerScript.FRONT_CAMERA_MP_BASE, available_maximum)
+	_refresh_front_camera_mp_controls()
+
+
+func _get_front_camera_mp_maximum() -> int:
+	return ResearchManagerScript.get_front_camera_mp_max_for_level(front_camera_mp_research_level)
+
+
 func _set_rear_camera_mp_value(megapixels: int, camera_id: int) -> void:
 	for camera_index in range(rear_camera_modules.size()):
 		var camera_data: Dictionary = rear_camera_modules[camera_index]
