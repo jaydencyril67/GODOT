@@ -87,8 +87,12 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Processor worksite does not initialize its four-step progress navigation.")
+	if progress_bar.max_value != 2 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Processor worksite does not initialize its two-step progress navigation.")
+		worksite.free()
+		return
+	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
+		_fail("Removed package-dimensions UI remains, or the save action was not retained on the colour step.")
 		worksite.free()
 		return
 	if not back_step_button.disabled or next_step_button.disabled:
@@ -261,13 +265,13 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	worksite.call("_on_next_pressed")
-	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3:
-		_fail("Processor Next navigation did not advance from colour to package dimensions.")
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not next_step_button.disabled:
+		_fail("Processor wizard did not stop at the second and final colour step.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
-	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2:
-		_fail("Processor Back navigation did not return to the previous colour step.")
+	if int(worksite.get("current_wizard_step")) != 1 or progress_bar.value != 1:
+		_fail("Processor Back navigation did not return from colour to design selection.")
 		worksite.free()
 		return
 	worksite.call("_set_wizard_step", 1)
