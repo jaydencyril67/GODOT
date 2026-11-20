@@ -457,29 +457,73 @@ func _run_camera_worksite_test() -> void:
 	var camera_sensor_label := worksite.find_child("SelectedCameraSensor", true, false) as Label
 	var camera_sensor_previous := worksite.find_child("PreviousCameraSensorButton", true, false) as Button
 	var camera_sensor_next := worksite.find_child("NextCameraSensorButton", true, false) as Button
+	var rear_camera_selector := worksite.find_child("CameraSensorRearCameraButton", true, false) as Button
+	var front_camera_selector := worksite.find_child("CameraSensorFrontCameraButton", true, false) as Button
 	var camera_sensor_states: Dictionary = worksite.get("camera_sensor_enabled_states")
-	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or camera_sensor_states.size() != 11:
-		_fail("Stage 5 did not expose all 11 camera sensor options through the Phone Sensors selector structure.")
+	var rear_sensor_states: Dictionary = camera_sensor_states.get("REAR", {})
+	var front_sensor_states: Dictionary = camera_sensor_states.get("FRONT", {})
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or rear_camera_selector == null or front_camera_selector == null or str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not rear_camera_selector.button_pressed or front_camera_selector.button_pressed or rear_sensor_states.size() != 11 or front_sensor_states.size() != 11:
+		_fail("Stage 5 did not expose the shared 11-capability selector with separate Rear and Front camera controls.")
 		worksite.free()
 		return
 
 	camera_sensor_toggle.emit_signal("toggled", true)
 	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
-	if not bool(camera_sensor_states.get("Portrait Mode", false)):
-		_fail("Camera sensor ENABLE toggle did not save the selected capability state.")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	front_sensor_states = camera_sensor_states.get("FRONT", {})
+	if not bool(rear_sensor_states.get("Portrait Mode", false)) or bool(front_sensor_states.get("Portrait Mode", true)):
+		_fail("Enabling a Rear Camera capability changed the Front Camera state or failed to save the Rear Camera state.")
 		worksite.free()
 		return
 
 	camera_sensor_next.emit_signal("pressed")
 	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
-	if camera_sensor_label.text != "Macro Photography" or camera_sensor_toggle.button_pressed or bool(camera_sensor_states.get("Macro Photography", true)) or not bool(camera_sensor_states.get("Portrait Mode", false)):
-		_fail("Camera sensor navigation did not preserve independent enabled states between options.")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	if camera_sensor_label.text != "Macro Photography" or camera_sensor_toggle.button_pressed or bool(rear_sensor_states.get("Macro Photography", true)) or not bool(rear_sensor_states.get("Portrait Mode", false)):
+		_fail("Camera sensor navigation did not preserve each selected capability's independent Rear Camera state.")
 		worksite.free()
 		return
 
+	front_camera_selector.emit_signal("pressed")
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	front_sensor_states = camera_sensor_states.get("FRONT", {})
+	if str(worksite.get("camera_sensor_selected_camera")) != "FRONT" or rear_camera_selector.button_pressed or not front_camera_selector.button_pressed or camera_sensor_toggle.button_pressed or bool(front_sensor_states.get("Macro Photography", true)):
+		_fail("Switching to Front Camera did not load its own capability states.")
+		worksite.free()
+		return
+
+	camera_sensor_toggle.emit_signal("toggled", true)
 	camera_sensor_previous.emit_signal("pressed")
-	if camera_sensor_label.text != "Portrait Mode" or not camera_sensor_toggle.button_pressed or not camera_sensor_previous.disabled:
-		_fail("Camera sensor previous navigation did not restore the selected option and its enabled state.")
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	front_sensor_states = camera_sensor_states.get("FRONT", {})
+	if camera_sensor_label.text != "Portrait Mode" or camera_sensor_toggle.button_pressed or not bool(front_sensor_states.get("Macro Photography", false)) or bool(front_sensor_states.get("Portrait Mode", true)) or not bool(rear_sensor_states.get("Portrait Mode", false)):
+		_fail("Front Camera enablement was not saved independently from Rear Camera enablement.")
+		worksite.free()
+		return
+
+	camera_sensor_toggle.emit_signal("toggled", true)
+	rear_camera_selector.emit_signal("pressed")
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	front_sensor_states = camera_sensor_states.get("FRONT", {})
+	if str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not camera_sensor_toggle.button_pressed or not bool(rear_sensor_states.get("Portrait Mode", false)) or not bool(front_sensor_states.get("Portrait Mode", false)):
+		_fail("Returning to Rear Camera did not restore its saved Portrait Mode state.")
+		worksite.free()
+		return
+
+	camera_sensor_next.emit_signal("pressed")
+	camera_sensor_states = worksite.get("camera_sensor_enabled_states")
+	rear_sensor_states = camera_sensor_states.get("REAR", {})
+	front_sensor_states = camera_sensor_states.get("FRONT", {})
+	if camera_sensor_toggle.button_pressed or bool(rear_sensor_states.get("Macro Photography", true)) or not bool(front_sensor_states.get("Macro Photography", false)):
+		_fail("Rear and Front Camera Macro Photography states were not kept independent.")
+		worksite.free()
+		return
+
+	front_camera_selector.emit_signal("pressed")
+	if not camera_sensor_toggle.button_pressed or str(worksite.get("camera_sensor_selected_camera")) != "FRONT":
+		_fail("Switching back to Front Camera did not restore its saved Macro Photography state.")
 		worksite.free()
 		return
 
