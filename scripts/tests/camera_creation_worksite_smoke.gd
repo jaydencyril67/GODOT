@@ -175,16 +175,42 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 	design_color_button.emit_signal("pressed")
-	var color_picker := worksite.find_child("CameraBackDesignColorPicker", true, false) as ColorPicker
-	if color_picker == null:
-		_fail("Back-design COLOR action did not open its color editor.")
+	var normal_color_picker := worksite.find_child("CameraBackDesignNormalColorPicker", true, false) as ColorPickerButton
+	var gradient_color_picker := worksite.find_child("CameraBackDesignGradientColorPicker", true, false) as ColorPickerButton
+	var gradient_toggle := worksite.find_child("CameraBackDesignGradientToggle", true, false) as Button
+	var gradient_direction_button := worksite.find_child("CameraBackDesignGradientDirectionButton", true, false) as Button
+	if normal_color_picker == null or gradient_color_picker == null or gradient_toggle == null or gradient_direction_button == null:
+		_fail("Back-design COLOR action did not expose its normal/gradient color controls.")
 		worksite.free()
 		return
 	var selected_design_color := Color("#7b9fbc")
-	worksite.call("_on_camera_back_design_color_changed", selected_design_color)
+	worksite.call("_on_camera_back_design_color_changed", selected_design_color, false)
 	design_boxes = worksite.get("camera_back_design_boxes")
 	if design_boxes[0]["custom_color"] != selected_design_color:
-		_fail("Back-design color editor did not update the raised box material.")
+		_fail("Back-design normal colour picker did not update the raised box material.")
+		worksite.free()
+		return
+
+	worksite.call("_on_camera_back_design_gradient_toggled", true)
+	var selected_gradient_color := Color("#b58be0")
+	worksite.call("_on_camera_back_design_color_changed", selected_gradient_color, true)
+	worksite.call("_show_camera_back_design_gradient_direction_controls")
+	var gradient_direction_panel := worksite.find_child("CameraBackDesignGradientDirectionControls", true, false) as VBoxContainer
+	var radial_direction := worksite.find_child("CameraBackDesignGradientDirectionOption3", true, false) as Button
+	if gradient_direction_panel == null or radial_direction == null:
+		_fail("Back-design gradient direction selector is missing its four direction options.")
+		worksite.free()
+		return
+	radial_direction.emit_signal("pressed")
+	design_boxes = worksite.get("camera_back_design_boxes")
+	if not bool(design_boxes[0]["gradient_enabled"]) or design_boxes[0]["gradient_color"] != selected_gradient_color or int(design_boxes[0]["gradient_direction"]) != 3:
+		_fail("Back-design gradient colour or direction was not applied to the selected raised box.")
+		worksite.free()
+		return
+	var raised_box := worksite.find_child("CameraRaisedBackBox_1", true, false) as MeshInstance3D
+	var raised_material := raised_box.material_override as ShaderMaterial if raised_box != null else null
+	if raised_material == null or not bool(raised_material.get_shader_parameter("gradient_enabled")):
+		_fail("Raised back-design preview did not receive the gradient material.")
 		worksite.free()
 		return
 
