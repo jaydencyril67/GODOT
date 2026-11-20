@@ -88,7 +88,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	if progress_bar.max_value != 3 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Processor worksite does not initialize its two-step progress navigation.")
+		_fail("Processor worksite does not initialize its three-step progress navigation.")
 		worksite.free()
 		return
 	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
@@ -295,7 +295,7 @@ func _run_processor_worksite_test() -> void:
 		return
 	for technology_index in range(14):
 		worksite.call("_on_processor_technology_next_pressed")
-	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or technology_next.disabled or technology_previous.disabled:
+	if technology_name_label.text != "Security Processing Unit" or int(worksite.get("processor_technology_selected_index")) != 14 or not technology_next.disabled or technology_previous.disabled:
 		_fail("Processor Technologies plus navigation did not reach the fifteenth and final entry.")
 		worksite.free()
 		return
