@@ -227,6 +227,10 @@ func _run_test() -> void:
 	if not bool(designer.call("set_clock_type", "digital")) or designer.call("get_clock_position") != moved_clock_position:
 		_fail("Switching to Digital did not preserve the selected clock position.")
 		return
+	# Mirror the real initial-loading path: prepare every analog and digital clock style before asserting the cached face trees.
+	if not bool(await designer.call("prepare_clock_styles_for_loading")):
+		_fail("The lock-screen designer could not prepare all clock styles during initial setup.")
+		return
 	await process_frame
 	await process_frame
 	var digital_component := designer.find_child("GeneratedLockScreenClockComponent", true, false) as Control
