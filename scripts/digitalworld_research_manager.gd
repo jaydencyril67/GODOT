@@ -19,6 +19,17 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Home Button": 120.0,
 	"Front Camera": 500.0,
 	"Front Camera MP": 45.0,
+	"Portrait Mode": 260.0,
+	"Macro Photography": 250.0,
+	"Ultra-Wide Photography": 270.0,
+	"Telephoto Photography": 310.0,
+	"Panorama Photography": 280.0,
+	"RAW Photography": 320.0,
+	"Burst Photography": 240.0,
+	"Super Slow-Motion Recording": 370.0,
+	"Time-Lapse Recording": 290.0,
+	"Hyperlapse Recording": 340.0,
+	"Cinematic Video": 360.0,
 	"RAM": 120.0,
 	"Internal Storage": 160.0,
 	"RAM Technology": 650.0,
@@ -187,6 +198,20 @@ const PHONE_SENSOR_COMPONENTS := [
 	"GNSS / GPS Receiver"
 ]
 
+const CAMERA_SENSOR_COMPONENTS := [
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video"
+]
+
 const SIDE_BUTTON_COMPONENTS := [
 	"Side Button",
 	"Sound Button",
@@ -234,6 +259,17 @@ const COMPONENT_CATALOGUE := [
 	"Home Button",
 	"Front Camera",
 	"Front Camera MP",
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video",
 	"RAM",
 	"Internal Storage",
 	"RAM Technology",
@@ -1047,7 +1083,7 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 				return _failure("Memory Clock has reached its maximum research level.")
 			return _failure("Unlock a newer RAM Technology before researching faster Memory Clock speeds.")
 
-	if PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		var position_level_limit := 2 if component in ["Power Button Position", "Volume Button Position"] else 1
 		if int(career.get("research_component_levels", {}).get(component, 0)) >= position_level_limit:
 			return _failure("%s research has already been approved." % component)
@@ -1135,12 +1171,12 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		if current_position_level < 2:
 			var next_position_index := current_position_level + 1
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
-	elif PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
 	if component in ["Wireless Charging", "Phone Case", "Charger"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1210,6 +1246,9 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Protection Glass":
 			project_title = "Research: Protection Glass - " + target_technology
 			project_objective = "Develop and validate %s as a fitted screen-protection layer. Normal Glass provides subtle screen darkening; Privacy Glass adds a directional viewing filter that turns the display fully black at side angles." % target_technology
+		elif CAMERA_SENSOR_COMPONENTS.has(component):
+			project_title = "Research: %s" % component
+			project_objective = "Develop, test and validate the %s camera capability for integration with the selected rear or front camera." % component
 		elif PHONE_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s module for mobile-phone integration." % component
@@ -1401,6 +1440,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var phone_case_target_index := -1
 	var protection_glass_target_index := -1
 	var phone_sensor_target_index := -1
+	var camera_sensor_target_index := -1
 	var side_button_target_index := -1
 	var power_volume_button_length_target_index := -1
 	var power_volume_button_position_target_index := -1
@@ -1558,6 +1598,10 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		protection_glass_target_index = int(project.get("research_target_index", -1))
 		if expected_protection_glass_target.is_empty() or protection_glass_target_index != int(expected_protection_glass_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_protection_glass_target.get("technology", "")):
 			return _failure("This Protection Glass project is no longer the next valid glass unlock.")
+	elif CAMERA_SENSOR_COMPONENTS.has(component):
+		camera_sensor_target_index = int(project.get("research_target_index", -1))
+		if int(component_levels.get(component, 0)) >= 1 or camera_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
+			return _failure("This camera feature is no longer a valid, unapproved research target.")
 	elif PHONE_SENSOR_COMPONENTS.has(component):
 		phone_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or phone_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1637,6 +1681,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact Box Package customization unlock assigned to this project.")
 		if result_component in ["Phone Case", "Protection Glass"] and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact fitted glass or case unlock assigned to this project.")
+		if CAMERA_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact camera feature assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
 		if SIDE_BUTTON_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1769,8 +1815,11 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Protection Glass":
 		# Normal Glass is the first unlock; Privacy Glass is the second and final type.
 		component_levels[component] = protection_glass_target_index
+	elif CAMERA_SENSOR_COMPONENTS.has(component):
+		# Every camera capability is an independent, one-time approved research unlock.
+		component_levels[component] = 1
 	elif PHONE_SENSOR_COMPONENTS.has(component):
-		# Every sensor is an independent, one-time approved research unlock.
+		# Every phone sensor is an independent, one-time approved research unlock.
 		component_levels[component] = 1
 	elif SIDE_BUTTON_COMPONENTS.has(component):
 		# Each optional side feature is unlocked by its own approved research project.
