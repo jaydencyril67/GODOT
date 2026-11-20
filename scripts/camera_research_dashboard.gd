@@ -18,6 +18,8 @@ const ORANGE := Color("#ffb45c")
 const COMPONENT_LABELS := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Rear Camera Count",
+	"Rear Flash Count",
 	"Portrait Mode",
 	"Macro Photography",
 	"Ultra-Wide Photography",
@@ -33,6 +35,8 @@ const COMPONENT_LABELS := [
 const COMPONENT_VALUES := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Rear Camera Count",
+	"Rear Flash Count",
 	"Portrait Mode",
 	"Macro Photography",
 	"Ultra-Wide Photography",
@@ -48,6 +52,8 @@ const COMPONENT_VALUES := [
 const CAMERA_RESEARCH_COMPONENTS := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Rear Camera Count",
+	"Rear Flash Count",
 	"Portrait Mode",
 	"Macro Photography",
 	"Ultra-Wide Photography",
