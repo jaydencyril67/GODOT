@@ -37,7 +37,22 @@ const WIZARD_STEPS := [
 	{"title": "RARE CAMERA"},
 	{"title": "REAR CAMERA MP"},
 	{"title": "FRONT CAMERA"},
-	{"title": "FRONT CAMERA MP"}
+	{"title": "FRONT CAMERA MP"},
+	{"title": "CAMERA SENSORS"}
+]
+
+const CAMERA_SENSOR_COMPONENTS := [
+	"Portrait Mode",
+	"Macro Photography",
+	"Ultra-Wide Photography",
+	"Telephoto Photography",
+	"Panorama Photography",
+	"RAW Photography",
+	"Burst Photography",
+	"Super Slow-Motion Recording",
+	"Time-Lapse Recording",
+	"Hyperlapse Recording",
+	"Cinematic Video"
 ]
 
 
@@ -83,6 +98,16 @@ var front_camera_megapixels := 1
 var front_camera_secondary_megapixels := 1
 var front_camera_step_content: VBoxContainer
 var front_camera_mp_step_content: VBoxContainer
+var camera_sensor_step_content: VBoxContainer
+var camera_sensor_enable_row: HBoxContainer
+var camera_sensor_enabled_toggle: TextureButton
+var camera_sensor_name_label: Label
+var camera_sensor_previous_button: Button
+var camera_sensor_next_button: Button
+var camera_sensor_selected_index := 0
+var camera_sensor_enabled_states: Dictionary = {}
+var camera_sensor_checked_texture: Texture2D
+var camera_sensor_unchecked_texture: Texture2D
 var front_camera_enable_button: Button
 var front_camera_style_label: Label
 var front_camera_research_label: Label
@@ -377,6 +402,7 @@ func _build_interface() -> void:
 	_build_rear_camera_mp_step_controls()
 	_build_front_camera_step_controls()
 	_build_front_camera_mp_step_controls()
+	_build_camera_sensor_step_controls()
 
 
 	var progress := VBoxContainer.new()
@@ -485,6 +511,10 @@ func _set_wizard_step(step: int) -> void:
 		front_camera_mp_step_content.visible = current_wizard_step == 4
 		if current_wizard_step == 4:
 			_refresh_front_camera_mp_controls()
+	if is_instance_valid(camera_sensor_step_content):
+		camera_sensor_step_content.visible = current_wizard_step == 5
+		if current_wizard_step == 5:
+			_refresh_camera_sensor_controls()
 	if is_instance_valid(phone_model):
 		phone_model.rotation = Vector3(0.0, PI, 0.0) if current_wizard_step >= 3 else Vector3.ZERO
 	wizard_back_button.disabled = current_wizard_step <= 1
@@ -1046,6 +1076,151 @@ func set_front_camera_mp_research_level(level: int) -> void:
 
 func _get_front_camera_mp_maximum() -> int:
 	return ResearchManagerScript.get_front_camera_mp_max_for_level(front_camera_mp_research_level)
+
+
+func _build_camera_sensor_step_controls() -> void:
+	camera_sensor_step_content = VBoxContainer.new()
+	camera_sensor_step_content.name = "CameraSensorStepControls"
+	camera_sensor_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	camera_sensor_step_content.custom_minimum_size = Vector2(0, 300)
+	camera_sensor_step_content.add_theme_constant_override("separation", 14)
+	camera_sensor_step_content.visible = false
+	selection_stack.add_child(camera_sensor_step_content)
+
+	var heading := _label("CAMERA SENSORS", 20, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_step_content.add_child(heading)
+
+	camera_sensor_enable_row = HBoxContainer.new()
+	camera_sensor_enable_row.name = "CameraSensorEnableRow"
+	camera_sensor_enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	camera_sensor_enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_sensor_enable_row.custom_minimum_size = Vector2(124, 42)
+	camera_sensor_enable_row.add_theme_constant_override("separation", 8)
+	camera_sensor_step_content.add_child(camera_sensor_enable_row)
+
+	var enable_label := _label("ENABLE", 14, Color("#EEE9DF"))
+	enable_label.custom_minimum_size = Vector2(72, 0)
+	enable_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	enable_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	enable_label.clip_text = true
+	camera_sensor_enable_row.add_child(enable_label)
+
+	camera_sensor_checked_texture = _make_camera_sensor_checkbox_icon(true)
+	camera_sensor_unchecked_texture = _make_camera_sensor_checkbox_icon(false)
+	camera_sensor_enabled_toggle = TextureButton.new()
+	camera_sensor_enabled_toggle.name = "CameraSensorEnabledToggle"
+	camera_sensor_enabled_toggle.custom_minimum_size = Vector2(42, 42)
+	camera_sensor_enabled_toggle.ignore_texture_size = true
+	camera_sensor_enabled_toggle.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	camera_sensor_enabled_toggle.toggle_mode = true
+	camera_sensor_enabled_toggle.focus_mode = Control.FOCUS_NONE
+	camera_sensor_enabled_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
+	camera_sensor_enabled_toggle.texture_normal = camera_sensor_unchecked_texture
+	camera_sensor_enabled_toggle.texture_hover = camera_sensor_unchecked_texture
+	camera_sensor_enabled_toggle.texture_pressed = camera_sensor_checked_texture
+	camera_sensor_enabled_toggle.texture_disabled = camera_sensor_unchecked_texture
+	camera_sensor_enabled_toggle.toggled.connect(_on_camera_sensor_toggled)
+	camera_sensor_enable_row.add_child(camera_sensor_enabled_toggle)
+
+	var navigation_center := CenterContainer.new()
+	navigation_center.name = "CameraSensorNavigationCenter"
+	navigation_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	camera_sensor_step_content.add_child(navigation_center)
+
+	var navigation := HBoxContainer.new()
+	navigation.name = "CameraSensorNavigation"
+	navigation.alignment = BoxContainer.ALIGNMENT_CENTER
+	navigation.add_theme_constant_override("separation", 30)
+	navigation_center.add_child(navigation)
+
+	camera_sensor_previous_button = Button.new()
+	camera_sensor_previous_button.name = "PreviousCameraSensorButton"
+	camera_sensor_previous_button.text = "−"
+	camera_sensor_previous_button.custom_minimum_size = Vector2(56, 48)
+	camera_sensor_previous_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_style_button(camera_sensor_previous_button, false)
+	camera_sensor_previous_button.pressed.connect(_on_camera_sensor_previous_pressed)
+	navigation.add_child(camera_sensor_previous_button)
+
+	camera_sensor_name_label = _label("Portrait Mode", 19, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
+	camera_sensor_name_label.name = "SelectedCameraSensor"
+	camera_sensor_name_label.custom_minimum_size = Vector2(150, 56)
+	camera_sensor_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	camera_sensor_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	camera_sensor_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	navigation.add_child(camera_sensor_name_label)
+
+	camera_sensor_next_button = Button.new()
+	camera_sensor_next_button.name = "NextCameraSensorButton"
+	camera_sensor_next_button.text = "+"
+	camera_sensor_next_button.custom_minimum_size = Vector2(56, 48)
+	camera_sensor_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_style_button(camera_sensor_next_button, false)
+	camera_sensor_next_button.pressed.connect(_on_camera_sensor_next_pressed)
+	navigation.add_child(camera_sensor_next_button)
+
+	for sensor_name in CAMERA_SENSOR_COMPONENTS:
+		camera_sensor_enabled_states[sensor_name] = false
+	_refresh_camera_sensor_controls()
+
+
+func _make_camera_sensor_checkbox_icon(checked: bool) -> Texture2D:
+	var image := Image.new()
+	var svg := ""
+	if checked:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.30" stroke="#C58A3A" stroke-width="2.5"/><path d="M9 18.5l6 6L27.5 12" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+	else:
+		svg = """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><rect x="2.5" y="2.5" width="31" height="31" rx="7" fill="#C58A3A" fill-opacity="0.10" stroke="#C58A3A" stroke-width="2.5"/></svg>"""
+	var error := image.load_svg_from_string(svg)
+	if error != OK:
+		push_warning("Could not create camera-sensor checkbox icon")
+		return null
+	return ImageTexture.create_from_image(image)
+
+
+func _refresh_camera_sensor_controls() -> void:
+	if CAMERA_SENSOR_COMPONENTS.is_empty():
+		return
+	camera_sensor_selected_index = clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)
+	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[camera_sensor_selected_index]
+	var enabled := bool(camera_sensor_enabled_states.get(sensor_name, false))
+
+	if is_instance_valid(camera_sensor_name_label):
+		camera_sensor_name_label.text = sensor_name
+	if is_instance_valid(camera_sensor_enabled_toggle):
+		camera_sensor_enabled_toggle.disabled = false
+		camera_sensor_enabled_toggle.set_pressed_no_signal(enabled)
+		var checkbox_texture := camera_sensor_checked_texture if enabled else camera_sensor_unchecked_texture
+		camera_sensor_enabled_toggle.texture_normal = checkbox_texture
+		camera_sensor_enabled_toggle.texture_hover = checkbox_texture
+		camera_sensor_enabled_toggle.texture_pressed = camera_sensor_checked_texture
+		camera_sensor_enabled_toggle.texture_disabled = camera_sensor_unchecked_texture
+		camera_sensor_enabled_toggle.tooltip_text = "Enable or disable " + sensor_name
+	if is_instance_valid(camera_sensor_previous_button):
+		camera_sensor_previous_button.disabled = camera_sensor_selected_index <= 0
+	if is_instance_valid(camera_sensor_next_button):
+		camera_sensor_next_button.disabled = camera_sensor_selected_index >= CAMERA_SENSOR_COMPONENTS.size() - 1
+
+
+func _on_camera_sensor_toggled(enabled: bool) -> void:
+	if CAMERA_SENSOR_COMPONENTS.is_empty():
+		return
+	var sensor_name: String = CAMERA_SENSOR_COMPONENTS[clampi(camera_sensor_selected_index, 0, CAMERA_SENSOR_COMPONENTS.size() - 1)]
+	camera_sensor_enabled_states[sensor_name] = enabled
+	_refresh_camera_sensor_controls()
+
+
+func _on_camera_sensor_previous_pressed() -> void:
+	camera_sensor_selected_index = maxi(0, camera_sensor_selected_index - 1)
+	_refresh_camera_sensor_controls()
+
+
+func _on_camera_sensor_next_pressed() -> void:
+	camera_sensor_selected_index = mini(CAMERA_SENSOR_COMPONENTS.size() - 1, camera_sensor_selected_index + 1)
+	_refresh_camera_sensor_controls()
 
 
 func _set_rear_camera_mp_value(megapixels: int, camera_id: int) -> void:
