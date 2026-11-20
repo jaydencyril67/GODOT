@@ -59,13 +59,31 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if progress_bar.max_value != 4 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Camera Worksite does not initialize its four-stage creation workflow.")
+	if progress_bar.max_value != 2 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Camera Worksite does not initialize its two-stage creation workflow.")
 		worksite.free()
 		return
 
 	if not back_step_button.disabled or next_step_button.disabled:
 		_fail("Camera Worksite wizard arrows have incorrect initial enabled states.")
+		worksite.free()
+		return
+
+	var initial_rear_panel := worksite.find_child("RareCameraStepControls", true, false) as VBoxContainer
+	var initial_mp_panel := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
+	if initial_rear_panel == null or not initial_rear_panel.visible or initial_mp_panel == null or initial_mp_panel.visible:
+		_fail("The camera hardware editor must be Step 1 and the MP editor must start hidden.")
+		worksite.free()
+		return
+	worksite.call("_on_next_pressed")
+	var no_camera_hint := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not initial_rear_panel.visible == false or no_camera_hint == null or no_camera_hint.find_child("RearCameraMegapixelOptions", true, false) != null or no_camera_hint.find_child("Label", true, false) == null:
+		_fail("Step 2 should show the empty rear-camera MP prompt when no cameras exist.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 1 or progress_bar.value != 1 or not initial_rear_panel.visible or initial_mp_panel.visible:
+		_fail("Camera Worksite Back navigation did not restore Step 1.")
 		worksite.free()
 		return
 
@@ -100,14 +118,6 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("_rotate_phone_from_drag", Vector2(36.0, 12.0))
 	if not is_equal_approx(phone_model.rotation.y - start_rotation, 36.0 * 0.0024) or not is_equal_approx(phone_model.rotation.x, start_pitch) or camera.position.z >= 0.0:
 		_fail("Camera drag no longer uses the stable single-axis sensitivity while preserving its initial rear view.")
-		worksite.free()
-		return
-
-	worksite.call("_on_next_pressed")
-	worksite.call("_on_next_pressed")
-	worksite.call("_on_next_pressed")
-	if int(worksite.get("current_wizard_step")) != 4 or progress_bar.value != 4 or not next_step_button.disabled:
-		_fail("Camera Worksite Next navigation did not reach the fourth and final workflow stage.")
 		worksite.free()
 		return
 
@@ -299,9 +309,61 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	worksite.call("_set_rear_hardware_mode", "CAMERA")
+	worksite.call("_add_rear_hardware_module")
+	camera_modules = worksite.get("rear_camera_modules")
+	if camera_modules.size() != 2 or int(camera_modules[1].get("mp", -1)) != 1:
+		_fail("New rear cameras must receive an independent 1MP starting resolution.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	var mp_panel := worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
+	var mp_row := worksite.find_child("RearCameraMegapixelOptions", true, false) as HBoxContainer
+	if int(worksite.get("current_wizard_step")) != 2 or progress_bar.value != 2 or not next_step_button.disabled or rare_camera_panel.visible or mp_panel == null or not mp_panel.visible or mp_row == null or mp_row.get_child_count() != 2:
+		_fail("Step 2 did not show one independent megapixel slider for each rear camera.")
+		worksite.free()
+		return
+
+	worksite.call("set_rear_camera_mp_research_level", 2)
+	mp_panel = worksite.find_child("RearCameraMegapixelStepControls", true, false) as VBoxContainer
+	mp_row = worksite.find_child("RearCameraMegapixelOptions", true, false) as HBoxContainer
+	var first_camera_card := mp_row.get_child(0) as VBoxContainer if mp_row != null and mp_row.get_child_count() > 0 else null
+	var second_camera_card := mp_row.get_child(1) as VBoxContainer if mp_row != null and mp_row.get_child_count() > 1 else null
+	var first_mp_slider := first_camera_card.find_child("CameraMPValueSlider", true, false) as VSlider if first_camera_card != null else null
+	var second_mp_slider := second_camera_card.find_child("CameraMPValueSlider", true, false) as VSlider if second_camera_card != null else null
+	var first_mp_value := first_camera_card.find_child("CameraMPValueLabel", true, false) as Label if first_camera_card != null else null
+	var first_mp_max := first_camera_card.find_child("CameraMPMaximumLabel", true, false) as Label if first_camera_card != null else null
+	if first_mp_slider == null or second_mp_slider == null or first_mp_value == null or first_mp_max == null or first_mp_slider.min_value != 1.0 or first_mp_slider.max_value != 11.0 or second_mp_slider.max_value != 11.0 or first_mp_max.text != "11":
+		_fail("Rear Camera MP sliders did not copy the 1MP baseline and research-based 11MP ceiling.")
+		worksite.free()
+		return
+
+	first_mp_slider.value = 11.0
+	camera_modules = worksite.get("rear_camera_modules")
+	if int(camera_modules[0]["mp"]) != 11 or int(camera_modules[1]["mp"]) != 1 or first_mp_value.text != "11 MP":
+		_fail("The first rear-camera MP slider changed another camera or failed to save its selected resolution.")
+		worksite.free()
+		return
+
+	second_mp_slider.value = 7.0
+	camera_modules = worksite.get("rear_camera_modules")
+	if int(camera_modules[0]["mp"]) != 11 or int(camera_modules[1]["mp"]) != 7:
+		_fail("Each rear camera must retain its own independent megapixel selection.")
+		worksite.free()
+		return
+
+	worksite.call("set_rear_camera_mp_research_level", 0)
+	camera_modules = worksite.get("rear_camera_modules")
+	if int(camera_modules[0]["mp"]) != 1 or int(camera_modules[1]["mp"]) != 1:
+		_fail("Reducing the Rear Camera MP research ceiling did not clamp existing camera values.")
+		worksite.free()
+		return
+
+	worksite.call("set_rear_camera_mp_research_level", 2)
 	worksite.call("_on_wizard_back_pressed")
-	if int(worksite.get("current_wizard_step")) != 3 or progress_bar.value != 3 or rare_camera_panel.visible:
-		_fail("Camera Worksite Back navigation did not leave the fourth step cleanly.")
+	if int(worksite.get("current_wizard_step")) != 1 or progress_bar.value != 1 or not rare_camera_panel.visible or mp_panel.visible:
+		_fail("Camera Worksite Back navigation did not return from MP settings to Step 1.")
 		worksite.free()
 		return
 
