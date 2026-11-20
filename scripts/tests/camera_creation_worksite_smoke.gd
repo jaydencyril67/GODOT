@@ -139,6 +139,7 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	design_add_button.emit_signal("pressed")
+	await process_frame
 	var design_boxes: Array = worksite.get("camera_back_design_boxes")
 	if design_boxes.size() != 1 or worksite.find_child("CameraBackDesignRaisedSections", true, false) == null:
 		_fail("DESIGN mode could not add and render a raised back-design box.")
