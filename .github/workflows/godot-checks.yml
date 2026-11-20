@@ -153,14 +153,14 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke-test Phone and Camera Research dashboards
+      - name: Smoke-test Phone, Camera and Processor Research dashboards
         shell: bash
         run: |
           set -euo pipefail
           godot --headless --path . --script res://scripts/tests/research_dashboard_smoke.gd 2>&1 | tee research-dashboard-smoke.log
-          grep -q "PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST: PASS" research-dashboard-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PHONE_CAMERA_RESEARCH_DASHBOARD_SMOKE_TEST:.*(FAIL|ERROR)' research-dashboard-smoke.log; then
-            echo "Godot reported an error during the Phone and Camera Research dashboard smoke test."
+          grep -q "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS" research-dashboard-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST:.*(FAIL|ERROR)' research-dashboard-smoke.log; then
+            echo "Godot reported an error during the Phone, Camera and Processor Research dashboard smoke test."
             exit 1
           fi
 
