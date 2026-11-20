@@ -83,6 +83,8 @@ var preview_touch_points: Dictionary = {}
 
 var rear_camera_modules: Array[Dictionary] = []
 var rear_flash_modules: Array[Dictionary] = []
+var rear_camera_count_research_level := 0
+var rear_flash_count_research_level := 0
 var rear_camera_mp_research_level := 0
 var rear_camera_mp_sliders: Array[VSlider] = []
 var rear_camera_mp_value_labels: Array[Label] = []
@@ -864,6 +866,18 @@ func set_back_raised_design_research_level(level: int) -> void:
 	camera_back_design_research_level = updated_level
 	if current_wizard_step == 1 and right_panel_mode == "DESIGN":
 		_show_camera_back_design_controls()
+
+
+func set_rear_camera_count_research_level(level: int) -> void:
+	rear_camera_count_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_COUNT_RESEARCH_UPGRADES)
+	if is_instance_valid(rear_hardware_add_button) and rear_hardware_mode == "CAMERA":
+		_refresh_rear_hardware_panel()
+
+
+func set_rear_flash_count_research_level(level: int) -> void:
+	rear_flash_count_research_level = clampi(level, 0, ResearchManagerScript.REAR_HARDWARE_COUNT_RESEARCH_UPGRADES)
+	if is_instance_valid(rear_hardware_add_button) and rear_hardware_mode == "FLASH":
+		_refresh_rear_hardware_panel()
 
 
 func _build_rear_camera_mp_step_controls() -> void:
@@ -2444,7 +2458,9 @@ func _set_rear_hardware_selected_index(index: int) -> void:
 
 
 func _get_rear_hardware_addition_limit() -> int:
-	return MAX_REAR_FLASHES if rear_hardware_mode == "FLASH" else MAX_REAR_CAMERAS
+	if rear_hardware_mode == "FLASH":
+		return mini(MAX_REAR_FLASHES, ResearchManagerScript.get_rear_flash_count_max_for_level(rear_flash_count_research_level))
+	return mini(MAX_REAR_CAMERAS, ResearchManagerScript.get_rear_camera_count_max_for_level(rear_camera_count_research_level))
 
 
 func _add_rear_hardware_module() -> void:
