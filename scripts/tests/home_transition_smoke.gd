@@ -1152,14 +1152,14 @@ func _run_transition_checks() -> void:
 		_fail("Returning from OS Worksite did not preserve the prebuilt scene.")
 		return
 
-	# Processor Worksite and all 15 designs must already exist from initialization.
+	# Processor Worksite and all 30 designs must already exist from initialization.
 	var preloaded_processor_worksite = game.processor_creation_worksite
 	if not is_instance_valid(preloaded_processor_worksite) or preloaded_processor_worksite.visible:
 		_fail("Processor Worksite was not prebuilt and hidden during initialization.")
 		return
 	var preloaded_processor_models: Array = preloaded_processor_worksite.get("processor_models_data")
-	if preloaded_processor_models.size() != 15:
-		_fail("Initialization did not prebuild all 15 processor designs.")
+	if preloaded_processor_models.size() != 30:
+		_fail("Initialization did not prebuild all 30 processor designs.")
 		return
 
 	# Processor navigation must be a single, deferred, exclusive screen handoff.
