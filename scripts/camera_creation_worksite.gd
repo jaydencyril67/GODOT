@@ -177,9 +177,16 @@ func _build_preview_environment() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 	environment.sky = studio_sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.42
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color("#B6B0A5")
+	environment.ambient_light_energy = 0.66
 	environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	sky_material.sky_top_color = Color("#77736C")
+	sky_material.sky_horizon_color = Color("#D5CFC3")
+	sky_material.ground_horizon_color = Color("#716C63")
+	sky_material.ground_bottom_color = Color("#34312D")
+	sky_material.sky_energy_multiplier = 0.9
+	sky_material.ground_energy_multiplier = 0.72
 	environment_node.environment = environment
 	preview_world.add_child(environment_node)
 
@@ -189,7 +196,8 @@ func _build_preview_lighting() -> void:
 	key_light.name = "CameraStudioKeyLight"
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
 	key_light.light_color = Color("#EEE9DF")
-	key_light.light_energy = 0.82
+	key_light.light_color = Color("#fffdf8")
+	key_light.light_energy = 1.20
 	key_light.shadow_enabled = false
 	preview_world.add_child(key_light)
 
@@ -197,15 +205,15 @@ func _build_preview_lighting() -> void:
 	rim_light.name = "CameraStudioRimLight"
 	rim_light.rotation_degrees = Vector3(18.0, 142.0, -8.0)
 	rim_light.light_color = Color("#C7BBA6")
-	rim_light.light_energy = 0.34
+	rim_light.light_energy = 0.78
 	rim_light.shadow_enabled = false
 	preview_world.add_child(rim_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.name = "CameraStudioFillLight"
 	fill_light.position = Vector3(-2.2, 1.4, -2.8)
-	fill_light.light_color = Color("#C7BBA6")
-	fill_light.light_energy = 0.18
+	fill_light.light_color = Color("#D8D1C5")
+	fill_light.light_energy = 0.38
 	fill_light.omni_range = 8.0
 	preview_world.add_child(fill_light)
 
