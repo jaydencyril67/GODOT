@@ -484,14 +484,14 @@ func _run_camera_worksite_test() -> void:
 		"Portrait Mode": 1,
 		"Macro Photography": 1
 	})
-	if camera_sensor_toggle.disabled or str(worksite.get("camera_sensor_enable_label").text) != "ENABLE":
+	if camera_sensor_toggle.disabled or camera_sensor_enable_label.text != "ENABLE":
 		_fail("Approved camera research did not unlock the feature controls.")
 		worksite.free()
 		return
 
 	camera_sensor_next.emit_signal("pressed")
 	camera_sensor_next.emit_signal("pressed")
-	if camera_sensor_label.text != "Ultra-Wide Photography" or not camera_sensor_toggle.disabled or str(worksite.get("camera_sensor_enable_label").text) != "LOCKED":
+	if camera_sensor_label.text != "Ultra-Wide Photography" or not camera_sensor_toggle.disabled or camera_sensor_enable_label.text != "LOCKED":
 		_fail("An unresearched camera feature was not kept locked.")
 		worksite.free()
 		return
