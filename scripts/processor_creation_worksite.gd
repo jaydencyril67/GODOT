@@ -1,8 +1,10 @@
 extends Node3D
 
 const ProcessorDesignLibrary = preload("res://scripts/processor_design_library.gd")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 signal back_requested
+signal research_requested
 signal design_saved(design: Dictionary)
 
 const ACCENT := Color("#C58A3A")
@@ -232,6 +234,8 @@ var processor_technology_previous_button: Button
 var processor_technology_next_button: Button
 var processor_technology_selected_index := 0
 var processor_technology_enabled_states: Dictionary = {}
+var processor_technology_research_levels: Dictionary = {}
+var processor_technology_level_value_label: Label
 var processor_technology_checked_texture: Texture2D
 var processor_technology_unchecked_texture: Texture2D
 var package_layers: Array[MeshInstance3D] = []
@@ -278,6 +282,9 @@ func configure_design(design: Dictionary) -> void:
 	processor_gradient_color = _parse_saved_processor_color(str(processor_design.get("processor_gradient_color", "#536DFE")), Color("#536DFE"))
 	processor_gradient_enabled = bool(processor_design.get("processor_gradient_enabled", false))
 	processor_gradient_direction = clampi(int(processor_design.get("processor_gradient_direction", 0)), 0, 3)
+	var saved_technology_states: Variant = processor_design.get("processor_technology_enabled_states", {})
+	if saved_technology_states is Dictionary:
+		processor_technology_enabled_states = saved_technology_states.duplicate(true)
 	processor_gradient_color_edit_mode = false
 	_apply_design()
 	_refresh_processor_color_controls()
@@ -335,6 +342,22 @@ func _build_interface() -> void:
 	_style_button(back_button, false)
 	back_button.pressed.connect(func(): back_requested.emit())
 	root.add_child(back_button)
+
+	var research_button := Button.new()
+	research_button.name = "ProcessorResearchButton"
+	research_button.text = "RESEARCH"
+	research_button.anchor_left = 0.0
+	research_button.anchor_right = 0.0
+	research_button.anchor_top = 0.0
+	research_button.anchor_bottom = 0.0
+	research_button.offset_left = 112.0
+	research_button.offset_top = 12.0
+	research_button.offset_right = 226.0
+	research_button.offset_bottom = 60.0
+	research_button.focus_mode = Control.FOCUS_NONE
+	_style_button(research_button, false)
+	research_button.pressed.connect(func(): research_requested.emit())
+	root.add_child(research_button)
 
 	var progress := VBoxContainer.new()
 	progress.name = "WorksiteProgress"
@@ -426,6 +449,7 @@ func _build_interface() -> void:
 	right_panel_column.add_theme_constant_override("separation", 8)
 	worksite_body.add_child(right_panel_column)
 	right_panel_column.add_child(selection_scroll)
+	_build_processor_technology_level_footer()
 
 	selection_region = MarginContainer.new()
 	selection_region.name = "ProcessorSelectionRegion"
@@ -520,6 +544,14 @@ func _build_interface() -> void:
 
 	var technologies_page := _create_step_page("TECHNOLOGIES")
 	_build_processor_technology_controls(technologies_page)
+	var save_technology_settings_button := Button.new()
+	save_technology_settings_button.name = "SaveProcessorTechnologySettingsButton"
+	save_technology_settings_button.text = "SAVE PROCESSOR DESIGN"
+	save_technology_settings_button.custom_minimum_size = Vector2(0, 46)
+	save_technology_settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_technology_settings_button, true)
+	save_technology_settings_button.pressed.connect(_save_design)
+	technologies_page.add_child(save_technology_settings_button)
 
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
@@ -569,6 +601,65 @@ func _create_step_page(title_text: String) -> VBoxContainer:
 
 	return page
 
+
+
+
+func _build_processor_technology_level_footer() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ProcessorTechnologyLevelPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#141719")
+	panel_style.border_color = Color("#625039")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(8)
+	panel_style.content_margin_left = 13.0
+	panel_style.content_margin_right = 13.0
+	panel_style.content_margin_top = 7.0
+	panel_style.content_margin_bottom = 7.0
+	panel.add_theme_stylebox_override("panel", panel_style)
+	var row := HBoxContainer.new()
+	row.name = "ProcessorTechnologyLevelRow"
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	panel.add_child(row)
+	var title := _label("TECHNOLOGY LEVEL", 12, Color("#D3AA6B"))
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(title)
+	processor_technology_level_value_label = _label("0.00 TP", 20, Color("#F2EEE7"))
+	processor_technology_level_value_label.name = "ProcessorTechnologyLevelValue"
+	processor_technology_level_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	processor_technology_level_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	processor_technology_level_value_label.custom_minimum_size = Vector2(88, 0)
+	row.add_child(processor_technology_level_value_label)
+	right_panel_column.add_child(panel)
+	_refresh_processor_technology_level_display()
+
+
+func set_processor_technology_research_levels(levels: Dictionary) -> void:
+	processor_technology_research_levels = levels.duplicate(true)
+	for technology_value in PROCESSOR_TECHNOLOGIES:
+		var technology_name := str(technology_value)
+		if int(processor_technology_research_levels.get(technology_name, 0)) < 1:
+			processor_technology_enabled_states[technology_name] = false
+	_refresh_processor_technology_controls()
+	_refresh_processor_technology_level_display()
+
+
+func _refresh_processor_technology_level_display() -> void:
+	if is_instance_valid(processor_technology_level_value_label):
+		processor_technology_level_value_label.text = "%.2f TP" % _calculate_processor_technology_points()
+
+
+func _calculate_processor_technology_points() -> float:
+	var total := 0.0
+	for technology_value in PROCESSOR_TECHNOLOGIES:
+		var technology_name := str(technology_value)
+		if int(processor_technology_research_levels.get(technology_name, 0)) >= 1 and bool(processor_technology_enabled_states.get(technology_name, false)):
+			total += ResearchManagerScript.get_technology_points_for_progress(technology_name, 1.0)
+	return maxf(0.0, total)
 
 
 func _build_processor_technology_controls(parent: VBoxContainer) -> void:
@@ -663,31 +754,42 @@ func _refresh_processor_technology_controls() -> void:
 		return
 	processor_technology_selected_index = clampi(processor_technology_selected_index, 0, PROCESSOR_TECHNOLOGIES.size() - 1)
 	var technology_name: String = PROCESSOR_TECHNOLOGIES[processor_technology_selected_index]
-	var enabled := bool(processor_technology_enabled_states.get(technology_name, false))
+	var researched := int(processor_technology_research_levels.get(technology_name, 0)) >= 1
+	var enabled := researched and bool(processor_technology_enabled_states.get(technology_name, false))
 	if is_instance_valid(processor_technology_name_label):
 		processor_technology_name_label.text = technology_name
 	if is_instance_valid(processor_technology_enable_label):
-		processor_technology_enable_label.text = "ENABLE"
+		processor_technology_enable_label.text = "ENABLE" if researched else "LOCKED"
 	if is_instance_valid(processor_technology_enabled_toggle):
+		processor_technology_enabled_toggle.disabled = not researched
+		processor_technology_enabled_toggle.modulate.a = 1.0 if researched else 0.42
 		processor_technology_enabled_toggle.set_pressed_no_signal(enabled)
 		var checkbox_texture := processor_technology_checked_texture if enabled else processor_technology_unchecked_texture
 		processor_technology_enabled_toggle.texture_normal = checkbox_texture
 		processor_technology_enabled_toggle.texture_hover = checkbox_texture
 		processor_technology_enabled_toggle.texture_pressed = processor_technology_checked_texture
 		processor_technology_enabled_toggle.texture_disabled = processor_technology_unchecked_texture
-		processor_technology_enabled_toggle.tooltip_text = "Enable or disable " + technology_name
+		processor_technology_enabled_toggle.tooltip_text = ("Enable or disable " + technology_name) if researched else ("Research " + technology_name + " to unlock it")
 	if is_instance_valid(processor_technology_previous_button):
 		processor_technology_previous_button.disabled = processor_technology_selected_index <= 0
 	if is_instance_valid(processor_technology_next_button):
 		processor_technology_next_button.disabled = processor_technology_selected_index >= PROCESSOR_TECHNOLOGIES.size() - 1
+	if not researched:
+		processor_technology_enabled_states[technology_name] = false
+	_refresh_processor_technology_level_display()
 
 
 func _on_processor_technology_toggled(enabled: bool) -> void:
 	if PROCESSOR_TECHNOLOGIES.is_empty():
 		return
 	var technology_name: String = PROCESSOR_TECHNOLOGIES[clampi(processor_technology_selected_index, 0, PROCESSOR_TECHNOLOGIES.size() - 1)]
+	if int(processor_technology_research_levels.get(technology_name, 0)) < 1:
+		processor_technology_enabled_states[technology_name] = false
+		_refresh_processor_technology_controls()
+		return
 	processor_technology_enabled_states[technology_name] = enabled
 	_refresh_processor_technology_controls()
+	_refresh_processor_technology_level_display()
 
 
 func _on_processor_technology_previous_pressed() -> void:
@@ -1477,7 +1579,8 @@ func _save_design() -> void:
 		"processor_color": "#" + processor_color.to_html(false).to_upper(),
 		"processor_gradient_color": "#" + processor_gradient_color.to_html(false).to_upper(),
 		"processor_gradient_enabled": processor_gradient_enabled,
-		"processor_gradient_direction": processor_gradient_direction
+		"processor_gradient_direction": processor_gradient_direction,
+		"processor_technology_enabled_states": processor_technology_enabled_states.duplicate(true)
 	}
 	design_saved.emit(processor_design.duplicate(true))
 	status_label.text = "PROCESSOR DESIGN SAVED"
