@@ -213,8 +213,8 @@ func _check_rear_hardware_count_research() -> bool:
 			return false
 		var project: Dictionary = commission.get("project", {})
 		var expected_target := "2 cameras" if component == "Rear Camera Count" else "2 flashes"
-		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != expected_target:
-			_fail("%s did not commission the next capacity target." % component)
+		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != expected_target or not is_equal_approx(float(project.get("required_research_days", 0.0)), expected_duration):
+			_fail("%s did not commission the next capacity target with its assigned research duration." % component)
 			return false
 		for project_index in range(test_career["research_projects"].size()):
 			var saved_project: Dictionary = test_career["research_projects"][project_index]
