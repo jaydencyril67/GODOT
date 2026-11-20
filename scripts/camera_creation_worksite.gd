@@ -357,7 +357,7 @@ func _build_interface() -> void:
 	progress.add_theme_constant_override("separation", 4)
 	worksite_root.add_child(progress)
 
-	progress_number = _label("STEP 1 / 4", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
+	progress_number = _label("STEP 1 / 2", 11, Color("#E5E0D6"), HORIZONTAL_ALIGNMENT_CENTER)
 	progress_number.name = "WorksiteProgressNumber"
 	progress_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	progress.add_child(progress_number)
