@@ -817,11 +817,13 @@ func _build_front_camera_step_controls() -> void:
 
 	var heading := _label("FRONT CAMERA", 19, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.autowrap_mode = TextServer.AUTOWRAP_OFF
 	front_camera_step_content.add_child(heading)
 
 	var enable_row := HBoxContainer.new()
 	enable_row.name = "FrontCameraEnablementRow"
 	enable_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	enable_row.custom_minimum_size = Vector2(0.0, 44.0)
 	enable_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	enable_row.add_theme_constant_override("separation", 9)
 	front_camera_step_content.add_child(enable_row)
@@ -832,18 +834,23 @@ func _build_front_camera_step_controls() -> void:
 	front_camera_enable_button.toggle_mode = true
 	front_camera_enable_button.button_pressed = front_camera_enabled
 	front_camera_enable_button.custom_minimum_size = Vector2(112, 38)
+	front_camera_enable_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	front_camera_enable_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	front_camera_enable_button.focus_mode = Control.FOCUS_NONE
 	_style_button(front_camera_enable_button, front_camera_enabled)
 	front_camera_enable_button.toggled.connect(_on_front_camera_enabled_toggled)
 	enable_row.add_child(front_camera_enable_button)
 
 	var enable_description := _label("Front Camera", 13, Color("#E5E0D6"))
+	enable_description.custom_minimum_size = Vector2(104.0, 0.0)
+	enable_description.autowrap_mode = TextServer.AUTOWRAP_OFF
 	enable_description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	enable_row.add_child(enable_description)
 
 	front_camera_style_label = _label("", 15, Color("#F2EDE4"), HORIZONTAL_ALIGNMENT_CENTER)
 	front_camera_style_label.name = "FrontCameraStyleValue"
 	front_camera_style_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	front_camera_style_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	front_camera_step_content.add_child(front_camera_style_label)
 
 	var style_controls := HBoxContainer.new()
