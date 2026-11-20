@@ -442,6 +442,15 @@ func _check_processor_technology_research() -> bool:
 				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
 				test_career["research_projects"][project_index] = saved_project
 				break
+		if feature == "Control Unit":
+			var wrong_approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+				"component": feature,
+				"metric": "Processor subsystem functionality and architecture integration",
+				"value": "Incorrect technology"
+			}], 1500.0)
+			if bool(wrong_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get(feature, 0)) > 0:
+				_fail("Processor Research approved a result that did not match the assigned technology.")
+				return false
 		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
 			"component": feature,
 			"metric": "Processor subsystem functionality and architecture integration",
