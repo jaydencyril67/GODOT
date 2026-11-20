@@ -1,6 +1,7 @@
 extends Node3D
 
 const CameraLessPhoneModelScript = preload("res://scripts/camera_worksite_phone_model.gd")
+const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 const MAX_REAR_CAMERAS := 5
 const MAX_REAR_FLASHES := 5
@@ -19,10 +20,8 @@ const MAX_PREVIEW_DISTANCE := 7.2
 const DEFAULT_PREVIEW_DISTANCE := 4.6
 
 const WIZARD_STEPS := [
-	{"title": "CAMERA SYSTEM"},
-	{"title": "CAMERA HARDWARE"},
-	{"title": "CAMERA POSITIONING"},
-	{"title": "RARE CAMERA"}
+	{"title": "RARE CAMERA"},
+	{"title": "REAR CAMERA MP"}
 ]
 
 
@@ -53,6 +52,12 @@ var preview_touch_points: Dictionary = {}
 
 var rear_camera_modules: Array[Dictionary] = []
 var rear_flash_modules: Array[Dictionary] = []
+var rear_camera_mp_research_level := 0
+var rear_camera_mp_sliders: Array[VSlider] = []
+var rear_camera_mp_value_labels: Array[Label] = []
+var rear_camera_mp_max_labels: Array[Label] = []
+var rear_camera_mp_slider_camera_ids: Array[int] = []
+var rear_camera_mp_step_content: VBoxContainer
 var rear_hardware_mode := "CAMERA"
 var rear_camera_selected_index := -1
 var rear_flash_selected_index := -1
@@ -336,6 +341,7 @@ func _build_interface() -> void:
 	selection_stack.add_child(divider)
 
 	_build_rear_hardware_step_controls()
+	_build_rear_camera_mp_step_controls()
 
 
 	var progress := VBoxContainer.new()
@@ -422,15 +428,20 @@ func _build_interface() -> void:
 
 
 func _set_wizard_step(step: int) -> void:
+	var previous_step := current_wizard_step
 	current_wizard_step = clampi(step, 1, WIZARD_STEPS.size())
 	var data: Dictionary = WIZARD_STEPS[current_wizard_step - 1]
 	step_title_label.text = str(data.get("title", ""))
 	progress_number.text = "STEP %d / %d" % [current_wizard_step, WIZARD_STEPS.size()]
 	progress_bar.value = current_wizard_step
 	if is_instance_valid(rear_hardware_step_content):
-		rear_hardware_step_content.visible = current_wizard_step == 4
-		if current_wizard_step != 4:
+		rear_hardware_step_content.visible = current_wizard_step == 1
+		if current_wizard_step == 1 and previous_step != 1:
 			_show_rear_camera_controls()
+	if is_instance_valid(rear_camera_mp_step_content):
+		rear_camera_mp_step_content.visible = current_wizard_step == 2
+		if current_wizard_step == 2:
+			_refresh_rear_camera_mp_controls()
 	wizard_back_button.disabled = current_wizard_step <= 1
 	next_button.disabled = current_wizard_step >= WIZARD_STEPS.size()
 	wizard_back_button.queue_redraw()
@@ -633,8 +644,135 @@ func set_back_raised_design_research_level(level: int) -> void:
 	if updated_level == camera_back_design_research_level:
 		return
 	camera_back_design_research_level = updated_level
-	if current_wizard_step == 4 and right_panel_mode == "DESIGN":
+	if current_wizard_step == 1 and right_panel_mode == "DESIGN":
 		_show_camera_back_design_controls()
+
+
+func _build_rear_camera_mp_step_controls() -> void:
+	rear_camera_mp_step_content = VBoxContainer.new()
+	rear_camera_mp_step_content.name = "RearCameraMegapixelStepControls"
+	rear_camera_mp_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_camera_mp_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rear_camera_mp_step_content.add_theme_constant_override("separation", 8)
+	rear_camera_mp_step_content.visible = false
+	selection_stack.add_child(rear_camera_mp_step_content)
+	_refresh_rear_camera_mp_controls()
+
+
+func _refresh_rear_camera_mp_controls() -> void:
+	if not is_instance_valid(rear_camera_mp_step_content):
+		return
+	for child in rear_camera_mp_step_content.get_children():
+		rear_camera_mp_step_content.remove_child(child)
+		child.free()
+	rear_camera_mp_sliders.clear()
+	rear_camera_mp_value_labels.clear()
+	rear_camera_mp_max_labels.clear()
+	rear_camera_mp_slider_camera_ids.clear()
+
+	var heading := _label("REAR CAMERA MP", 19, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rear_camera_mp_step_content.add_child(heading)
+
+	if rear_camera_modules.is_empty():
+		var hint := _label("Add rear cameras in Step 1 first", 11, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD
+		rear_camera_mp_step_content.add_child(hint)
+		return
+
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "RearCameraMegapixelOptions"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	slider_row.add_theme_constant_override("separation", 5)
+	rear_camera_mp_step_content.add_child(slider_row)
+
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		var camera_id := int(camera_data.get("id", camera_index + 1))
+		var megapixels := int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE))
+		var card := _make_rear_camera_mp_slider_card(camera_index + 1, camera_id, megapixels)
+		slider_row.add_child(card)
+
+
+func _make_rear_camera_mp_slider_card(camera_number: int, camera_id: int, current_mp: int) -> VBoxContainer:
+	var card := VBoxContainer.new()
+	card.name = "RearCameraMegapixelCard_%d" % camera_number
+	card.custom_minimum_size = Vector2(52, 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	card.add_theme_constant_override("separation", 2)
+
+	var title := _label("%02d" % camera_number, 11, Color("#D3AA6B"), HORIZONTAL_ALIGNMENT_CENTER)
+	title.clip_text = true
+	card.add_child(title)
+
+	var available_maximum := _get_rear_camera_mp_maximum()
+	var selected_mp := clampi(current_mp, ResearchManagerScript.REAR_CAMERA_MP_BASE, available_maximum)
+	var value_label := _label("%d MP" % selected_mp, 12, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	value_label.name = "CameraMPValueLabel"
+	card.add_child(value_label)
+	rear_camera_mp_value_labels.append(value_label)
+
+	var maximum_label := _label(str(available_maximum), 9, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+	maximum_label.name = "CameraMPMaximumLabel"
+	card.add_child(maximum_label)
+	rear_camera_mp_max_labels.append(maximum_label)
+
+	var slider := VSlider.new()
+	slider.name = "CameraMPValueSlider"
+	slider.min_value = ResearchManagerScript.REAR_CAMERA_MP_BASE
+	slider.max_value = available_maximum
+	slider.step = 1
+	slider.value = selected_mp
+	slider.custom_minimum_size = Vector2(30, 320)
+	slider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_style_rear_hardware_slider(slider)
+	slider.value_changed.connect(func(value: float) -> void:
+		var megapixels := clampi(roundi(value), ResearchManagerScript.REAR_CAMERA_MP_BASE, _get_rear_camera_mp_maximum())
+		value_label.text = "%d MP" % megapixels
+		_set_rear_camera_mp_value(megapixels, camera_id)
+	)
+	card.add_child(slider)
+	rear_camera_mp_sliders.append(slider)
+	rear_camera_mp_slider_camera_ids.append(camera_id)
+
+	var minimum_label := _label(str(ResearchManagerScript.REAR_CAMERA_MP_BASE), 9, Color("#A9A092"), HORIZONTAL_ALIGNMENT_CENTER)
+	card.add_child(minimum_label)
+	return card
+
+
+func set_rear_camera_mp_research_level(level: int) -> void:
+	rear_camera_mp_research_level = clampi(level, 0, ResearchManagerScript.REAR_CAMERA_MP_RESEARCH_UPGRADES)
+	var available_maximum := _get_rear_camera_mp_maximum()
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		camera_data["mp"] = clampi(
+			int(camera_data.get("mp", ResearchManagerScript.REAR_CAMERA_MP_BASE)),
+			ResearchManagerScript.REAR_CAMERA_MP_BASE,
+			available_maximum
+		)
+		rear_camera_modules[camera_index] = camera_data
+	_refresh_rear_camera_mp_controls()
+
+
+func _get_rear_camera_mp_maximum() -> int:
+	return ResearchManagerScript.get_rear_camera_mp_max_for_level(rear_camera_mp_research_level)
+
+
+func _set_rear_camera_mp_value(megapixels: int, camera_id: int) -> void:
+	for camera_index in range(rear_camera_modules.size()):
+		var camera_data: Dictionary = rear_camera_modules[camera_index]
+		if int(camera_data.get("id", -1)) != camera_id:
+			continue
+		camera_data["mp"] = clampi(
+			megapixels,
+			ResearchManagerScript.REAR_CAMERA_MP_BASE,
+			_get_rear_camera_mp_maximum()
+		)
+		rear_camera_modules[camera_index] = camera_data
+		break
 
 
 func _show_camera_back_design_controls() -> void:
@@ -1645,10 +1783,16 @@ func _add_rear_hardware_module() -> void:
 		rear_flash_selected_index = rear_flash_modules.size() - 1
 		next_rear_flash_id += 1
 	else:
-		rear_camera_modules.append({"id": next_rear_camera_id, "position": spawn_position, "size": module_size})
+		rear_camera_modules.append({
+			"id": next_rear_camera_id,
+			"position": spawn_position,
+			"size": module_size,
+			"mp": ResearchManagerScript.REAR_CAMERA_MP_BASE
+		})
 		rear_camera_selected_index = rear_camera_modules.size() - 1
 		next_rear_camera_id += 1
 	_refresh_rear_hardware_panel()
+	_refresh_rear_camera_mp_controls()
 
 
 func _remove_rear_hardware_module() -> void:
@@ -1663,6 +1807,7 @@ func _remove_rear_hardware_module() -> void:
 	else:
 		rear_camera_modules = modules
 	_refresh_rear_hardware_panel()
+	_refresh_rear_camera_mp_controls()
 
 
 func _find_rear_hardware_spawn_position(kind: String, module_size: float) -> Vector2:
