@@ -208,6 +208,7 @@ func _run_checks() -> void:
 	var expected_processor_labels: Array[String] = [
 		"CPU CORES",
 		"INSTRUCTION SCHEDULER",
+		"PROCESSOR DESIGN",
 		"CONTROL UNIT",
 		"INSTRUCTION DECODER",
 		"INSTRUCTION FETCH UNIT",
@@ -229,7 +230,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_processor_technology_research() or not _check_processor_cpu_core_research() or not _check_processor_instruction_scheduler_research():
+	if not _check_processor_technology_research() or not _check_processor_cpu_core_research() or not _check_processor_instruction_scheduler_research() or not _check_processor_design_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -658,3 +659,79 @@ func _button_labels(buttons: Array) -> Array[String]:
 func _fail(message: String) -> void:
 	push_error(message)
 	print("PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: FAIL — " + message)
+
+
+
+func _check_processor_design_research() -> bool:
+	const COMPONENT := "Processor Design"
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has(COMPONENT) or not ResearchManagerScript.PROCESSOR_RESEARCH_COMPONENTS.has(COMPONENT):
+		_fail("Processor Design is missing from the Processor Research catalogue or routing group.")
+		return false
+	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(COMPONENT) or ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(COMPONENT):
+		_fail("Processor Design was incorrectly classified as Phone or Camera research.")
+		return false
+	if ResearchManagerScript.get_processor_design_max_for_level(0) != 1 or ResearchManagerScript.get_processor_design_max_for_level(29) != 30:
+		_fail("Processor Design did not preserve Design 01 as the default or the 30-design maximum.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(COMPONENT, 2), 2100.0):
+		_fail("Each new Processor Design must use a fixed 2,100-day research duration.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 0.5), 10.5) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 1.0), 21.0) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(COMPONENT, 29.0), 609.0):
+		_fail("Processor Design is not using the shared duration-based Technology Points conversion.")
+		return false
+
+	var first_target: Dictionary = ResearchManagerScript.get_processor_design_research_target({})
+	var final_target: Dictionary = ResearchManagerScript.get_processor_design_research_target({COMPONENT: 28})
+	if int(first_target.get("index", -1)) != 2 or str(first_target.get("technology", "")) != "Design 02" or int(first_target.get("design_count", -1)) != 2:
+		_fail("Processor Design did not begin with the expected Design 01-to-02 unlock.")
+		return false
+	if int(final_target.get("index", -1)) != 30 or str(final_target.get("technology", "")) != "Design 30" or not ResearchManagerScript.get_processor_design_research_target({COMPONENT: 29}).is_empty():
+		_fail("Processor Design did not stop cleanly at its 30-design maximum.")
+		return false
+
+	var test_career := {
+		"staff_employees": [{"id": "processor_design_researcher", "department": "Research", "efficiency": 90}],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	for expected_design_count in range(2, ResearchManagerScript.PROCESSOR_DESIGN_MAX_COUNT + 1):
+		var target: Dictionary = ResearchManagerScript.get_processor_design_research_target(test_career["research_component_levels"])
+		var expected_target := "Design %02d" % expected_design_count
+		if int(target.get("index", -1)) != expected_design_count or str(target.get("technology", "")) != expected_target:
+			_fail("Processor Design did not produce the next ordered unlock: %s." % expected_target)
+			return false
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["processor_design_researcher"]
+		}, 7000.0 + float(expected_design_count))
+		if not bool(commission.get("ok", false)):
+			_fail("Processor Design research could not be commissioned: %s" % str(commission.get("error", "")))
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if str(project.get("component", "")) != COMPONENT or int(project.get("research_target_index", -1)) != expected_design_count or str(project.get("research_target", "")) != expected_target or not is_equal_approx(float(project.get("required_research_days", 0.0)), 2100.0):
+			_fail("Processor Design project did not preserve its Processor Research target or fixed 2,100-day duration.")
+			return false
+		var duplicate := ResearchManagerScript.commission_project(test_career, {
+			"component": COMPONENT,
+			"staff_ids": ["processor_design_researcher"]
+		}, 7100.0)
+		if bool(duplicate.get("ok", false)):
+			_fail("Processor Design allowed a duplicate project while the next design unlock was active.")
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": COMPONENT,
+			"metric": "Available processor design",
+			"value": expected_target
+		}], 7200.0 + float(expected_design_count))
+		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(COMPONENT, 0)) != expected_design_count - 1:
+			_fail("Approving %s did not persist the next Processor Design unlock: %s" % [expected_target, str(approval.get("error", ""))])
+			return false
+	return true
