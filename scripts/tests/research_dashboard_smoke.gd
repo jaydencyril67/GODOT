@@ -211,6 +211,8 @@ func _run_checks() -> void:
 		"INSTRUCTION SCHEDULER",
 		"PROCESSOR DESIGN",
 		"L1 CACHE",
+		"L2 CACHE",
+		"L3 CACHE",
 		"CONTROL UNIT",
 		"INSTRUCTION DECODER",
 		"INSTRUCTION FETCH UNIT",
@@ -232,7 +234,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_processor_technology_research() or not _check_processor_cpu_core_research() or not _check_processor_instruction_scheduler_research() or not _check_processor_design_research():
+	if not _check_processor_technology_research() or not _check_processor_cpu_core_research() or not _check_processor_instruction_scheduler_research() or not _check_processor_cache_research() or not _check_processor_design_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -759,6 +761,85 @@ func _fail(message: String) -> void:
 	push_error(message)
 	print("PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: FAIL — " + message)
 
+
+
+func _check_processor_cache_research() -> bool:
+	var cache_specs: Array[Dictionary] = [
+		{"component": "L2 Cache", "base_kb": 128, "increment_kb": 128, "maximum_kb": 19200},
+		{"component": "L3 Cache", "base_kb": 1024, "increment_kb": 1024, "maximum_kb": 153600}
+	]
+	for spec in cache_specs:
+		var component := str(spec.get("component", ""))
+		var base_kb := int(spec.get("base_kb", 0))
+		var increment_kb := int(spec.get("increment_kb", 0))
+		var maximum_kb := int(spec.get("maximum_kb", 0))
+		if not ResearchManagerScript.COMPONENT_CATALOGUE.has(component) or not ResearchManagerScript.PROCESSOR_RESEARCH_COMPONENTS.has(component):
+			_fail("%s is missing from the processor research catalogue or routing group." % component)
+			return false
+		var maximum_level := ResearchManagerScript.L2_CACHE_MAX_RESEARCH_LEVEL if component == "L2 Cache" else ResearchManagerScript.L3_CACHE_MAX_RESEARCH_LEVEL
+		if maximum_level != 149 or not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(component, 1), 10.0):
+			_fail("%s does not use the 150-level, 10-day cache research progression." % component)
+			return false
+		if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 0.5), 0.05) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 1.0), 0.10) or not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 149.0), 14.90):
+			_fail("%s is not using the shared duration-based Technology Points conversion." % component)
+			return false
+
+		var first_target: Dictionary
+		var final_target: Dictionary
+		if component == "L2 Cache":
+			first_target = ResearchManagerScript.get_l2_cache_research_target({})
+			final_target = ResearchManagerScript.get_l2_cache_research_target({component: 148})
+			if not ResearchManagerScript.get_l2_cache_research_target({component: 149}).is_empty():
+				_fail("L2 Cache did not stop at its 19,200 KB maximum.")
+				return false
+		else:
+			first_target = ResearchManagerScript.get_l3_cache_research_target({})
+			final_target = ResearchManagerScript.get_l3_cache_research_target({component: 148})
+			if not ResearchManagerScript.get_l3_cache_research_target({component: 149}).is_empty():
+				_fail("L3 Cache did not stop at its 153,600 KB maximum.")
+				return false
+		var first_capacity := base_kb + increment_kb
+		if int(first_target.get("index", -1)) != 1 or int(first_target.get("capacity_kb", -1)) != first_capacity or str(first_target.get("technology", "")) != "%d KB" % first_capacity:
+			_fail("%s did not begin at the expected first capacity upgrade." % component)
+			return false
+		if int(final_target.get("index", -1)) != 149 or int(final_target.get("capacity_kb", -1)) != maximum_kb or str(final_target.get("technology", "")) != "%d KB" % maximum_kb:
+			_fail("%s did not reach its expected final capacity at research level 149." % component)
+			return false
+
+		var test_career := {
+			"staff_employees": [{"id": "cache_researcher", "department": "Research", "efficiency": 90}],
+			"research_projects": [],
+			"research_component_levels": {},
+			"research_technologies": {},
+			"next_research_project_id": 1
+		}
+		var commission := ResearchManagerScript.commission_project(test_career, {
+			"component": component,
+			"staff_ids": ["cache_researcher"]
+		}, 7000.0)
+		if not bool(commission.get("ok", false)):
+			_fail("%s research could not be commissioned: %s" % [component, str(commission.get("error", ""))])
+			return false
+		var project: Dictionary = commission.get("project", {})
+		if int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != str(first_target.get("technology", "")) or not is_equal_approx(float(project.get("required_research_days", 0.0)), 10.0):
+			_fail("%s project did not preserve its ordered target or 10-day duration." % component)
+			return false
+		for project_index in range(test_career["research_projects"].size()):
+			var saved_project: Dictionary = test_career["research_projects"][project_index]
+			if str(saved_project.get("id", "")) == str(project.get("id", "")):
+				saved_project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+				test_career["research_projects"][project_index] = saved_project
+				break
+		var approval := ResearchManagerScript.approve_project(test_career, str(project.get("id", "")), [{
+			"component": component,
+			"metric": "Validated %s capacity" % component,
+			"value": str(first_target.get("technology", ""))
+		}], 8000.0)
+		if not bool(approval.get("ok", false)) or int(test_career["research_component_levels"].get(component, 0)) != 1:
+			_fail("Approving the first %s target did not persist its research level: %s" % [component, str(approval.get("error", ""))])
+			return false
+
+	return true
 
 
 func _check_processor_design_research() -> bool:
