@@ -309,7 +309,7 @@ func configure_design(design: Dictionary) -> void:
 	var saved_scheduler_level := ResearchManagerScript.INSTRUCTION_SCHEDULER_ENTRY_LEVELS.find(saved_scheduler_entries)
 	processor_instruction_scheduler_selected_level = maxi(0, saved_scheduler_level)
 	var saved_l1_cache_kb := clampi(int(processor_design.get("l1_cache_kb", 2)), 2, 300)
-	processor_l1_cache_selected_level = clampi((saved_l1_cache_kb - 2) / 2, 0, ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL)
+	processor_l1_cache_selected_level = clampi(floori(float(saved_l1_cache_kb - 2) / 2.0), 0, ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL)
 	var saved_technology_states: Variant = processor_design.get("processor_technology_enabled_states", {})
 	if saved_technology_states is Dictionary:
 		processor_technology_enabled_states = saved_technology_states.duplicate(true)
