@@ -75,7 +75,13 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 	await process_frame
-	var preview_photo: Variant = preview_studio.call("capture_photo")
+	var preview_photo: Variant
+	if DisplayServer.get_name() == "headless":
+		var test_photo_image := Image.create(480, 960, false, Image.FORMAT_RGBA8)
+		test_photo_image.fill(Color("#40566A"))
+		preview_photo = preview_studio.call("capture_photo", test_photo_image)
+	else:
+		preview_photo = preview_studio.call("capture_photo")
 	if not (preview_photo is Texture2D) or int(preview_studio.call("get_photo_count")) != 1:
 		_fail("The phone camera failed to capture a still photo from the live 3D test scene.")
 		worksite.free()

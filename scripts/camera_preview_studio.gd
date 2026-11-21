@@ -112,12 +112,22 @@ func set_night_mode(enabled: bool, quality_level: int) -> void:
 	_update_screen_labels()
 
 
-func capture_photo() -> Texture2D:
+func capture_photo(source_image: Image = null) -> Texture2D:
 	if not is_instance_valid(test_viewport):
 		return null
-	var captured_image := test_viewport.get_texture().get_image()
+	var captured_image: Image = source_image
+	if captured_image == null:
+		# Headless CI has no readable viewport texture; live gameplay always reads
+		# the actual rendered 3D scene from the camera viewport.
+		if DisplayServer.get_name() == "headless":
+			return null
+		var viewport_texture := test_viewport.get_texture()
+		if viewport_texture == null:
+			return null
+		captured_image = viewport_texture.get_image()
 	if captured_image == null or captured_image.is_empty():
 		return null
+	captured_image = captured_image.duplicate()
 	captured_image.convert(Image.FORMAT_RGBA8)
 	var photo := ImageTexture.create_from_image(captured_image)
 	captured_photos.append(photo)
@@ -159,7 +169,7 @@ func _build_test_camera() -> void:
 	test_viewport.own_world_3d = true
 	test_viewport.transparent_bg = false
 	test_viewport.msaa_3d = Viewport.MSAA_2X
-	test_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+	test_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	test_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(test_viewport)
 
@@ -199,8 +209,8 @@ func _build_test_camera() -> void:
 	test_camera.fov = 52.0
 	test_camera.near = 0.05
 	test_camera.far = 120.0
-	test_camera.look_at(Vector3(0.0, 1.25, 0.0), Vector3.UP)
 	test_world.add_child(test_camera)
+	test_camera.look_at(Vector3(0.0, 1.25, 0.0), Vector3.UP)
 	test_camera.current = true
 
 
