@@ -1,6 +1,7 @@
 extends Node3D
 
 const CameraLessPhoneModelScript = preload("res://scripts/camera_worksite_phone_model.gd")
+const CameraPreviewStudioScript = preload("res://scripts/camera_preview_studio.gd")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 
 const MAX_REAR_CAMERAS := 5
@@ -53,7 +54,8 @@ const CAMERA_SENSOR_COMPONENTS := [
 	"Super Slow-Motion Recording",
 	"Time-Lapse Recording",
 	"Hyperlapse Recording",
-	"Cinematic Video"
+	"Cinematic Video",
+	"Night Mode"
 ]
 
 
@@ -68,6 +70,14 @@ var preview_viewport: SubViewport
 var preview_world: Node3D
 var preview_camera: Camera3D
 var phone_model: Node3D
+var camera_preview_studio: Node
+var camera_preview_scene_label: Label
+var camera_preview_night_button: Button
+var camera_preview_gallery_button: Button
+var camera_preview_live_button: Button
+var camera_preview_zoom_label: Label
+var camera_preview_control_buttons: Array[Control] = []
+var camera_preview_night_enabled := false
 
 var right_panel_column: VBoxContainer
 var selection_scroll: ScrollContainer
@@ -238,6 +248,11 @@ func _build_preview_world() -> void:
 	phone_model.call("build_camera_less", _create_inactive_screen_texture())
 	preview_world.add_child(phone_model)
 
+	camera_preview_studio = CameraPreviewStudioScript.new()
+	camera_preview_studio.name = "CameraPreviewStudio"
+	add_child(camera_preview_studio)
+	phone_model.call("set_screen_texture", camera_preview_studio.call("get_screen_texture"))
+
 	preview_camera = Camera3D.new()
 	preview_camera.name = "CameraStudioPreviewCamera"
 	preview_camera.position = Vector3(0.0, 0.0, -DEFAULT_PREVIEW_DISTANCE)
@@ -357,6 +372,7 @@ func _build_interface() -> void:
 	preview_region.add_child(preview_container)
 	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	_build_camera_preview_controls()
 	# SubViewportContainer switches attached viewports to UPDATE_ALWAYS while
 	# mounting. Restore visibility-based rendering after the viewport is mounted
 	# so the studio does not waste frames when the worksite is hidden.
@@ -621,8 +637,10 @@ func _calculate_camera_technology_points() -> float:
 		var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_type, {})
 		for feature_value in CAMERA_SENSOR_COMPONENTS:
 			var feature := str(feature_value)
-			if int(camera_sensor_research_levels.get(feature, 0)) >= 1 and bool(camera_states.get(feature, false)):
-				total += _get_camera_technology_points(feature, 1.0)
+			var feature_level := int(camera_sensor_research_levels.get(feature, 0))
+			if feature_level >= 1 and bool(camera_states.get(feature, false)):
+				var progress_steps := float(feature_level) if feature == "Night Mode" else 1.0
+				total += _get_camera_technology_points(feature, progress_steps)
 
 	return maxf(0.0, total)
 
