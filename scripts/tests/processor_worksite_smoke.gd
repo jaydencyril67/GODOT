@@ -128,7 +128,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 
-	if design_selector_position.text != "DESIGN 01 / 30" or design_selector_value.text != "DW SILICON 01" or not design_selector_previous.disabled or design_selector_next.disabled:
+	if design_selector_position.text != "DESIGN 01 / 30" or design_selector_value.text != "DW SILICON 01" or not design_selector_previous.disabled or not design_selector_next.disabled:
 		_fail("The first processor design selector does not match the Phone Worksite's initial minus/current/plus state.")
 		worksite.free()
 		return
@@ -136,6 +136,21 @@ func _run_processor_worksite_test() -> void:
 	var design_profiles: Array = worksite.get("processor_designs")
 	if design_profiles.size() != 30:
 		_fail("The processor library does not expose exactly 30 design profiles.")
+		worksite.free()
+		return
+	worksite.call("set_processor_design_research_level", 1)
+	if design_selector_next.disabled:
+		_fail("Approving Processor Design research did not unlock the next design selector step.")
+		worksite.free()
+		return
+	design_selector_next.pressed.emit()
+	if int(worksite.get("selected_design_index")) != 1 or design_selector_value.text != "DW FUSION 02" or design_selector_position.text != "DESIGN 02 / 30":
+		_fail("Processor Design research did not make Design 02 selectable.")
+		worksite.free()
+		return
+	worksite.call("set_processor_design_research_level", 0)
+	if int(worksite.get("selected_design_index")) != 0 or design_selector_value.text != "DW SILICON 01" or not design_selector_next.disabled:
+		_fail("Reducing the unlocked Processor Design level did not clamp selection back to the available baseline.")
 		worksite.free()
 		return
 	var unique_design_ids := {}
