@@ -1242,6 +1242,7 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	# Apply the selected design's default package size and current colour.
 	_refresh_processor_design_controls()
 	_apply_design()
+	_refresh_processor_technology_level_display()
 
 
 func _refresh_processor_design_controls() -> void:
