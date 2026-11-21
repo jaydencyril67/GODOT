@@ -612,7 +612,7 @@ func _run_processor_worksite_test() -> void:
 		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return
-	if int(emitted_design[0].get("l1_cache_kb", 0)) != 300 or int(emitted_design[0].get("l2_cache_kb", 0)) != 1024 or int(emitted_design[0].get("l3_cache_kb", 0)) != 1024:
+	if int(emitted_design[0].get("l1_cache_kb", 0)) != 300 or int(emitted_design[0].get("l2_cache_kb", 0)) != 1024 or int(emitted_design[0].get("l3_cache_kb", 0)) != 10240:
 		_fail("Save Processor Design did not persist all three selected cache capacities.")
 		worksite.free()
 		return
