@@ -3127,6 +3127,7 @@ func _prepare_processor_creation_worksite() -> void:
 	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
 	processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
 	processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
+	processor_creation_worksite.call("set_l1_cache_research_level", int(career.get("research_component_levels", {}).get("L1 Cache", 0)))
 	processor_creation_worksite.call("set_processor_design_research_level", int(career.get("research_component_levels", {}).get("Processor Design", 0)))
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
