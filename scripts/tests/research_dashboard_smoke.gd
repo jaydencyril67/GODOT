@@ -226,7 +226,7 @@ func _run_checks() -> void:
 		"SECURITY PROCESSING UNIT"
 	]
 	if processor_labels != expected_processor_labels:
-		_fail("Processor Research must expose only the 15 approved Processor Technologies in their approved order.")
+		_fail("Processor Research must expose its approved research components in the correct order.")
 		host.queue_free()
 		quit(1)
 		return
