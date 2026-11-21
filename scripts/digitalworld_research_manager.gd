@@ -27,6 +27,16 @@ const L1_CACHE_MAX_CAPACITY_KB := 300
 const L1_CACHE_RESEARCH_INCREMENT_KB := 2
 const L1_CACHE_MAX_RESEARCH_LEVEL := 149
 const L1_CACHE_RESEARCH_DURATION_DAYS := 10.0
+const L2_CACHE_BASE_CAPACITY_KB := 128
+const L2_CACHE_MAX_CAPACITY_KB := 19200
+const L2_CACHE_RESEARCH_INCREMENT_KB := 128
+const L2_CACHE_MAX_RESEARCH_LEVEL := 149
+const L2_CACHE_RESEARCH_DURATION_DAYS := 10.0
+const L3_CACHE_BASE_CAPACITY_KB := 1024
+const L3_CACHE_MAX_CAPACITY_KB := 153600
+const L3_CACHE_RESEARCH_INCREMENT_KB := 1024
+const L3_CACHE_MAX_RESEARCH_LEVEL := 149
+const L3_CACHE_RESEARCH_DURATION_DAYS := 10.0
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -115,7 +125,9 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"CPU Cores": CPU_CORE_RESEARCH_DURATION_DAYS,
 	"Instruction Scheduler": INSTRUCTION_SCHEDULER_RESEARCH_DURATION_DAYS,
 	"Processor Design": PROCESSOR_DESIGN_RESEARCH_DURATION_DAYS,
-	"L1 Cache": L1_CACHE_RESEARCH_DURATION_DAYS
+	"L1 Cache": L1_CACHE_RESEARCH_DURATION_DAYS,
+	"L2 Cache": L2_CACHE_RESEARCH_DURATION_DAYS,
+	"L3 Cache": L3_CACHE_RESEARCH_DURATION_DAYS
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const TECHNOLOGY_POINTS_PER_RESEARCH_DAY := 0.01
@@ -326,6 +338,8 @@ const PROCESSOR_RESEARCH_COMPONENTS := [
 	"Instruction Scheduler",
 	"Processor Design",
 	"L1 Cache",
+	"L2 Cache",
+	"L3 Cache",
 	"Control Unit",
 	"Instruction Decoder",
 	"Instruction Fetch Unit",
@@ -417,6 +431,8 @@ const COMPONENT_CATALOGUE := [
 	"Instruction Scheduler",
 	"Processor Design",
 	"L1 Cache",
+	"L2 Cache",
+	"L3 Cache",
 	"Control Unit",
 	"Instruction Decoder",
 	"Instruction Fetch Unit",
@@ -609,6 +625,24 @@ static func get_l1_cache_research_target(component_levels: Dictionary) -> Dictio
 		return {}
 	var target_level := completed_levels + 1
 	var target_capacity := L1_CACHE_BASE_CAPACITY_KB + target_level * L1_CACHE_RESEARCH_INCREMENT_KB
+	return {"index": target_level, "technology": "%d KB" % target_capacity, "capacity_kb": target_capacity}
+
+
+static func get_l2_cache_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_levels := clampi(int(component_levels.get("L2 Cache", 0)), 0, L2_CACHE_MAX_RESEARCH_LEVEL)
+	if completed_levels >= L2_CACHE_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_level := completed_levels + 1
+	var target_capacity := L2_CACHE_BASE_CAPACITY_KB + target_level * L2_CACHE_RESEARCH_INCREMENT_KB
+	return {"index": target_level, "technology": "%d KB" % target_capacity, "capacity_kb": target_capacity}
+
+
+static func get_l3_cache_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_levels := clampi(int(component_levels.get("L3 Cache", 0)), 0, L3_CACHE_MAX_RESEARCH_LEVEL)
+	if completed_levels >= L3_CACHE_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_level := completed_levels + 1
+	var target_capacity := L3_CACHE_BASE_CAPACITY_KB + target_level * L3_CACHE_RESEARCH_INCREMENT_KB
 	return {"index": target_level, "technology": "%d KB" % target_capacity, "capacity_kb": target_capacity}
 
 
@@ -1327,6 +1361,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_instruction_scheduler_research_target(career.get("research_component_levels", {}))
 	elif component == "L1 Cache":
 		ordered_target = get_l1_cache_research_target(career.get("research_component_levels", {}))
+	elif component == "L2 Cache":
+		ordered_target = get_l2_cache_research_target(career.get("research_component_levels", {}))
+	elif component == "L3 Cache":
+		ordered_target = get_l3_cache_research_target(career.get("research_component_levels", {}))
 	elif component == NIGHT_MODE_COMPONENT:
 		ordered_target = get_night_mode_research_target(career.get("research_component_levels", {}))
 	elif component == "Processor Design":
@@ -1374,10 +1412,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
 	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
-	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler", "Processor Design", "L1 Cache", NIGHT_MODE_COMPONENT]:
+	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler", "Processor Design", "L1 Cache", "L2 Cache", "L3 Cache", NIGHT_MODE_COMPONENT]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler", "Processor Design", "L1 Cache"] or component == NIGHT_MODE_COMPONENT or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler", "Processor Design", "L1 Cache", "L2 Cache", "L3 Cache"] or component == NIGHT_MODE_COMPONENT or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1503,6 +1541,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate an instruction scheduler capacity of %s. Each approved research level unlocks the next entry-capacity tier." % target_technology
 		elif component == "L1 Cache":
 			project_objective = "Develop and validate the next L1 cache capacity of %s. Each approved upgrade adds 2 KB and takes 10 research days." % target_technology
+		elif component == "L2 Cache":
+			project_objective = "Develop and validate the next L2 cache capacity of %s. Each approved upgrade adds 128 KB and takes 10 research days." % target_technology
+		elif component == "L3 Cache":
+			project_objective = "Develop and validate the next L3 cache capacity of %s. Each approved upgrade adds 1,024 KB and takes 10 research days." % target_technology
 		elif component == "Processor Design":
 			project_objective = "Develop and validate %s as the next processor package design. Each approved project unlocks one additional design in the Processor Worksite." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
@@ -1841,6 +1883,16 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 		var l1_cache_target_index := int(project.get("research_target_index", -1))
 		if expected_l1_cache_target.is_empty() or l1_cache_target_index != int(expected_l1_cache_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_l1_cache_target.get("technology", "")):
 			return _failure("This L1 Cache project is no longer the next 2 KB capacity upgrade.")
+	elif component == "L2 Cache":
+		var expected_l2_cache_target := get_l2_cache_research_target(component_levels)
+		var l2_cache_target_index := int(project.get("research_target_index", -1))
+		if expected_l2_cache_target.is_empty() or l2_cache_target_index != int(expected_l2_cache_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_l2_cache_target.get("technology", "")):
+			return _failure("This L2 Cache project is no longer the next 128 KB capacity upgrade.")
+	elif component == "L3 Cache":
+		var expected_l3_cache_target := get_l3_cache_research_target(component_levels)
+		var l3_cache_target_index := int(project.get("research_target_index", -1))
+		if expected_l3_cache_target.is_empty() or l3_cache_target_index != int(expected_l3_cache_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_l3_cache_target.get("technology", "")):
+			return _failure("This L3 Cache project is no longer the next 1,024 KB capacity upgrade.")
 	elif component == "Processor Design":
 		var expected_processor_design_target := get_processor_design_research_target(component_levels)
 		processor_design_target_index = int(project.get("research_target_index", -1))
@@ -1943,8 +1995,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next CPU core-count target assigned to this project.")
 		if result_component == "Instruction Scheduler" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next Instruction Scheduler entry-capacity target assigned to this project.")
-		if result_component == "L1 Cache" and value != str(project.get("research_target", "")):
-			return _failure("Validate the exact next L1 cache capacity assigned to this project.")
+		if result_component in ["L1 Cache", "L2 Cache", "L3 Cache"] and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next %s capacity assigned to this project." % result_component)
 		if result_component == "Processor Design" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next Processor Design unlock assigned to this project.")
 		if PROCESSOR_TECHNOLOGIES.has(result_component) and value != str(project.get("research_target", "")):
@@ -2092,6 +2144,12 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "L1 Cache":
 		# 2 KB is the baseline; each approval adds 2 KB, up to 300 KB.
 		component_levels[component] = clampi(int(project.get("research_target_index", 0)), 0, L1_CACHE_MAX_RESEARCH_LEVEL)
+	elif component == "L2 Cache":
+		# 128 KB is the baseline; each approval adds 128 KB, up to 19,200 KB.
+		component_levels[component] = clampi(int(project.get("research_target_index", 0)), 0, L2_CACHE_MAX_RESEARCH_LEVEL)
+	elif component == "L3 Cache":
+		# 1,024 KB is the baseline; each approval adds 1,024 KB, up to 153,600 KB.
+		component_levels[component] = clampi(int(project.get("research_target_index", 0)), 0, L3_CACHE_MAX_RESEARCH_LEVEL)
 	elif component == "Processor Design":
 		# Design 01 is the baseline; the research level counts additional unlocked designs.
 		component_levels[component] = clampi(processor_design_target_index - PROCESSOR_DESIGN_BASE_COUNT, 0, PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL)
