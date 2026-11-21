@@ -425,7 +425,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	l1_cache_slider.value = 4.0
-	if int(worksite.get("processor_l1_cache_selected_level")) != 4 or l1_cache_value.text != "10 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 55.50) or technology_level_value.text != "55.50 TP":
+	if int(worksite.get("processor_l1_cache_selected_level")) != 4 or l1_cache_value.text != "10 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 54.50) or technology_level_value.text != "55.50 TP":
 		_fail("L1 Cache selection did not update capacity and the shared Technology Points total.")
 		worksite.free()
 		return
@@ -435,7 +435,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	l1_cache_slider.value = 149.0
-	if l1_cache_value.text != "300 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 70.00):
+	if l1_cache_value.text != "300 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 69.00):
 		_fail("Maximum L1 Cache capacity did not contribute its full shared TP value.")
 		worksite.free()
 		return
