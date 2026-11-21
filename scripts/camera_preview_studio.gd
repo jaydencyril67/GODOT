@@ -403,10 +403,10 @@ func _build_portrait_subject(parent: Node3D, accent: Color) -> void:
 	_add_box(parent, "PortraitBackdropPanel", Vector3(0.0, 2.0, -3.2), Vector3(3.4, 4.7, 0.12), accent.darkened(0.42))
 
 
-func _build_macro_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_macro_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for flower_index in range(5):
 		var x := -1.75 + float(flower_index) * 0.86
-		var height := 1.1 + float((flower_index + seed) % 3) * 0.42
+		var height := 1.1 + float((flower_index + scene_seed) % 3) * 0.42
 		_add_cylinder(parent, "MacroStem_%d" % flower_index, Vector3(x, height * 0.5, -1.15), 0.035, height, Color("#477A4E"))
 		_add_sphere(parent, "MacroFlowerCore_%d" % flower_index, Vector3(x, height + 0.12, -1.15), 0.16, Color("#E8C45A"))
 		for petal_index in range(6):
@@ -416,10 +416,10 @@ func _build_macro_subject(parent: Node3D, accent: Color, seed: int) -> void:
 	_add_sphere(parent, "MacroLeafRight", Vector3(1.15, 0.72, -1.25), 0.34, Color("#6C9E5F"))
 
 
-func _build_architecture_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_architecture_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for building_index in range(8):
 		var x := -3.2 + float(building_index) * 0.92
-		var floors := 3 + ((building_index + seed) % 5)
+		var floors := 3 + ((building_index + scene_seed) % 5)
 		var height := float(floors) * 0.64
 		var width := 0.72
 		_add_box(parent, "Tower_%d" % building_index, Vector3(x, height * 0.5 - 0.02, -2.3 - float(building_index % 3) * 0.4), Vector3(width, height, 0.72), Color("#657987").lerp(accent, float(building_index % 3) * 0.12), 0.25, 0.3)
@@ -429,11 +429,11 @@ func _build_architecture_subject(parent: Node3D, accent: Color, seed: int) -> vo
 	_add_box(parent, "ArchitecturePlaza", Vector3(0.0, 0.08, -0.45), Vector3(7.5, 0.14, 2.2), Color("#9A9A91"), 0.12, 0.45)
 
 
-func _build_street_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_street_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for side_value in [-1.0, 1.0]:
 		var side: float = float(side_value)
 		for building_index in range(3):
-			var height := 2.2 + float((building_index + seed) % 3) * 0.82
+			var height := 2.2 + float((building_index + scene_seed) % 3) * 0.82
 			var x: float = side * (2.2 + float(building_index) * 1.0)
 			_add_box(parent, "StreetBuilding_%s_%d" % [str(side), building_index], Vector3(x, height * 0.5, -2.0 - float(building_index) * 0.7), Vector3(1.1, height, 1.2), accent.darkened(0.28 + float(building_index) * 0.06), 0.05, 0.55)
 			_add_box(parent, "StreetShopfront_%s_%d" % [str(side), building_index], Vector3(x, 0.65, -1.36 - float(building_index) * 0.7), Vector3(0.75, 0.78, 0.05), accent.lightened(0.10), 0.0, 0.2)
@@ -442,29 +442,29 @@ func _build_street_subject(parent: Node3D, accent: Color, seed: int) -> void:
 		_add_box(parent, "RoadMarking_%d" % line_index, Vector3(0.0, 0.09, -4.0 + float(line_index) * 1.9), Vector3(0.10, 0.015, 0.8), Color("#E3D7B5"), 0.0, 0.4)
 
 
-func _build_forest_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_forest_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for tree_index in range(9):
 		var x := -3.5 + float(tree_index % 3) * 3.2
-		var z := -3.6 + float(tree_index / 3) * 2.1
-		var height := 2.2 + float((tree_index + seed) % 4) * 0.38
+		var z := -3.6 + float(tree_index) / 3.0 * 2.1
+		var height := 2.2 + float((tree_index + scene_seed) % 4) * 0.38
 		_add_cylinder(parent, "TreeTrunk_%d" % tree_index, Vector3(x, height * 0.38, z), 0.16, height * 0.76, Color("#654934"))
 		_add_sphere(parent, "TreeCanopy_%d" % tree_index, Vector3(x, height * 0.84, z), 0.9 + float(tree_index % 2) * 0.18, accent.lerp(Color("#477A56"), 0.45), 0.0, 0.82)
 	_add_sphere(parent, "ForegroundPlant", Vector3(-1.4, 0.35, 1.5), 0.42, Color("#91B56E"))
 
 
-func _build_mountain_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_mountain_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for mountain_index in range(5):
 		var x := -3.8 + float(mountain_index) * 1.9
-		var height := 2.5 + float((mountain_index + seed) % 3) * 0.9
+		var height := 2.5 + float((mountain_index + scene_seed) % 3) * 0.9
 		_add_cone(parent, "MountainPeak_%d" % mountain_index, Vector3(x, height * 0.48, -3.7 - float(mountain_index % 2)), 1.7, height, accent.darkened(float(mountain_index) * 0.07))
 	_add_box(parent, "MountainTrail", Vector3(0.0, 0.08, 1.0), Vector3(2.2, 0.12, 4.5), Color("#A58C68"))
 
 
-func _build_coast_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_coast_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	_add_box(parent, "OceanPlane", Vector3(0.0, 0.02, -1.2), Vector3(14.0, 0.10, 9.0), Color("#3E879A"), 0.48, 0.22)
 	for cliff_index in range(6):
 		var x := -4.0 + float(cliff_index) * 1.6
-		var height := 1.3 + float((cliff_index + seed) % 4) * 0.6
+		var height := 1.3 + float((cliff_index + scene_seed) % 4) * 0.6
 		_add_sphere(parent, "CoastalRock_%d" % cliff_index, Vector3(x, height * 0.45, -3.3 - float(cliff_index % 2)), 0.85 + height * 0.18, accent.darkened(0.2), 0.04, 0.9)
 
 
@@ -477,12 +477,12 @@ func _build_star_subject(parent: Node3D, accent: Color) -> void:
 		_add_sphere(parent, "Star_%02d" % star_index, Vector3(x, y, z), 0.025 + float(star_index % 3) * 0.012, accent.lightened(float(star_index % 4) * 0.1), 0.0, 0.05)
 
 
-func _build_gallery_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_gallery_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	for column_index in range(4):
 		var x := -3.2 + float(column_index) * 2.1
 		_add_box(parent, "GalleryColumn_%d" % column_index, Vector3(x, 1.65, -3.2), Vector3(0.24, 3.3, 0.24), Color("#D7D0C3"), 0.12, 0.62)
 		_add_box(parent, "GalleryArtwork_%d" % column_index, Vector3(x, 1.9, -2.95), Vector3(1.2, 1.55, 0.10), accent.lerp(Color("#6D8795"), float(column_index) * 0.15), 0.08, 0.48)
-	_add_cylinder(parent, "GallerySculpture", Vector3(0.0, 0.8, -0.8), 0.58, 1.6 + float(seed % 2) * 0.5, Color("#B7AC98"), 0.62, 0.22)
+	_add_cylinder(parent, "GallerySculpture", Vector3(0.0, 0.8, -0.8), 0.58, 1.6 + float(scene_seed % 2) * 0.5, Color("#B7AC98"), 0.62, 0.22)
 
 
 func _build_industrial_subject(parent: Node3D, accent: Color) -> void:
@@ -493,13 +493,13 @@ func _build_industrial_subject(parent: Node3D, accent: Color) -> void:
 	_add_cylinder(parent, "IndustrialPipe", Vector3(0.0, 2.65, -3.4), 0.10, 6.4, Color("#A8B3B5"), 0.72, 0.24)
 
 
-func _build_food_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_food_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	_add_cylinder(parent, "FoodPlate", Vector3(0.0, 0.19, -0.75), 1.42, 0.10, Color("#E7E4DD"), 0.18, 0.2)
 	for food_index in range(7):
 		var angle := TAU * float(food_index) / 7.0
 		var radius := 0.46 + float(food_index % 2) * 0.22
 		var item_position := Vector3(cos(angle) * radius, 0.48, -0.75 + sin(angle) * radius)
-		_add_sphere(parent, "FoodItem_%d" % food_index, item_position, 0.28, accent.lerp(Color("#6B9B56"), float((food_index + seed) % 3) * 0.18))
+		_add_sphere(parent, "FoodItem_%d" % food_index, item_position, 0.28, accent.lerp(Color("#6B9B56"), float((food_index + scene_seed) % 3) * 0.18))
 	_add_box(parent, "Tabletop", Vector3(0.0, -0.04, -0.75), Vector3(4.5, 0.14, 3.5), Color("#694C36"), 0.12, 0.72)
 
 
@@ -513,11 +513,11 @@ func _build_vehicle_subject(parent: Node3D, accent: Color) -> void:
 			_add_cylinder(parent, "VehicleWheel_%s_%s" % [str(side), str(axle)], Vector3(side * 1.5, 0.45, -1.2 + axle * 0.58), 0.39, 0.22, Color("#202326"), 0.10, 0.9)
 
 
-func _build_tabletop_subject(parent: Node3D, accent: Color, seed: int) -> void:
+func _build_tabletop_subject(parent: Node3D, accent: Color, scene_seed: int) -> void:
 	_add_box(parent, "TableSurface", Vector3(0.0, 0.34, -0.7), Vector3(5.8, 0.18, 4.0), Color("#755940"), 0.16, 0.58)
 	for item_index in range(6):
 		var x := -2.1 + float(item_index) * 0.84
-		var y := 0.83 + float((item_index + seed) % 3) * 0.22
+		var y := 0.83 + float((item_index + scene_seed) % 3) * 0.22
 		if item_index % 3 == 0:
 			_add_sphere(parent, "TableObject_%d" % item_index, Vector3(x, y, -0.8), 0.38, accent.lerp(Color("#DCE1E4"), float(item_index) * 0.08), 0.28, 0.28)
 		elif item_index % 3 == 1:
