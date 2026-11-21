@@ -22,7 +22,7 @@ const LEGACY_PROCESSOR_COLORS := {
 
 const DEFAULT_VIEW_ROTATION := Vector3(-0.24, -0.42, 0.0)
 const DRAG_SENSITIVITY := 0.0024
-const WIZARD_STEP_COUNT := 6
+const WIZARD_STEP_COUNT := 8
 
 const PROCESSOR_TECHNOLOGIES := [
 	"Control Unit",
@@ -256,6 +256,18 @@ var processor_l1_cache_value_label: Label
 var processor_l1_cache_range_label: Label
 var processor_l1_cache_research_level := 0
 var processor_l1_cache_selected_level := 0
+var processor_l2_cache_step_content: VBoxContainer
+var processor_l2_cache_slider: HSlider
+var processor_l2_cache_value_label: Label
+var processor_l2_cache_range_label: Label
+var processor_l2_cache_research_level := 0
+var processor_l2_cache_selected_level := 0
+var processor_l3_cache_step_content: VBoxContainer
+var processor_l3_cache_slider: HSlider
+var processor_l3_cache_value_label: Label
+var processor_l3_cache_range_label: Label
+var processor_l3_cache_research_level := 0
+var processor_l3_cache_selected_level := 0
 var package_layers: Array[MeshInstance3D] = []
 var die_surface: MeshInstance3D
 var die_surfaces: Array[MeshInstance3D] = []
@@ -279,7 +291,9 @@ var processor_design := {
 	"processor_gradient_direction": 0,
 	"cpu_core_count": 1,
 	"instruction_scheduler_entries": 8,
-	"l1_cache_kb": 2
+	"l1_cache_kb": 2,
+	"l2_cache_kb": 128,
+	"l3_cache_kb": 1024
 }
 
 func _ready() -> void:
@@ -308,8 +322,12 @@ func configure_design(design: Dictionary) -> void:
 	var saved_scheduler_entries := int(processor_design.get("instruction_scheduler_entries", 8))
 	var saved_scheduler_level := ResearchManagerScript.INSTRUCTION_SCHEDULER_ENTRY_LEVELS.find(saved_scheduler_entries)
 	processor_instruction_scheduler_selected_level = maxi(0, saved_scheduler_level)
-	var saved_l1_cache_kb := clampi(int(processor_design.get("l1_cache_kb", 2)), 2, 300)
-	processor_l1_cache_selected_level = clampi(floori(float(saved_l1_cache_kb - 2) / 2.0), 0, ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL)
+	var saved_l1_cache_kb := clampi(int(processor_design.get("l1_cache_kb", 2)), 2, ResearchManagerScript.L1_CACHE_MAX_CAPACITY_KB)
+	processor_l1_cache_selected_level = clampi(floori(float(saved_l1_cache_kb - ResearchManagerScript.L1_CACHE_BASE_CAPACITY_KB) / float(ResearchManagerScript.L1_CACHE_RESEARCH_INCREMENT_KB)), 0, ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL)
+	var saved_l2_cache_kb := clampi(int(processor_design.get("l2_cache_kb", ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB)), ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB, ResearchManagerScript.L2_CACHE_MAX_CAPACITY_KB)
+	processor_l2_cache_selected_level = clampi(floori(float(saved_l2_cache_kb - ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB) / float(ResearchManagerScript.L2_CACHE_RESEARCH_INCREMENT_KB)), 0, ResearchManagerScript.L2_CACHE_MAX_RESEARCH_LEVEL)
+	var saved_l3_cache_kb := clampi(int(processor_design.get("l3_cache_kb", ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB)), ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB, ResearchManagerScript.L3_CACHE_MAX_CAPACITY_KB)
+	processor_l3_cache_selected_level = clampi(floori(float(saved_l3_cache_kb - ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB) / float(ResearchManagerScript.L3_CACHE_RESEARCH_INCREMENT_KB)), 0, ResearchManagerScript.L3_CACHE_MAX_RESEARCH_LEVEL)
 	var saved_technology_states: Variant = processor_design.get("processor_technology_enabled_states", {})
 	if saved_technology_states is Dictionary:
 		processor_technology_enabled_states = saved_technology_states.duplicate(true)
@@ -614,6 +632,28 @@ func _build_interface() -> void:
 	save_l1_cache_settings_button.pressed.connect(_save_design)
 	l1_cache_page.add_child(save_l1_cache_settings_button)
 
+	var l2_cache_page := _create_step_page("L2 CACHE")
+	_build_processor_l2_cache_controls(l2_cache_page)
+	var save_l2_cache_settings_button := Button.new()
+	save_l2_cache_settings_button.name = "SaveProcessorL2CacheSettingsButton"
+	save_l2_cache_settings_button.text = "SAVE PROCESSOR DESIGN"
+	save_l2_cache_settings_button.custom_minimum_size = Vector2(0, 46)
+	save_l2_cache_settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_l2_cache_settings_button, true)
+	save_l2_cache_settings_button.pressed.connect(_save_design)
+	l2_cache_page.add_child(save_l2_cache_settings_button)
+
+	var l3_cache_page := _create_step_page("L3 CACHE")
+	_build_processor_l3_cache_controls(l3_cache_page)
+	var save_l3_cache_settings_button := Button.new()
+	save_l3_cache_settings_button.name = "SaveProcessorL3CacheSettingsButton"
+	save_l3_cache_settings_button.text = "SAVE PROCESSOR DESIGN"
+	save_l3_cache_settings_button.custom_minimum_size = Vector2(0, 46)
+	save_l3_cache_settings_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(save_l3_cache_settings_button, true)
+	save_l3_cache_settings_button.pressed.connect(_save_design)
+	l3_cache_page.add_child(save_l3_cache_settings_button)
+
 	wizard_back_button = GlassArrowButton.new()
 	wizard_back_button.name = "WizardBackIconButton"
 	wizard_back_button.points_right = false
@@ -727,6 +767,16 @@ func set_instruction_scheduler_research_level(level: int) -> void:
 func set_l1_cache_research_level(level: int) -> void:
 	processor_l1_cache_research_level = clampi(level, 0, ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL)
 	_refresh_processor_l1_cache_controls()
+
+
+func set_l2_cache_research_level(level: int) -> void:
+	processor_l2_cache_research_level = clampi(level, 0, ResearchManagerScript.L2_CACHE_MAX_RESEARCH_LEVEL)
+	_refresh_processor_l2_cache_controls()
+
+
+func set_l3_cache_research_level(level: int) -> void:
+	processor_l3_cache_research_level = clampi(level, 0, ResearchManagerScript.L3_CACHE_MAX_RESEARCH_LEVEL)
+	_refresh_processor_l3_cache_controls()
 
 
 func set_processor_design_research_level(level: int) -> void:
@@ -984,6 +1034,140 @@ func _refresh_processor_l1_cache_controls() -> void:
 	_refresh_processor_technology_level_display()
 
 
+func _build_processor_l2_cache_controls(parent: VBoxContainer) -> void:
+	processor_l2_cache_step_content = VBoxContainer.new()
+	processor_l2_cache_step_content.name = "ProcessorL2CacheStepContent"
+	processor_l2_cache_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_l2_cache_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_l2_cache_step_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	processor_l2_cache_step_content.add_theme_constant_override("separation", 18)
+	parent.add_child(processor_l2_cache_step_content)
+	var description := _label("SELECT L2 CACHE CAPACITY", 12, MUTED)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l2_cache_step_content.add_child(description)
+	processor_l2_cache_value_label = _label("128 KB", 30, Color("#F2EEE7"))
+	processor_l2_cache_value_label.name = "ProcessorL2CacheCapacityValue"
+	processor_l2_cache_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l2_cache_step_content.add_child(processor_l2_cache_value_label)
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "ProcessorL2CacheSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.add_theme_constant_override("separation", 12)
+	processor_l2_cache_step_content.add_child(slider_row)
+	var minimum_label := _label("128 KB", 12, MUTED)
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+	processor_l2_cache_slider = HSlider.new()
+	processor_l2_cache_slider.name = "ProcessorL2CacheSlider"
+	processor_l2_cache_slider.min_value = 0
+	processor_l2_cache_slider.max_value = processor_l2_cache_research_level
+	processor_l2_cache_slider.step = 1
+	processor_l2_cache_slider.value = processor_l2_cache_selected_level
+	processor_l2_cache_slider.custom_minimum_size = Vector2(0, 46)
+	processor_l2_cache_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_l2_cache_slider.focus_mode = Control.FOCUS_NONE
+	processor_l2_cache_slider.tick_count = 0
+	_style_processor_cpu_core_slider(processor_l2_cache_slider)
+	processor_l2_cache_slider.value_changed.connect(_on_processor_l2_cache_slider_changed)
+	slider_row.add_child(processor_l2_cache_slider)
+	var maximum_label := _label("19,200 KB", 12, MUTED)
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+	processor_l2_cache_range_label = _label("AVAILABLE RANGE: 128–128 KB", 11, ACCENT)
+	processor_l2_cache_range_label.name = "ProcessorL2CacheRangeLabel"
+	processor_l2_cache_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l2_cache_step_content.add_child(processor_l2_cache_range_label)
+	_refresh_processor_l2_cache_controls()
+
+
+func _on_processor_l2_cache_slider_changed(value: float) -> void:
+	processor_l2_cache_selected_level = clampi(roundi(value), 0, processor_l2_cache_research_level)
+	_refresh_processor_l2_cache_controls()
+
+
+func _refresh_processor_l2_cache_controls() -> void:
+	processor_l2_cache_selected_level = clampi(processor_l2_cache_selected_level, 0, processor_l2_cache_research_level)
+	var selected_capacity := ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB + processor_l2_cache_selected_level * ResearchManagerScript.L2_CACHE_RESEARCH_INCREMENT_KB
+	var maximum_capacity := ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB + processor_l2_cache_research_level * ResearchManagerScript.L2_CACHE_RESEARCH_INCREMENT_KB
+	if is_instance_valid(processor_l2_cache_slider):
+		processor_l2_cache_slider.min_value = 0
+		processor_l2_cache_slider.max_value = processor_l2_cache_research_level
+		if not is_equal_approx(processor_l2_cache_slider.value, float(processor_l2_cache_selected_level)):
+			processor_l2_cache_slider.set_value_no_signal(processor_l2_cache_selected_level)
+	if is_instance_valid(processor_l2_cache_value_label):
+		processor_l2_cache_value_label.text = "%d KB" % selected_capacity
+	if is_instance_valid(processor_l2_cache_range_label):
+		processor_l2_cache_range_label.text = "AVAILABLE RANGE: 128–%d KB" % maximum_capacity
+	_refresh_processor_technology_level_display()
+
+
+func _build_processor_l3_cache_controls(parent: VBoxContainer) -> void:
+	processor_l3_cache_step_content = VBoxContainer.new()
+	processor_l3_cache_step_content.name = "ProcessorL3CacheStepContent"
+	processor_l3_cache_step_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_l3_cache_step_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	processor_l3_cache_step_content.alignment = BoxContainer.ALIGNMENT_CENTER
+	processor_l3_cache_step_content.add_theme_constant_override("separation", 18)
+	parent.add_child(processor_l3_cache_step_content)
+	var description := _label("SELECT L3 CACHE CAPACITY", 12, MUTED)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l3_cache_step_content.add_child(description)
+	processor_l3_cache_value_label = _label("1,024 KB", 30, Color("#F2EEE7"))
+	processor_l3_cache_value_label.name = "ProcessorL3CacheCapacityValue"
+	processor_l3_cache_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l3_cache_step_content.add_child(processor_l3_cache_value_label)
+	var slider_row := HBoxContainer.new()
+	slider_row.name = "ProcessorL3CacheSliderRow"
+	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider_row.add_theme_constant_override("separation", 12)
+	processor_l3_cache_step_content.add_child(slider_row)
+	var minimum_label := _label("1,024 KB", 12, MUTED)
+	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(minimum_label)
+	processor_l3_cache_slider = HSlider.new()
+	processor_l3_cache_slider.name = "ProcessorL3CacheSlider"
+	processor_l3_cache_slider.min_value = 0
+	processor_l3_cache_slider.max_value = processor_l3_cache_research_level
+	processor_l3_cache_slider.step = 1
+	processor_l3_cache_slider.value = processor_l3_cache_selected_level
+	processor_l3_cache_slider.custom_minimum_size = Vector2(0, 46)
+	processor_l3_cache_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	processor_l3_cache_slider.focus_mode = Control.FOCUS_NONE
+	processor_l3_cache_slider.tick_count = 0
+	_style_processor_cpu_core_slider(processor_l3_cache_slider)
+	processor_l3_cache_slider.value_changed.connect(_on_processor_l3_cache_slider_changed)
+	slider_row.add_child(processor_l3_cache_slider)
+	var maximum_label := _label("153,600 KB", 12, MUTED)
+	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	slider_row.add_child(maximum_label)
+	processor_l3_cache_range_label = _label("AVAILABLE RANGE: 1,024–1,024 KB", 11, ACCENT)
+	processor_l3_cache_range_label.name = "ProcessorL3CacheRangeLabel"
+	processor_l3_cache_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	processor_l3_cache_step_content.add_child(processor_l3_cache_range_label)
+	_refresh_processor_l3_cache_controls()
+
+
+func _on_processor_l3_cache_slider_changed(value: float) -> void:
+	processor_l3_cache_selected_level = clampi(roundi(value), 0, processor_l3_cache_research_level)
+	_refresh_processor_l3_cache_controls()
+
+
+func _refresh_processor_l3_cache_controls() -> void:
+	processor_l3_cache_selected_level = clampi(processor_l3_cache_selected_level, 0, processor_l3_cache_research_level)
+	var selected_capacity := ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB + processor_l3_cache_selected_level * ResearchManagerScript.L3_CACHE_RESEARCH_INCREMENT_KB
+	var maximum_capacity := ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB + processor_l3_cache_research_level * ResearchManagerScript.L3_CACHE_RESEARCH_INCREMENT_KB
+	if is_instance_valid(processor_l3_cache_slider):
+		processor_l3_cache_slider.min_value = 0
+		processor_l3_cache_slider.max_value = processor_l3_cache_research_level
+		if not is_equal_approx(processor_l3_cache_slider.value, float(processor_l3_cache_selected_level)):
+			processor_l3_cache_slider.set_value_no_signal(processor_l3_cache_selected_level)
+	if is_instance_valid(processor_l3_cache_value_label):
+		processor_l3_cache_value_label.text = "%d KB" % selected_capacity
+	if is_instance_valid(processor_l3_cache_range_label):
+		processor_l3_cache_range_label.text = "AVAILABLE RANGE: 1,024–%d KB" % maximum_capacity
+	_refresh_processor_technology_level_display()
+
+
 func _refresh_processor_technology_level_display() -> void:
 	if is_instance_valid(processor_technology_level_value_label):
 		processor_technology_level_value_label.text = "%.2f TP" % _calculate_processor_technology_points()
@@ -998,6 +1182,8 @@ func _calculate_processor_technology_points() -> float:
 	total += ResearchManagerScript.get_technology_points_for_progress("CPU Cores", float(maxi(0, processor_cpu_core_count - 1)))
 	total += ResearchManagerScript.get_technology_points_for_progress("Instruction Scheduler", float(processor_instruction_scheduler_selected_level))
 	total += ResearchManagerScript.get_technology_points_for_progress("L1 Cache", float(processor_l1_cache_selected_level))
+	total += ResearchManagerScript.get_technology_points_for_progress("L2 Cache", float(processor_l2_cache_selected_level))
+	total += ResearchManagerScript.get_technology_points_for_progress("L3 Cache", float(processor_l3_cache_selected_level))
 	total += ResearchManagerScript.get_technology_points_for_progress("Processor Design", float(maxi(0, selected_design_index)))
 	return maxf(0.0, total)
 
@@ -1925,6 +2111,8 @@ func _save_design() -> void:
 		"cpu_core_count": processor_cpu_core_count,
 		"instruction_scheduler_entries": ResearchManagerScript.get_instruction_scheduler_entries_for_level(processor_instruction_scheduler_selected_level),
 		"l1_cache_kb": 2 + processor_l1_cache_selected_level * 2,
+		"l2_cache_kb": ResearchManagerScript.L2_CACHE_BASE_CAPACITY_KB + processor_l2_cache_selected_level * ResearchManagerScript.L2_CACHE_RESEARCH_INCREMENT_KB,
+		"l3_cache_kb": ResearchManagerScript.L3_CACHE_BASE_CAPACITY_KB + processor_l3_cache_selected_level * ResearchManagerScript.L3_CACHE_RESEARCH_INCREMENT_KB,
 		"processor_technology_enabled_states": processor_technology_enabled_states.duplicate(true)
 	}
 	design_saved.emit(processor_design.duplicate(true))
