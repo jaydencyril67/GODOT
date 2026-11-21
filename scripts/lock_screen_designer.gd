@@ -219,7 +219,7 @@ func get_selected_wallpaper_path() -> String:
 
 
 func set_wallpaper(path: String) -> bool:
-	if not _wallpaper_paths.has(path) or not FileAccess.file_exists(path):
+	if not _wallpaper_paths.has(path) or not ResourceLoader.exists(path, "Texture2D"):
 		return false
 	var wallpaper := find_child("GeneratedWallpaper", true, false) as TextureRect
 	var texture := ResourceLoader.load(path, "Texture2D") as Texture2D
@@ -409,7 +409,7 @@ func validate_layout(design: Dictionary) -> Array[String]:
 	if str(design.get("layout_id", "")).is_empty():
 		issues.append("The composition has no curated layout foundation.")
 	var wallpaper_path := str(design.get("wallpaper_path", ""))
-	if wallpaper_path.is_empty() or not FileAccess.file_exists(wallpaper_path):
+	if wallpaper_path.is_empty() or not ResourceLoader.exists(wallpaper_path, "Texture2D"):
 		issues.append("The composition does not reference a bundled lock-screen wallpaper.")
 
 	var occupied: Array[Rect2] = []
@@ -1113,14 +1113,18 @@ func _find_component_rect(design: Dictionary, role: String) -> Rect2:
 
 func _discover_wallpapers() -> Array[String]:
 	var discovered: Array[String] = []
-	var directory := DirAccess.open(WALLPAPER_ROOT)
-	if directory == null:
-		return discovered
-	for file_name in directory.get_files():
+	for file_name in ResourceLoader.list_directory(WALLPAPER_ROOT):
+		if file_name.ends_with("/"):
+			continue
 		var extension := file_name.get_extension().to_lower()
-		if extension in ["jpg", "jpeg", "png", "webp"]:
-			discovered.append(WALLPAPER_ROOT.path_join(file_name))
+		if extension not in ["jpg", "jpeg", "png", "webp"]:
+			continue
+		var wallpaper_path := WALLPAPER_ROOT.path_join(file_name)
+		if ResourceLoader.exists(wallpaper_path, "Texture2D"):
+			discovered.append(wallpaper_path)
 	discovered.sort()
+	if discovered.is_empty():
+		push_error("Lock-screen wallpaper discovery found no exported Texture2D resources in %s." % WALLPAPER_ROOT)
 	return discovered
 
 
