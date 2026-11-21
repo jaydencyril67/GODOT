@@ -15,9 +15,9 @@ const SUCCESS := Color("#7FA88A")
 const INFO := Color("#A7A49D")
 const ORANGE := Color("#ffb45c")
 
-const COMPONENT_LABELS := ["CPU CORES","INSTRUCTION SCHEDULER","PROCESSOR DESIGN","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
-const COMPONENT_VALUES := ["CPU Cores","Instruction Scheduler","Processor Design","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
-const PROCESSOR_RESEARCH_COMPONENTS := ["CPU Cores","Instruction Scheduler","Processor Design","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const COMPONENT_LABELS := ["CPU CORES","INSTRUCTION SCHEDULER","PROCESSOR DESIGN","L1 CACHE","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const COMPONENT_VALUES := ["CPU Cores","Instruction Scheduler","Processor Design","L1 Cache","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
+const PROCESSOR_RESEARCH_COMPONENTS := ["CPU Cores","Instruction Scheduler","Processor Design","L1 Cache","Control Unit","Instruction Decoder","Instruction Fetch Unit","Branch Prediction Unit","Memory Management Unit","Translation Lookaside Buffer","Internal Bus","Ring Bus / Interconnect Fabric","System Agent","I/O Controller","Clock Distribution Network","Voltage Regulator Interface","Thermal Sensor","Debug and Test Unit","Security Processing Unit"]
 
 var company_balance := 0.0
 var staff_employees: Array = []
@@ -411,6 +411,8 @@ func _request_research_retry(project_id: String) -> void:
 
 
 func _default_validation_metric(component: String) -> String:
+	if component == "L1 Cache":
+		return "Validated L1 cache capacity"
 	if ResearchManagerScript.PROCESSOR_TECHNOLOGIES.has(component):
 		return "Processor subsystem functionality and architecture integration"
 	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(component):
@@ -572,7 +574,7 @@ func _build_component_selection_scene() -> void:
 				component_button.disabled = true
 			else:
 				component_button.tooltip_text = "Next technology: %s" % str(cooling_target.get("technology", ""))
-		elif COMPONENT_VALUES[index] in ["CPU Cores", "Instruction Scheduler", "Processor Design", "Phone Type", "Refresh Rate", "Speakers", "Speaker Quality", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
+		elif COMPONENT_VALUES[index] in ["CPU Cores", "Instruction Scheduler", "Processor Design", "L1 Cache", "Phone Type", "Refresh Rate", "Speakers", "Speaker Quality", ResearchManagerScript.POWER_VOLUME_BUTTON_LENGTH_COMPONENT, "Phone Case", "Protection Glass", "Power Bank", "Smartwatch", "Wireless Earbuds", "Box Package"]:
 			var component_name := str(COMPONENT_VALUES[index])
 			var current_level := int(research_component_levels.get(component_name, 0))
 			var maximum_level := 0
@@ -593,6 +595,14 @@ func _build_component_selection_scene() -> void:
 						component_button.disabled = true
 					else:
 						component_button.tooltip_text = "Next approval unlocks %s." % str(scheduler_target.get("technology", ""))
+				"L1 Cache":
+					var l1_cache_target: Dictionary = ResearchManagerScript.get_l1_cache_research_target(research_component_levels)
+					maximum_level = ResearchManagerScript.L1_CACHE_MAX_RESEARCH_LEVEL
+					if l1_cache_target.is_empty():
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 300 KB"
+						component_button.disabled = true
+					else:
+						component_button.tooltip_text = "Next approval unlocks %s; each level takes 10 research days." % str(l1_cache_target.get("technology", ""))
 				"Processor Design":
 					var processor_design_target: Dictionary = ResearchManagerScript.get_processor_design_research_target(research_component_levels)
 					maximum_level = ResearchManagerScript.PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL
