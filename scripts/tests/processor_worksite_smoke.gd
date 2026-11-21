@@ -87,8 +87,8 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 6 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Processor worksite does not initialize its six-step progress navigation.")
+	if progress_bar.max_value != 8 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Processor worksite does not initialize its eight-step progress navigation.")
 		worksite.free()
 		return
 	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
@@ -411,7 +411,7 @@ func _run_processor_worksite_test() -> void:
 	var l1_cache_slider := worksite.find_child("ProcessorL1CacheSlider", true, false) as HSlider
 	var l1_cache_value := worksite.find_child("ProcessorL1CacheCapacityValue", true, false) as Label
 	var l1_cache_range := worksite.find_child("ProcessorL1CacheRangeLabel", true, false) as Label
-	if int(worksite.get("current_wizard_step")) != 6 or progress_bar.value != 6 or not next_step_button.disabled or l1_cache_slider == null or l1_cache_value == null or l1_cache_range == null:
+	if int(worksite.get("current_wizard_step")) != 6 or progress_bar.value != 6 or next_step_button.disabled or l1_cache_slider == null or l1_cache_value == null or l1_cache_range == null:
 		_fail("L1 Cache is not available as the sixth worksite step with its slider and labels.")
 		worksite.free()
 		return
@@ -437,6 +437,83 @@ func _run_processor_worksite_test() -> void:
 	l1_cache_slider.value = 149.0
 	if l1_cache_value.text != "300 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 69.00):
 		_fail("Maximum L1 Cache capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	var l2_cache_slider := worksite.find_child("ProcessorL2CacheSlider", true, false) as HSlider
+	var l2_cache_value := worksite.find_child("ProcessorL2CacheCapacityValue", true, false) as Label
+	var l2_cache_range := worksite.find_child("ProcessorL2CacheRangeLabel", true, false) as Label
+	if int(worksite.get("current_wizard_step")) != 7 or progress_bar.value != 7 or next_step_button.disabled or l2_cache_slider == null or l2_cache_value == null or l2_cache_range == null:
+		_fail("L2 Cache is not available as the seventh worksite step with its slider and labels.")
+		worksite.free()
+		return
+	if l2_cache_slider.min_value != 0.0 or l2_cache_slider.max_value != 0.0 or l2_cache_slider.step != 1.0 or l2_cache_value.text != "128 KB" or l2_cache_range.text != "AVAILABLE RANGE: 128–128 KB":
+		_fail("L2 Cache did not initialize at its 128 KB baseline.")
+		worksite.free()
+		return
+	worksite.call("set_l2_cache_research_level", 4)
+	if l2_cache_slider.max_value != 4.0 or l2_cache_range.text != "AVAILABLE RANGE: 128–640 KB":
+		_fail("L2 Cache research did not expand the selectable capacity in 128 KB increments.")
+		worksite.free()
+		return
+	l2_cache_slider.value = 4.0
+	if int(worksite.get("processor_l2_cache_selected_level")) != 4 or l2_cache_value.text != "640 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 69.40) or technology_level_value.text != "69.40 TP":
+		_fail("L2 Cache selection did not update capacity and the shared Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("set_l2_cache_research_level", 149)
+	if l2_cache_slider.max_value != 149.0 or l2_cache_range.text != "AVAILABLE RANGE: 128–19200 KB":
+		_fail("L2 Cache did not expose the full 19200 KB research ceiling.")
+		worksite.free()
+		return
+	l2_cache_slider.value = 149.0
+	if l2_cache_value.text != "19200 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 83.90):
+		_fail("Maximum L2 Cache capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+
+	worksite.call("_on_next_pressed")
+	var l3_cache_slider := worksite.find_child("ProcessorL3CacheSlider", true, false) as HSlider
+	var l3_cache_value := worksite.find_child("ProcessorL3CacheCapacityValue", true, false) as Label
+	var l3_cache_range := worksite.find_child("ProcessorL3CacheRangeLabel", true, false) as Label
+	if int(worksite.get("current_wizard_step")) != 8 or progress_bar.value != 8 or not next_step_button.disabled or l3_cache_slider == null or l3_cache_value == null or l3_cache_range == null:
+		_fail("L3 Cache is not available as the eighth and final worksite step with its slider and labels.")
+		worksite.free()
+		return
+	if l3_cache_slider.min_value != 0.0 or l3_cache_slider.max_value != 0.0 or l3_cache_slider.step != 1.0 or l3_cache_value.text != "1024 KB" or l3_cache_range.text != "AVAILABLE RANGE: 1024–1024 KB":
+		_fail("L3 Cache did not initialize at its 1024 KB baseline.")
+		worksite.free()
+		return
+	worksite.call("set_l3_cache_research_level", 4)
+	if l3_cache_slider.max_value != 4.0 or l3_cache_range.text != "AVAILABLE RANGE: 1024–5120 KB":
+		_fail("L3 Cache research did not expand the selectable capacity in 1024 KB increments.")
+		worksite.free()
+		return
+	l3_cache_slider.value = 4.0
+	if int(worksite.get("processor_l3_cache_selected_level")) != 4 or l3_cache_value.text != "5120 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 84.30) or technology_level_value.text != "84.30 TP":
+		_fail("L3 Cache selection did not update capacity and the shared Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("set_l3_cache_research_level", 149)
+	if l3_cache_slider.max_value != 149.0 or l3_cache_range.text != "AVAILABLE RANGE: 1024–153600 KB":
+		_fail("L3 Cache did not expose the full 153600 KB research ceiling.")
+		worksite.free()
+		return
+	l3_cache_slider.value = 149.0
+	if l3_cache_value.text != "153600 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 98.80):
+		_fail("Maximum L3 Cache capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 7 or progress_bar.value != 7 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from L3 Cache to L2 Cache.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 6 or progress_bar.value != 6 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from L2 Cache to L1 Cache.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
@@ -505,6 +582,9 @@ func _run_processor_worksite_test() -> void:
 		"processor_gradient_direction": 2,
 		"cpu_core_count": 3,
 		"instruction_scheduler_entries": 500,
+		"l1_cache_kb": 300,
+		"l2_cache_kb": 1024,
+		"l3_cache_kb": 1024,
 		"processor_technology_enabled_states": {
 			"Control Unit": true,
 			"Security Processing Unit": true
@@ -519,12 +599,30 @@ func _run_processor_worksite_test() -> void:
 
 	var emitted_design: Array = []
 	worksite.design_saved.connect(func(design: Dictionary): emitted_design.append(design))
+	var l2_save_slider := worksite.find_child("ProcessorL2CacheSlider", true, false) as HSlider
+	var l3_save_slider := worksite.find_child("ProcessorL3CacheSlider", true, false) as HSlider
+	if l2_save_slider == null or l3_save_slider == null:
+		_fail("Processor design save is missing one or both cache capacity controls.")
+		worksite.free()
+		return
+	l2_save_slider.value = 7.0
+	l3_save_slider.value = 9.0
 	worksite.call("_save_design")
 	if emitted_design.size() != 1 or str(emitted_design[0].get("name", "")) != "DW SILICON 01" or int(emitted_design[0].get("cpu_core_count", 0)) != 3 or int(emitted_design[0].get("instruction_scheduler_entries", 0)) != 500:
 		_fail("Save Processor Design did not use the selected design's preset name.")
 		worksite.free()
 		return
+	if int(emitted_design[0].get("l1_cache_kb", 0)) != 300 or int(emitted_design[0].get("l2_cache_kb", 0)) != 1024 or int(emitted_design[0].get("l3_cache_kb", 0)) != 1024:
+		_fail("Save Processor Design did not persist all three selected cache capacities.")
+		worksite.free()
+		return
 	worksite.call("configure_design", emitted_design[0])
+	if int(worksite.get("processor_l2_cache_selected_level")) != 7 or int(worksite.get("processor_l3_cache_selected_level")) != 9:
+		_fail("Processor Worksite did not restore the saved L2 and L3 cache selections.")
+		worksite.free()
+		return
+	worksite.call("set_l2_cache_research_level", 149)
+	worksite.call("set_l3_cache_research_level", 149)
 	technology_states = worksite.get("processor_technology_enabled_states")
 	if not bool(technology_states.get("Control Unit", false)) or not bool(technology_states.get("Security Processing Unit", false)):
 		_fail("Processor Technology enable states did not restore with the saved processor design.")
