@@ -87,8 +87,8 @@ func _run_processor_worksite_test() -> void:
 		_fail("Processor preview region is not configured to fill the shared worksite body.")
 		worksite.free()
 		return
-	if progress_bar.max_value != 5 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
-		_fail("Processor worksite does not initialize its four-step progress navigation.")
+	if progress_bar.max_value != 6 or progress_bar.value != 1 or int(worksite.get("current_wizard_step")) != 1:
+		_fail("Processor worksite does not initialize its six-step progress navigation.")
 		worksite.free()
 		return
 	if worksite.find_child("ProcessorPackageSize", true, false) != null or worksite.find_child("SaveProcessorDesignButton", true, false) == null:
