@@ -1164,7 +1164,7 @@ func _refresh_processor_l3_cache_controls() -> void:
 	if is_instance_valid(processor_l3_cache_value_label):
 		processor_l3_cache_value_label.text = "%d KB" % selected_capacity
 	if is_instance_valid(processor_l3_cache_range_label):
-		processor_l3_cache_range_label.text = "AVAILABLE RANGE: 1,024–%d KB" % maximum_capacity
+		processor_l3_cache_range_label.text = "AVAILABLE RANGE: 1024–%d KB" % maximum_capacity
 	_refresh_processor_technology_level_display()
 
 
