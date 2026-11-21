@@ -144,7 +144,7 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	design_selector_next.pressed.emit()
-	if int(worksite.get("selected_design_index")) != 1 or design_selector_value.text != "DW FUSION 02" or design_selector_position.text != "DESIGN 02 / 30" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 21.0) or technology_level_value.text != "21.00 TP":
+	if int(worksite.get("selected_design_index")) != 1 or design_selector_value.text != "DW CORE 02" or design_selector_position.text != "DESIGN 02 / 30" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 21.0) or technology_level_value.text != "21.00 TP":
 		_fail("Processor Design research did not make Design 02 selectable.")
 		worksite.free()
 		return
