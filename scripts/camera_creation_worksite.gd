@@ -1387,10 +1387,10 @@ func _on_camera_preview_zoom_in() -> void:
 		_refresh_camera_preview_controls()
 
 
-func _on_camera_preview_capture() -> void:
+func _on_camera_preview_capture(source_image: Image = null) -> void:
 	if not is_instance_valid(camera_preview_studio):
 		return
-	var photo: Variant = camera_preview_studio.call("capture_photo")
+	var photo: Variant = camera_preview_studio.call("capture_photo", source_image)
 	if photo is Texture2D:
 		camera_preview_gallery_button.disabled = false
 		camera_preview_live_button.disabled = true
