@@ -374,7 +374,7 @@ func _run_processor_worksite_test() -> void:
 	var scheduler_slider := worksite.find_child("ProcessorInstructionSchedulerSlider", true, false) as HSlider
 	var scheduler_value := worksite.find_child("ProcessorInstructionSchedulerEntryValue", true, false) as Label
 	var scheduler_range := worksite.find_child("ProcessorInstructionSchedulerRangeLabel", true, false) as Label
-	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.value != 5 or not next_step_button.disabled or scheduler_slider == null or scheduler_value == null or scheduler_range == null:
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.value != 5 or next_step_button.disabled or scheduler_slider == null or scheduler_value == null or scheduler_range == null:
 		_fail("Instruction Scheduler is not available as the fifth worksite step with its slider and labels.")
 		worksite.free()
 		return
@@ -405,6 +405,43 @@ func _run_processor_worksite_test() -> void:
 	scheduler_slider.value = 13.0
 	if scheduler_value.text != "500 ENTRIES" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 54.10):
 		_fail("Maximum Instruction Scheduler capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+	worksite.call("_on_next_pressed")
+	var l1_cache_slider := worksite.find_child("ProcessorL1CacheSlider", true, false) as HSlider
+	var l1_cache_value := worksite.find_child("ProcessorL1CacheCapacityValue", true, false) as Label
+	var l1_cache_range := worksite.find_child("ProcessorL1CacheRangeLabel", true, false) as Label
+	if int(worksite.get("current_wizard_step")) != 6 or progress_bar.value != 6 or not next_step_button.disabled or l1_cache_slider == null or l1_cache_value == null or l1_cache_range == null:
+		_fail("L1 Cache is not available as the sixth worksite step with its slider and labels.")
+		worksite.free()
+		return
+	if l1_cache_slider.min_value != 0.0 or l1_cache_slider.max_value != 0.0 or l1_cache_slider.step != 1.0 or l1_cache_value.text != "2 KB" or l1_cache_range.text != "AVAILABLE RANGE: 2–2 KB":
+		_fail("L1 Cache did not initialize at its 2 KB baseline.")
+		worksite.free()
+		return
+	worksite.call("set_l1_cache_research_level", 4)
+	if l1_cache_slider.max_value != 4.0 or l1_cache_range.text != "AVAILABLE RANGE: 2–10 KB":
+		_fail("L1 Cache research did not expand the selectable capacity in 2 KB increments.")
+		worksite.free()
+		return
+	l1_cache_slider.value = 4.0
+	if int(worksite.get("processor_l1_cache_selected_level")) != 4 or l1_cache_value.text != "10 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 55.50) or technology_level_value.text != "55.50 TP":
+		_fail("L1 Cache selection did not update capacity and the shared Technology Points total.")
+		worksite.free()
+		return
+	worksite.call("set_l1_cache_research_level", 149)
+	if l1_cache_slider.max_value != 149.0 or l1_cache_range.text != "AVAILABLE RANGE: 2–300 KB":
+		_fail("L1 Cache did not expose the full 300 KB research ceiling.")
+		worksite.free()
+		return
+	l1_cache_slider.value = 149.0
+	if l1_cache_value.text != "300 KB" or not is_equal_approx(float(worksite.call("_calculate_processor_technology_points")), 70.00):
+		_fail("Maximum L1 Cache capacity did not contribute its full shared TP value.")
+		worksite.free()
+		return
+	worksite.call("_on_wizard_back_pressed")
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.value != 5 or next_step_button.disabled:
+		_fail("Processor Back navigation did not return from L1 Cache to Instruction Scheduler.")
 		worksite.free()
 		return
 	worksite.call("_on_wizard_back_pressed")
