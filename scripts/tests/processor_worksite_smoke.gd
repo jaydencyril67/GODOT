@@ -215,6 +215,9 @@ func _run_processor_worksite_test() -> void:
 		worksite.free()
 		return
 	var first_package_material_id := first_package_surface.material_override.get_instance_id()
+	# The earlier checks deliberately reset research to level 0. Unlock all 30
+	# designs before verifying that each prebuilt model can be selected.
+	worksite.call("set_processor_design_research_level", 29)
 	for design_index in range(30):
 		worksite.call("_select_processor_design", design_index, false)
 		var visible_count := 0
