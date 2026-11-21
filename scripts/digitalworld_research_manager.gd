@@ -13,6 +13,10 @@ const CPU_CORE_RESEARCH_DURATION_DAYS := 750.0
 const INSTRUCTION_SCHEDULER_ENTRY_LEVELS := [8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 320, 384, 448, 500]
 const INSTRUCTION_SCHEDULER_MAX_RESEARCH_LEVEL := 13
 const INSTRUCTION_SCHEDULER_RESEARCH_DURATION_DAYS := 270.0
+const PROCESSOR_DESIGN_BASE_COUNT := 1
+const PROCESSOR_DESIGN_MAX_COUNT := 30
+const PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL := PROCESSOR_DESIGN_MAX_COUNT - PROCESSOR_DESIGN_BASE_COUNT
+const PROCESSOR_DESIGN_RESEARCH_DURATION_DAYS := 2100.0
 const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Screen Technology": 45.0,
 	"Screen Width": 60.0,
@@ -99,7 +103,8 @@ const COMPONENT_RESEARCH_DURATION_DAYS := {
 	"Debug and Test Unit": 265.0,
 	"Security Processing Unit": 280.0,
 	"CPU Cores": CPU_CORE_RESEARCH_DURATION_DAYS,
-	"Instruction Scheduler": INSTRUCTION_SCHEDULER_RESEARCH_DURATION_DAYS
+	"Instruction Scheduler": INSTRUCTION_SCHEDULER_RESEARCH_DURATION_DAYS,
+	"Processor Design": PROCESSOR_DESIGN_RESEARCH_DURATION_DAYS
 }
 const MIN_RESEARCH_DURATION_DAYS := 1.0
 const TECHNOLOGY_POINTS_PER_RESEARCH_DAY := 0.01
@@ -293,6 +298,7 @@ const PROCESSOR_TECHNOLOGIES := [
 const PROCESSOR_RESEARCH_COMPONENTS := [
 	"CPU Cores",
 	"Instruction Scheduler",
+	"Processor Design",
 	"Control Unit",
 	"Instruction Decoder",
 	"Instruction Fetch Unit",
@@ -381,6 +387,7 @@ const COMPONENT_CATALOGUE := [
 	"Volume Button Position",
 	"CPU Cores",
 	"Instruction Scheduler",
+	"Processor Design",
 	"Control Unit",
 	"Instruction Decoder",
 	"Instruction Fetch Unit",
@@ -580,6 +587,27 @@ static func get_instruction_scheduler_research_target(component_levels: Dictiona
 		"index": target_level,
 		"technology": "%d Entries" % target_entries,
 		"entry_count": target_entries
+	}
+
+
+static func get_processor_design_max_for_level(level: int) -> int:
+	# Design 01 is available immediately; each approved project unlocks one more.
+	return PROCESSOR_DESIGN_BASE_COUNT + clampi(level, 0, PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL)
+
+
+static func get_processor_design_research_target(component_levels: Dictionary) -> Dictionary:
+	var completed_upgrades := clampi(
+		int(component_levels.get("Processor Design", 0)),
+		0,
+		PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL
+	)
+	if completed_upgrades >= PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL:
+		return {}
+	var target_design_count := get_processor_design_max_for_level(completed_upgrades + 1)
+	return {
+		"index": target_design_count,
+		"technology": "Design %02d" % target_design_count,
+		"design_count": target_design_count
 	}
 
 
@@ -1258,6 +1286,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_cpu_cores_research_target(career.get("research_component_levels", {}))
 	elif component == "Instruction Scheduler":
 		ordered_target = get_instruction_scheduler_research_target(career.get("research_component_levels", {}))
+	elif component == "Processor Design":
+		ordered_target = get_processor_design_research_target(career.get("research_component_levels", {}))
 	elif component == "Charger":
 		ordered_target = get_charger_research_target(career.get("research_component_levels", {}))
 	elif component == "Power Bank":
@@ -1301,10 +1331,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
 	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
-	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler"]:
+	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler", "Processor Design"]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler"] or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler", "Processor Design"] or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1420,6 +1450,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			project_objective = "Develop and validate support for a processor configuration with %s, adding one supported CPU core at each approved research level." % target_technology
 		elif component == "Instruction Scheduler":
 			project_objective = "Develop and validate an instruction scheduler capacity of %s. Each approved research level unlocks the next entry-capacity tier." % target_technology
+		elif component == "Processor Design":
+			project_objective = "Develop and validate %s as the next processor package design. Each approved project unlocks one additional design in the Processor Worksite." % target_technology
 	elif component in ["Screen Width", "Screen Height", "Refresh Rate"]:
 		project_objective = "Develop and validate improved %s for mobile phone displays." % component.to_lower()
 	elif component == "Memory Clock":
@@ -1581,6 +1613,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var power_volume_button_position_target_index := -1
 	var cpu_cores_target_index := -1
 	var instruction_scheduler_target_index := -1
+	var processor_design_target_index := -1
 	if component == "Mobile Network":
 		mobile_network_target_index = int(project.get("research_target_index", -1))
 		var expected_target_index := int(component_levels.get(component, 0)) + 1
@@ -1749,6 +1782,13 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("This Instruction Scheduler project is no longer the next entry-capacity upgrade.")
 		if str(project.get("research_target", "")) != str(expected_instruction_scheduler_target.get("technology", "")):
 			return _failure("The Instruction Scheduler project target does not match the current capacity progression.")
+	elif component == "Processor Design":
+		var expected_processor_design_target := get_processor_design_research_target(component_levels)
+		processor_design_target_index = int(project.get("research_target_index", -1))
+		if expected_processor_design_target.is_empty() or processor_design_target_index != int(expected_processor_design_target.get("index", -1)):
+			return _failure("This Processor Design project is no longer the next available design unlock.")
+		if str(project.get("research_target", "")) != str(expected_processor_design_target.get("technology", "")):
+			return _failure("The Processor Design project target does not match the current design progression.")
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != component:
 			return _failure("This processor technology is no longer a valid, unapproved research target.")
@@ -1839,6 +1879,8 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next CPU core-count target assigned to this project.")
 		if result_component == "Instruction Scheduler" and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact next Instruction Scheduler entry-capacity target assigned to this project.")
+		if result_component == "Processor Design" and value != str(project.get("research_target", "")):
+			return _failure("Validate the exact next Processor Design unlock assigned to this project.")
 		if PROCESSOR_TECHNOLOGIES.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact processor technology assigned to this project.")
 		if CAMERA_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
@@ -1981,6 +2023,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif component == "Instruction Scheduler":
 		# The 8-entry baseline is available immediately; each approval unlocks the next capacity tier.
 		component_levels[component] = clampi(instruction_scheduler_target_index, 0, INSTRUCTION_SCHEDULER_MAX_RESEARCH_LEVEL)
+	elif component == "Processor Design":
+		# Design 01 is the baseline; the research level counts additional unlocked designs.
+		component_levels[component] = clampi(processor_design_target_index - PROCESSOR_DESIGN_BASE_COUNT, 0, PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL)
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		# Each processor subsystem is an independent, one-time approved research unlock.
 		component_levels[component] = 1
