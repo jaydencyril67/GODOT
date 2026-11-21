@@ -496,8 +496,10 @@ func _build_food_subject(parent: Node3D, accent: Color, seed: int) -> void:
 func _build_vehicle_subject(parent: Node3D, accent: Color) -> void:
 	_add_box(parent, "VehicleBody", Vector3(0.0, 0.82, -1.2), Vector3(3.8, 0.76, 1.65), accent, 0.7, 0.24)
 	_add_box(parent, "VehicleCabin", Vector3(0.0, 1.45, -1.25), Vector3(2.15, 0.72, 1.32), Color("#6B8797"), 0.55, 0.16)
-	for side in [-1.0, 1.0]:
-		for axle in [-1.0, 1.0]:
+	for side_value in [-1.0, 1.0]:
+		var side: float = float(side_value)
+		for axle_value in [-1.0, 1.0]:
+			var axle: float = float(axle_value)
 			_add_cylinder(parent, "VehicleWheel_%s_%s" % [str(side), str(axle)], Vector3(side * 1.5, 0.45, -1.2 + axle * 0.58), 0.39, 0.22, Color("#202326"), 0.10, 0.9)
 
 
