@@ -607,7 +607,7 @@ func _build_component_selection_scene() -> void:
 					var l2_cache_target: Dictionary = ResearchManagerScript.get_l2_cache_research_target(research_component_levels)
 					maximum_level = ResearchManagerScript.L2_CACHE_MAX_RESEARCH_LEVEL
 					if l2_cache_target.is_empty():
-						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 19,200 KB"
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 19200 KB"
 						component_button.disabled = true
 					else:
 						component_button.tooltip_text = "Next approval unlocks %s; each level takes 10 research days." % str(l2_cache_target.get("technology", ""))
@@ -615,7 +615,7 @@ func _build_component_selection_scene() -> void:
 					var l3_cache_target: Dictionary = ResearchManagerScript.get_l3_cache_research_target(research_component_levels)
 					maximum_level = ResearchManagerScript.L3_CACHE_MAX_RESEARCH_LEVEL
 					if l3_cache_target.is_empty():
-						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 153,600 KB"
+						component_button.tooltip_text = "MAXIMUM RESEARCH REACHED — 153600 KB"
 						component_button.disabled = true
 					else:
 						component_button.tooltip_text = "Next approval unlocks %s; each level takes 10 research days." % str(l3_cache_target.get("technology", ""))
