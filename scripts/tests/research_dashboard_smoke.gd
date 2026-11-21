@@ -148,6 +148,7 @@ func _run_checks() -> void:
 	var expected_camera_labels: Array[String] = [
 		"REAR CAMERA MP",
 		"FRONT CAMERA MP",
+		"NIGHT MODE",
 		"REAR CAMERA COUNT",
 		"REAR FLASH COUNT",
 		"PORTRAIT MODE",
@@ -168,7 +169,7 @@ func _run_checks() -> void:
 		host.queue_free()
 		quit(1)
 		return
-	if not _check_camera_one_time_research() or not _check_rear_hardware_count_research():
+	if not _check_camera_one_time_research() or not _check_night_mode_research() or not _check_rear_hardware_count_research():
 		host.queue_free()
 		quit(1)
 		return
@@ -392,6 +393,103 @@ func _check_camera_one_time_research() -> bool:
 			return false
 	return true
 
+
+
+func _check_night_mode_research() -> bool:
+	var component := ResearchManagerScript.NIGHT_MODE_COMPONENT
+	if not ResearchManagerScript.COMPONENT_CATALOGUE.has(component) or ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(component):
+		_fail("Night Mode must be a continuous research component, separate from the 12 one-time camera unlocks.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(component, 1), 352.0):
+		_fail("The initial Night Mode unlock must take exactly 352 research days.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_component_research_duration_days(component, 2), 105.0):
+		_fail("Each Night Mode quality upgrade must take exactly 105 research days.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 1.0), 3.52):
+		_fail("Night Mode initial unlock is not wired to the shared 3.52 TP duration conversion.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 2.0), 4.57):
+		_fail("Night Mode quality Level 1 is not adding its 1.05 TP duration budget.")
+		return false
+	if not is_equal_approx(ResearchManagerScript.get_technology_points_for_progress(component, 31.0), 35.02):
+		_fail("The complete Night Mode unlock and 30 quality upgrades must total 35.02 TP.")
+		return false
+
+	var test_career := {
+		"staff_employees": [
+			{"id": "night_mode_researcher", "department": "Research", "efficiency": 90}
+		],
+		"research_projects": [],
+		"research_component_levels": {},
+		"research_technologies": {},
+		"next_research_project_id": 1
+	}
+	var first_result := ResearchManagerScript.commission_project(test_career, {
+		"component": component,
+		"staff_ids": ["night_mode_researcher"]
+	}, 1000.0)
+	if not bool(first_result.get("ok", false)):
+		_fail("The initial Night Mode research project could not be commissioned.")
+		return false
+	var first_project: Dictionary = first_result.get("project", {})
+	if int(first_project.get("research_target_index", -1)) != 1 or str(first_project.get("research_target", "")) != "Night Mode Unlock" or not is_equal_approx(float(first_project.get("required_research_days", 0.0)), 352.0):
+		_fail("Night Mode did not start with the 352-day initial unlock target.")
+		return false
+	var projects: Array = test_career.get("research_projects", [])
+	var first_id := str(first_project.get("id", ""))
+	for index in range(projects.size()):
+		var project: Dictionary = projects[index]
+		if str(project.get("id", "")) == first_id:
+			project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+			projects[index] = project
+			test_career["research_projects"] = projects
+			break
+	var first_approval := ResearchManagerScript.approve_project(test_career, first_id, [{
+		"component": component,
+		"metric": "Low-light camera mode validation",
+		"value": "Night Mode Unlock"
+	}], 2000.0)
+	if not bool(first_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get(component, 0)) != 1:
+		_fail("Approving the initial Night Mode research did not unlock Night Mode at research level 1.")
+		return false
+
+	var quality_result := ResearchManagerScript.commission_project(test_career, {
+		"component": component,
+		"staff_ids": ["night_mode_researcher"]
+	}, 3000.0)
+	if not bool(quality_result.get("ok", false)):
+		_fail("Night Mode Quality Level 1 could not be commissioned after the initial unlock.")
+		return false
+	var quality_project: Dictionary = quality_result.get("project", {})
+	if int(quality_project.get("research_target_index", -1)) != 2 or str(quality_project.get("research_target", "")) != "Night Mode Quality Level 1" or not is_equal_approx(float(quality_project.get("required_research_days", 0.0)), 105.0):
+		_fail("Night Mode did not advance to its first 105-day quality upgrade.")
+		return false
+	projects = test_career.get("research_projects", [])
+	var quality_id := str(quality_project.get("id", ""))
+	for index in range(projects.size()):
+		var project: Dictionary = projects[index]
+		if str(project.get("id", "")) == quality_id:
+			project["status"] = ResearchManagerScript.STATUS_AWAITING_VALIDATION
+			projects[index] = project
+			test_career["research_projects"] = projects
+			break
+	var quality_approval := ResearchManagerScript.approve_project(test_career, quality_id, [{
+		"component": component,
+		"metric": "Night Mode image quality",
+		"value": "Night Mode Quality Level 1"
+	}], 4000.0)
+	if not bool(quality_approval.get("ok", false)) or int(test_career.get("research_component_levels", {}).get(component, 0)) != 2:
+		_fail("Approving Night Mode Quality Level 1 did not advance its stored research level to 2.")
+		return false
+	var next_target := ResearchManagerScript.get_night_mode_research_target(test_career.get("research_component_levels", {}))
+	if int(next_target.get("index", -1)) != 3 or str(next_target.get("technology", "")) != "Night Mode Quality Level 2":
+		_fail("Night Mode did not offer Quality Level 2 as its next research target.")
+		return false
+	if not ResearchManagerScript.get_night_mode_research_target({"Night Mode": 31}).is_empty():
+		_fail("Night Mode did not stop after its 30 quality upgrades.")
+		return false
+	return true
 
 
 func _check_processor_technology_research() -> bool:

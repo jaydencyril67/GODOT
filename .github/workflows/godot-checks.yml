@@ -38,6 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p .ci-camera-worksite/scripts/tests .ci-camera-worksite/scenes .ci-camera-worksite/assets/fonts
           cp scripts/camera_creation_worksite.gd .ci-camera-worksite/scripts/
+          cp scripts/camera_preview_studio.gd .ci-camera-worksite/scripts/
           cp scripts/camera_worksite_phone_model.gd .ci-camera-worksite/scripts/
           cp scripts/digitalworld_research_manager.gd .ci-camera-worksite/scripts/
           cp scripts/screen_technology_system.gd .ci-camera-worksite/scripts/

@@ -99,8 +99,9 @@ func zoom_camera(delta: float) -> void:
 
 
 func set_night_mode(enabled: bool, quality_level: int) -> void:
-	night_mode_enabled = enabled and quality_level >= 1
+	# The initial unlock already enables usable Night Mode; upgrades improve its output.
 	night_mode_quality_level = clampi(quality_level, 0, 30)
+	night_mode_enabled = enabled
 	if is_instance_valid(test_environment):
 		test_environment.ambient_light_energy = 0.16 if night_mode_enabled else 0.78
 		test_environment.tonemap_exposure = 1.25 + float(night_mode_quality_level) * 0.055 if night_mode_enabled else 1.0

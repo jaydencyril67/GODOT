@@ -10,3 +10,12 @@ func build_camera_less(screen_texture: Texture2D) -> void:
 	_build_display(screen_texture)
 	_build_side_controls()
 	_build_bottom_hardware()
+
+
+func set_screen_texture(screen_texture: Texture2D) -> void:
+	if not is_instance_valid(screen_surface) or screen_texture == null:
+		return
+	var screen_material := screen_surface.material_override as StandardMaterial3D
+	if screen_material == null:
+		return
+	screen_material.albedo_texture = screen_texture

@@ -18,6 +18,7 @@ const ORANGE := Color("#ffb45c")
 const COMPONENT_LABELS := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Night Mode",
 	"Rear Camera Count",
 	"Rear Flash Count",
 	"Portrait Mode",
@@ -36,6 +37,7 @@ const COMPONENT_LABELS := [
 const COMPONENT_VALUES := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Night Mode",
 	"Rear Camera Count",
 	"Rear Flash Count",
 	"Portrait Mode",
@@ -54,6 +56,7 @@ const COMPONENT_VALUES := [
 const CAMERA_RESEARCH_COMPONENTS := [
 	"Rear Camera MP",
 	"Front Camera MP",
+	"Night Mode",
 	"Rear Camera Count",
 	"Rear Flash Count",
 	"Portrait Mode",
@@ -462,7 +465,7 @@ func _request_research_retry(project_id: String) -> void:
 
 
 func _default_validation_metric(component: String) -> String:
-	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(component):
+	if ResearchManagerScript.CAMERA_SENSOR_COMPONENTS.has(component) or component == ResearchManagerScript.NIGHT_MODE_COMPONENT:
 		return "Camera feature functionality and integration"
 	if ResearchManagerScript.PHONE_SENSOR_COMPONENTS.has(component):
 		return "Sensor functionality and integration"

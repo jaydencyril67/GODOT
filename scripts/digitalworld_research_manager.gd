@@ -5,6 +5,11 @@ const ScreenTechnologySystem = preload("res://scripts/screen_technology_system.g
 
 # Research duration is fixed by component. Staff efficiency affects success chance, never duration.
 const BASE_RESEARCH_DURATION_DAYS := 30.0
+const NIGHT_MODE_COMPONENT := "Night Mode"
+const NIGHT_MODE_UNLOCK_DURATION_DAYS := 352.0
+const NIGHT_MODE_QUALITY_DURATION_DAYS := 105.0
+const NIGHT_MODE_QUALITY_MAX_LEVEL := 30
+const NIGHT_MODE_MAX_LEVEL := NIGHT_MODE_QUALITY_MAX_LEVEL + 1
 const RESEARCH_DURATION_FORMULA_VERSION := 6
 const CPU_CORE_BASE_COUNT := 1
 const CPU_CORE_MAX_COUNT := 30
@@ -187,6 +192,8 @@ const SPEAKER_QUALITY_DESCRIPTIONS := {
 
 static func get_component_research_duration_days(component_value: String, research_target_index: int = -1) -> float:
 	var component := normalize_component(component_value)
+	if component == NIGHT_MODE_COMPONENT:
+		return NIGHT_MODE_QUALITY_DURATION_DAYS if research_target_index > 1 else NIGHT_MODE_UNLOCK_DURATION_DAYS
 	if component == "Wireless Charging" and research_target_index > 1:
 		return WIRELESS_CHARGING_SPEED_UPGRADE_DURATION_DAYS
 	if component == "Phone Case" and research_target_index > 1:
@@ -199,6 +206,19 @@ static func get_component_research_duration_days(component_value: String, resear
 		MIN_RESEARCH_DURATION_DAYS,
 		float(COMPONENT_RESEARCH_DURATION_DAYS.get(component, BASE_RESEARCH_DURATION_DAYS))
 	)
+
+
+static func get_night_mode_research_target(component_levels: Dictionary) -> Dictionary:
+	var current_level := maxi(0, int(component_levels.get(NIGHT_MODE_COMPONENT, 0)))
+	if current_level >= NIGHT_MODE_MAX_LEVEL:
+		return {}
+	var target_index := current_level + 1
+	if current_level == 0:
+		return {"index": target_index, "technology": "Night Mode Unlock"}
+	return {
+		"index": target_index,
+		"technology": "Night Mode Quality Level %d" % current_level
+	}
 
 
 static func get_technology_points_for_progress(component_value: String, progress_steps: float) -> float:
@@ -329,6 +349,7 @@ const COMPONENT_CATALOGUE := [
 	"Home Button",
 	"Front Camera",
 	"Front Camera MP",
+	"Night Mode",
 	"Portrait Mode",
 	"Macro Photography",
 	"Ultra-Wide Photography",
@@ -1286,6 +1307,8 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		ordered_target = get_cpu_cores_research_target(career.get("research_component_levels", {}))
 	elif component == "Instruction Scheduler":
 		ordered_target = get_instruction_scheduler_research_target(career.get("research_component_levels", {}))
+	elif component == NIGHT_MODE_COMPONENT:
+		ordered_target = get_night_mode_research_target(career.get("research_component_levels", {}))
 	elif component == "Processor Design":
 		ordered_target = get_processor_design_research_target(career.get("research_component_levels", {}))
 	elif component == "Charger":
@@ -1331,10 +1354,10 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 			ordered_target = {"index": next_position_index, "technology": "Top position" if next_position_index == 1 else "Left position"}
 	elif PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		ordered_target = {"index": 1, "technology": "Left and Top positions" if component == "Smartwatch" else component}
-	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler", "Processor Design"]:
+	if component in ["Wireless Charging", "Phone Case", "Charger", "CPU Cores", "Instruction Scheduler", "Processor Design", NIGHT_MODE_COMPONENT]:
 		estimate["expected_duration_days"] = get_component_research_duration_days(component, int(ordered_target.get("index", -1)))
 
-	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler", "Processor Design"] or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
+	if component in ["Speaker Quality", "Mobile Network", "Wi-Fi", "Bluetooth", "Cooling System Design", "Phone Type", "Battery Capacity", "Charger", "Power Bank", "Charging Speed", "Wireless Charging", "Front Camera MP", "Rear Camera MP", "Rear Camera Count", "Rear Flash Count", "Rear Camera Size", "Rear Flash Size", "Back Raised Design", "Device Color", "Phone Case", "Protection Glass", POWER_VOLUME_BUTTON_LENGTH_COMPONENT] or component == "Box Package" or component in ["CPU Cores", "Instruction Scheduler", "Processor Design"] or component == NIGHT_MODE_COMPONENT or PHONE_SENSOR_COMPONENTS.has(component) or CAMERA_SENSOR_COMPONENTS.has(component) or PROCESSOR_TECHNOLOGIES.has(component) or SIDE_BUTTON_COMPONENTS.has(component) or POWER_VOLUME_BUTTON_POSITION_COMPONENTS.has(component):
 		if ordered_target.is_empty():
 			return _failure("All %s technologies in the progression have already been researched." % component)
 		var target_index := int(ordered_target.get("index", -1))
@@ -1404,6 +1427,14 @@ static func commission_project(career: Dictionary, request: Dictionary, game_tim
 		elif component == "Protection Glass":
 			project_title = "Research: Protection Glass - " + target_technology
 			project_objective = "Develop and validate %s as a fitted screen-protection layer. Normal Glass provides subtle screen darkening; Privacy Glass adds a directional viewing filter that turns the display fully black at side angles." % target_technology
+		elif component == NIGHT_MODE_COMPONENT:
+			if int(ordered_target.get("index", 0)) == 1:
+				project_title = "Research: Night Mode - Initial Unlock"
+				project_objective = "Develop, test and validate a dedicated low-light capture mode, unlocking Night Mode on the selected phone camera."
+			else:
+				var quality_level := int(ordered_target.get("index", 1)) - 1
+				project_title = "Research: Night Mode - Quality Level %d" % quality_level
+				project_objective = "Improve Night Mode image quality at quality level %d through cleaner shadows, controlled highlights, better colour retention and reduced low-light noise." % quality_level
 		elif CAMERA_SENSOR_COMPONENTS.has(component):
 			project_title = "Research: %s" % component
 			project_objective = "Develop, test and validate the %s camera capability for integration with the selected rear or front camera." % component
@@ -1608,6 +1639,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	var protection_glass_target_index := -1
 	var phone_sensor_target_index := -1
 	var camera_sensor_target_index := -1
+	var night_mode_target_index := -1
 	var side_button_target_index := -1
 	var power_volume_button_length_target_index := -1
 	var power_volume_button_position_target_index := -1
@@ -1792,6 +1824,11 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		if int(component_levels.get(component, 0)) >= 1 or int(project.get("research_target_index", -1)) != 1 or str(project.get("research_target", "")) != component:
 			return _failure("This processor technology is no longer a valid, unapproved research target.")
+	elif component == NIGHT_MODE_COMPONENT:
+		var expected_night_mode_target := get_night_mode_research_target(component_levels)
+		night_mode_target_index = int(project.get("research_target_index", -1))
+		if expected_night_mode_target.is_empty() or night_mode_target_index != int(expected_night_mode_target.get("index", -1)) or str(project.get("research_target", "")) != str(expected_night_mode_target.get("technology", "")):
+			return _failure("This Night Mode project is no longer the next valid unlock or quality upgrade.")
 	elif CAMERA_SENSOR_COMPONENTS.has(component):
 		camera_sensor_target_index = int(project.get("research_target_index", -1))
 		if int(component_levels.get(component, 0)) >= 1 or camera_sensor_target_index != 1 or str(project.get("research_target", "")) != component:
@@ -1883,7 +1920,7 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 			return _failure("Validate the exact next Processor Design unlock assigned to this project.")
 		if PROCESSOR_TECHNOLOGIES.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact processor technology assigned to this project.")
-		if CAMERA_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
+		if (CAMERA_SENSOR_COMPONENTS.has(result_component) or result_component == NIGHT_MODE_COMPONENT) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact camera feature assigned to this project.")
 		if PHONE_SENSOR_COMPONENTS.has(result_component) and value != str(project.get("research_target", "")):
 			return _failure("Validate the exact sensor component assigned to this project.")
@@ -2029,6 +2066,9 @@ static func approve_project(career: Dictionary, project_id: String, results: Arr
 	elif PROCESSOR_TECHNOLOGIES.has(component):
 		# Each processor subsystem is an independent, one-time approved research unlock.
 		component_levels[component] = 1
+	elif component == NIGHT_MODE_COMPONENT:
+		# Level 1 unlocks Night Mode; levels 2–31 are its 30 continuous quality upgrades.
+		component_levels[component] = night_mode_target_index
 	elif CAMERA_SENSOR_COMPONENTS.has(component):
 		# Every camera capability is an independent, one-time approved research unlock.
 		component_levels[component] = 1

@@ -1236,6 +1236,202 @@ func _get_front_camera_mp_maximum() -> int:
 	return ResearchManagerScript.get_front_camera_mp_max_for_level(front_camera_mp_research_level)
 
 
+func _build_camera_preview_controls() -> void:
+	camera_preview_control_buttons.clear()
+	var overlay := Control.new()
+	overlay.name = "CameraPreviewStudioControls"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_region.add_child(overlay)
+
+	var top_row := HBoxContainer.new()
+	top_row.name = "CameraPreviewTopControls"
+	top_row.anchor_right = 1.0
+	top_row.offset_left = 10.0
+	top_row.offset_top = 10.0
+	top_row.offset_right = -10.0
+	top_row.offset_bottom = 54.0
+	top_row.add_theme_constant_override("separation", 7)
+	top_row.mouse_filter = Control.MOUSE_FILTER_PASS
+	overlay.add_child(top_row)
+
+	var change_view := Button.new()
+	change_view.name = "CameraPreviewChangeViewButton"
+	change_view.text = "CHANGE VIEW"
+	change_view.custom_minimum_size = Vector2(112.0, 40.0)
+	_style_button(change_view, true)
+	change_view.pressed.connect(_on_camera_preview_change_view)
+	top_row.add_child(change_view)
+	camera_preview_control_buttons.append(change_view)
+
+	camera_preview_scene_label = _label("01 / 30  COLOUR & TEXTURE LAB", 11, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_LEFT)
+	camera_preview_scene_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	camera_preview_scene_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	camera_preview_scene_label.clip_text = true
+	top_row.add_child(camera_preview_scene_label)
+
+	camera_preview_night_button = Button.new()
+	camera_preview_night_button.name = "CameraPreviewNightModeButton"
+	camera_preview_night_button.text = "NIGHT LOCKED"
+	camera_preview_night_button.custom_minimum_size = Vector2(104.0, 40.0)
+	_style_button(camera_preview_night_button, false)
+	camera_preview_night_button.pressed.connect(_on_camera_preview_night_pressed)
+	top_row.add_child(camera_preview_night_button)
+	camera_preview_control_buttons.append(camera_preview_night_button)
+
+	var bottom_row := HBoxContainer.new()
+	bottom_row.name = "CameraPreviewBottomControls"
+	bottom_row.anchor_top = 1.0
+	bottom_row.anchor_right = 1.0
+	bottom_row.anchor_bottom = 1.0
+	bottom_row.offset_left = 10.0
+	bottom_row.offset_top = -50.0
+	bottom_row.offset_right = -10.0
+	bottom_row.offset_bottom = -10.0
+	bottom_row.add_theme_constant_override("separation", 6)
+	bottom_row.mouse_filter = Control.MOUSE_FILTER_PASS
+	overlay.add_child(bottom_row)
+
+	var zoom_out := Button.new()
+	zoom_out.name = "CameraPreviewZoomOutButton"
+	zoom_out.text = "−"
+	zoom_out.custom_minimum_size = Vector2(38.0, 38.0)
+	_style_button(zoom_out, false)
+	zoom_out.pressed.connect(_on_camera_preview_zoom_out)
+	bottom_row.add_child(zoom_out)
+	camera_preview_control_buttons.append(zoom_out)
+
+	var zoom_in := Button.new()
+	zoom_in.name = "CameraPreviewZoomInButton"
+	zoom_in.text = "+"
+	zoom_in.custom_minimum_size = Vector2(38.0, 38.0)
+	_style_button(zoom_in, false)
+	zoom_in.pressed.connect(_on_camera_preview_zoom_in)
+	bottom_row.add_child(zoom_in)
+	camera_preview_control_buttons.append(zoom_in)
+
+	camera_preview_zoom_label = _label("1.0x", 11, Color("#EEE9DF"), HORIZONTAL_ALIGNMENT_CENTER)
+	camera_preview_zoom_label.custom_minimum_size = Vector2(40.0, 38.0)
+	camera_preview_zoom_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bottom_row.add_child(camera_preview_zoom_label)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_row.add_child(spacer)
+
+	var capture := Button.new()
+	capture.name = "CameraPreviewCaptureButton"
+	capture.text = "CAPTURE"
+	capture.custom_minimum_size = Vector2(76.0, 38.0)
+	_style_button(capture, true)
+	capture.pressed.connect(_on_camera_preview_capture)
+	bottom_row.add_child(capture)
+	camera_preview_control_buttons.append(capture)
+
+	camera_preview_gallery_button = Button.new()
+	camera_preview_gallery_button.name = "CameraPreviewGalleryButton"
+	camera_preview_gallery_button.text = "GALLERY"
+	camera_preview_gallery_button.custom_minimum_size = Vector2(68.0, 38.0)
+	_style_button(camera_preview_gallery_button, false)
+	camera_preview_gallery_button.disabled = true
+	camera_preview_gallery_button.pressed.connect(_on_camera_preview_gallery)
+	bottom_row.add_child(camera_preview_gallery_button)
+	camera_preview_control_buttons.append(camera_preview_gallery_button)
+
+	camera_preview_live_button = Button.new()
+	camera_preview_live_button.name = "CameraPreviewLiveButton"
+	camera_preview_live_button.text = "LIVE"
+	camera_preview_live_button.custom_minimum_size = Vector2(46.0, 38.0)
+	_style_button(camera_preview_live_button, false)
+	camera_preview_live_button.disabled = true
+	camera_preview_live_button.pressed.connect(_on_camera_preview_live)
+	bottom_row.add_child(camera_preview_live_button)
+	camera_preview_control_buttons.append(camera_preview_live_button)
+
+	_refresh_camera_preview_controls()
+
+
+func _on_camera_preview_change_view() -> void:
+	if is_instance_valid(camera_preview_studio):
+		camera_preview_studio.call("next_scene")
+		_refresh_camera_preview_controls()
+
+
+func _on_camera_preview_zoom_out() -> void:
+	if is_instance_valid(camera_preview_studio):
+		camera_preview_studio.call("zoom_camera", -0.25)
+		_refresh_camera_preview_controls()
+
+
+func _on_camera_preview_zoom_in() -> void:
+	if is_instance_valid(camera_preview_studio):
+		camera_preview_studio.call("zoom_camera", 0.25)
+		_refresh_camera_preview_controls()
+
+
+func _on_camera_preview_capture() -> void:
+	if not is_instance_valid(camera_preview_studio):
+		return
+	var photo: Variant = camera_preview_studio.call("capture_photo")
+	if photo is Texture2D:
+		camera_preview_gallery_button.disabled = false
+		camera_preview_live_button.disabled = true
+
+
+func _on_camera_preview_gallery() -> void:
+	if not is_instance_valid(camera_preview_studio):
+		return
+	var photo: Variant = camera_preview_studio.call("open_gallery")
+	if photo is Texture2D:
+		camera_preview_live_button.disabled = false
+
+
+func _on_camera_preview_live() -> void:
+	if not is_instance_valid(camera_preview_studio):
+		return
+	camera_preview_studio.call("return_to_camera")
+	camera_preview_live_button.disabled = true
+
+
+func _on_camera_preview_night_pressed() -> void:
+	var current_level := int(camera_sensor_research_levels.get("Night Mode", 0))
+	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
+	if current_level < 1 or not bool(camera_states.get("Night Mode", false)):
+		_refresh_camera_preview_controls()
+		return
+	camera_preview_night_enabled = not camera_preview_night_enabled
+	_refresh_camera_preview_controls()
+
+
+func _refresh_camera_preview_controls() -> void:
+	if not is_instance_valid(camera_preview_studio):
+		return
+	var scene_index := int(camera_preview_studio.get("current_scene_index"))
+	var scene_name := str(camera_preview_studio.call("get_scene_name"))
+	if is_instance_valid(camera_preview_scene_label):
+		camera_preview_scene_label.text = "%02d / 30  %s" % [scene_index + 1, scene_name.to_upper()]
+	if is_instance_valid(camera_preview_zoom_label):
+		camera_preview_zoom_label.text = "%.1fx" % float(camera_preview_studio.get("zoom_level"))
+	var current_level := int(camera_sensor_research_levels.get("Night Mode", 0))
+	var camera_states: Dictionary = camera_sensor_enabled_states.get(camera_sensor_selected_camera, {})
+	var available := current_level >= 1 and bool(camera_states.get("Night Mode", false))
+	if not available:
+		camera_preview_night_enabled = false
+	if is_instance_valid(camera_preview_night_button):
+		camera_preview_night_button.disabled = not available
+		camera_preview_night_button.text = "NIGHT MODE" if camera_preview_night_enabled else ("DAY MODE" if available else ("NIGHT LOCKED" if current_level < 1 else "ENABLE IN SENSORS"))
+		_style_button(camera_preview_night_button, camera_preview_night_enabled)
+	camera_preview_studio.call("set_night_mode", camera_preview_night_enabled, clampi(current_level - 1, 0, 30))
+
+
+func _is_camera_preview_control_at(position_value: Vector2) -> bool:
+	for control_value in camera_preview_control_buttons:
+		var control := control_value as Control
+		if is_instance_valid(control) and control.visible and control.get_global_rect().has_point(position_value):
+			return true
+	return false
+
+
 func _build_camera_sensor_step_controls() -> void:
 	camera_sensor_step_content = VBoxContainer.new()
 	camera_sensor_step_content.name = "CameraSensorStepControls"
@@ -1379,7 +1575,7 @@ func _refresh_camera_sensor_controls() -> void:
 
 	_refresh_camera_sensor_camera_switcher()
 	if is_instance_valid(camera_sensor_name_label):
-		camera_sensor_name_label.text = sensor_name
+		camera_sensor_name_label.text = sensor_name if sensor_name != "Night Mode" or not unlocked else "Night Mode  ·  %d / 30" % clampi(int(camera_sensor_research_levels.get(sensor_name, 1)) - 1, 0, 30)
 	if is_instance_valid(camera_sensor_enable_label):
 		camera_sensor_enable_label.text = "ENABLE" if unlocked else "LOCKED"
 		camera_sensor_enable_label.add_theme_color_override("font_color", Color("#EEE9DF") if unlocked else Color("#ffb45c"))
@@ -1396,6 +1592,7 @@ func _refresh_camera_sensor_controls() -> void:
 		camera_sensor_previous_button.disabled = camera_sensor_selected_index <= 0
 	if is_instance_valid(camera_sensor_next_button):
 		camera_sensor_next_button.disabled = camera_sensor_selected_index >= CAMERA_SENSOR_COMPONENTS.size() - 1
+	_refresh_camera_preview_controls()
 
 
 func _refresh_camera_sensor_camera_switcher() -> void:
@@ -3024,7 +3221,12 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
-			preview_mouse_dragging = mouse_button.pressed and preview_rect.has_point(mouse_button.position)
+			preview_mouse_dragging = mouse_button.pressed and preview_rect.has_point(mouse_button.position) and not _is_camera_preview_control_at(mouse_button.position)
+		elif mouse_button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and mouse_button.pressed and preview_rect.has_point(mouse_button.position):
+			if not _is_camera_preview_control_at(mouse_button.position) and is_instance_valid(camera_preview_studio):
+				camera_preview_studio.call("zoom_camera", 0.25 if mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP else -0.25)
+				_refresh_camera_preview_controls()
+			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion:
 		var mouse_motion := event as InputEventMouseMotion
 		if preview_mouse_dragging and (mouse_motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
@@ -3032,7 +3234,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.pressed and preview_rect.has_point(touch.position):
+		if touch.pressed and preview_rect.has_point(touch.position) and not _is_camera_preview_control_at(touch.position):
 			preview_touch_points[touch.index] = touch.position
 		else:
 			preview_touch_points.erase(touch.index)
@@ -3044,7 +3246,9 @@ func _input(event: InputEvent) -> void:
 				_rotate_phone_from_drag(screen_drag.relative)
 				get_viewport().set_input_as_handled()
 	elif event is InputEventMagnifyGesture and preview_rect.has_point(event.position):
-		_zoom_camera(event.factor)
+		if not _is_camera_preview_control_at(event.position) and is_instance_valid(camera_preview_studio):
+			camera_preview_studio.call("zoom_camera", 0.25 if event.factor > 1.0 else -0.25)
+			_refresh_camera_preview_controls()
 		get_viewport().set_input_as_handled()
 
 

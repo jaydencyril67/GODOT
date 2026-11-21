@@ -41,12 +41,55 @@ func _run_camera_worksite_test() -> void:
 	var back_step_button := worksite.find_child("WizardBackIconButton", true, false) as Button
 	var next_step_button := worksite.find_child("NextStepIconButton", true, false) as Button
 	var camera := worksite.find_child("CameraStudioPreviewCamera", true, false) as Camera3D
+	var preview_studio := worksite.find_child("CameraPreviewStudio", true, false) as Node
+	var change_view_button := worksite.find_child("CameraPreviewChangeViewButton", true, false) as Button
+	var zoom_in_button := worksite.find_child("CameraPreviewZoomInButton", true, false) as Button
+	var capture_button := worksite.find_child("CameraPreviewCaptureButton", true, false) as Button
+	var gallery_button := worksite.find_child("CameraPreviewGalleryButton", true, false) as Button
+	var night_mode_button := worksite.find_child("CameraPreviewNightModeButton", true, false) as Button
 
 	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or technology_level_panel == null or technology_level_value == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
 		_fail("Camera Worksite is missing part of the shared Phone Creation Worksite layout or 3D handset preview.")
 		worksite.free()
 		return
 
+	if preview_studio == null or int(preview_studio.call("get_scene_count")) != 30 or change_view_button == null or zoom_in_button == null or capture_button == null or gallery_button == null or night_mode_button == null:
+		_fail("Camera Worksite is missing its 30-scene camera preview studio or its still-camera controls.")
+		worksite.free()
+		return
+	var screen_material := screen.material_override as StandardMaterial3D
+	if screen_material == null or screen_material.albedo_texture != preview_studio.call("get_screen_texture"):
+		_fail("The handset display is not connected to the live phone-camera app viewport.")
+		worksite.free()
+		return
+	var initial_test_scene := str(preview_studio.call("get_scene_name"))
+	for scene_index in range(30):
+		worksite.call("_on_camera_preview_change_view")
+	if int(preview_studio.get("current_scene_index")) != 0 or str(preview_studio.call("get_scene_name")) != initial_test_scene:
+		_fail("The Change View control did not loop through all 30 fixed camera test scenes.")
+		worksite.free()
+		return
+	zoom_in_button.emit_signal("pressed")
+	if not is_equal_approx(float(preview_studio.get("zoom_level")), 1.25):
+		_fail("Camera preview zoom controls are not changing the live camera lens.")
+		worksite.free()
+		return
+	await process_frame
+	var preview_photo: Variant = preview_studio.call("capture_photo")
+	if not (preview_photo is Texture2D) or int(preview_studio.call("get_photo_count")) != 1:
+		_fail("The phone camera failed to capture a still photo from the live 3D test scene.")
+		worksite.free()
+		return
+	worksite.call("_on_camera_preview_gallery")
+	if gallery_button.disabled or not bool(preview_studio.get("gallery_open")):
+		_fail("Captured still photos are not available in the camera gallery.")
+		worksite.free()
+		return
+	worksite.call("_on_camera_preview_live")
+	if bool(preview_studio.get("gallery_open")):
+		_fail("The camera LIVE control did not return from the captured-photo gallery.")
+		worksite.free()
+		return
 	if worksite_root.mouse_filter != Control.MOUSE_FILTER_STOP or backdrop.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("Camera Worksite does not block touch input from reaching the previous Create page.")
 		worksite.free()
@@ -524,8 +567,8 @@ func _run_camera_worksite_test() -> void:
 	var camera_sensor_states: Dictionary = worksite.get("camera_sensor_enabled_states")
 	var rear_sensor_states: Dictionary = camera_sensor_states.get("REAR", {})
 	var front_sensor_states: Dictionary = camera_sensor_states.get("FRONT", {})
-	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or rear_camera_selector == null or front_camera_selector == null or str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not rear_camera_selector.button_pressed or front_camera_selector.button_pressed or rear_sensor_states.size() != 12 or front_sensor_states.size() != 12:
-		_fail("Stage 5 did not expose the shared 12-capability selector with separate Rear and Front camera controls.")
+	if int(worksite.get("current_wizard_step")) != 5 or progress_bar.max_value != 5 or progress_bar.value != 5 or camera_sensor_panel == null or not camera_sensor_panel.visible or camera_sensor_heading == null or camera_sensor_heading.text != "CAMERA SENSORS" or camera_sensor_toggle == null or camera_sensor_label == null or camera_sensor_label.text != "Portrait Mode" or camera_sensor_previous == null or not camera_sensor_previous.disabled or camera_sensor_next == null or camera_sensor_next.disabled or rear_camera_selector == null or front_camera_selector == null or str(worksite.get("camera_sensor_selected_camera")) != "REAR" or not rear_camera_selector.button_pressed or front_camera_selector.button_pressed or rear_sensor_states.size() != 13 or front_sensor_states.size() != 13:
+		_fail("Stage 5 did not expose the 12 one-time unlocks plus Night Mode with separate Rear and Front camera controls.")
 		worksite.free()
 		return
 
@@ -675,6 +718,35 @@ func _run_camera_worksite_test() -> void:
 	var points_after_rear_hdr := float(worksite.call("_calculate_camera_technology_points"))
 	if not is_equal_approx(points_after_rear_hdr - points_before_rear_hdr, 2.10):
 		_fail("Enabling Rear HDR Photography did not add its separate 2.10 TP unlock value.")
+		worksite.free()
+		return
+
+	worksite.call("set_camera_sensor_research_levels", {"Night Mode": 1})
+	worksite.set("camera_sensor_selected_index", 12)
+	worksite.call("_refresh_camera_sensor_controls")
+	if camera_sensor_label.text != "Night Mode  ·  0 / 30" or not camera_sensor_toggle.disabled or not night_mode_button.disabled:
+		_fail("Night Mode should remain locked until its initial research project is approved and enabled on the selected camera.")
+		worksite.free()
+		return
+	camera_sensor_toggle.emit_signal("toggled", true)
+	if night_mode_button.disabled:
+		_fail("The researched Night Mode setting did not unlock the studio day/night switch.")
+		worksite.free()
+		return
+	worksite.call("_on_camera_preview_night_pressed")
+	if not bool(worksite.get("camera_preview_night_enabled")) or not bool(preview_studio.get("night_mode_enabled")) or int(preview_studio.get("night_mode_quality_level")) != 0:
+		_fail("The initial Night Mode unlock did not enable usable base-quality night capture.")
+		worksite.free()
+		return
+	worksite.call("set_camera_sensor_research_levels", {"Night Mode": 3})
+	worksite.call("_refresh_camera_sensor_controls")
+	if camera_sensor_label.text != "Night Mode  ·  2 / 30" or int(preview_studio.get("night_mode_quality_level")) != 2:
+		_fail("Night Mode quality improvements are not being reflected in the live camera preview.")
+		worksite.free()
+		return
+	var night_tp := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(night_tp, 5.62):
+		_fail("Night Mode did not add its 352-day unlock and two 105-day quality stages to Camera Technology TP.")
 		worksite.free()
 		return
 
