@@ -420,10 +420,11 @@ func _build_architecture_subject(parent: Node3D, accent: Color, seed: int) -> vo
 
 
 func _build_street_subject(parent: Node3D, accent: Color, seed: int) -> void:
-	for side in [-1.0, 1.0]:
+	for side_value in [-1.0, 1.0]:
+		var side: float = float(side_value)
 		for building_index in range(3):
 			var height := 2.2 + float((building_index + seed) % 3) * 0.82
-			var x := side * (2.2 + float(building_index) * 1.0)
+			var x: float = side * (2.2 + float(building_index) * 1.0)
 			_add_box(parent, "StreetBuilding_%s_%d" % [str(side), building_index], Vector3(x, height * 0.5, -2.0 - float(building_index) * 0.7), Vector3(1.1, height, 1.2), accent.darkened(0.28 + float(building_index) * 0.06), 0.05, 0.55)
 			_add_box(parent, "StreetShopfront_%s_%d" % [str(side), building_index], Vector3(x, 0.65, -1.36 - float(building_index) * 0.7), Vector3(0.75, 0.78, 0.05), accent.lightened(0.10), 0.0, 0.2)
 	_add_box(parent, "StreetRoad", Vector3(0.0, 0.04, 0.0), Vector3(2.5, 0.08, 12.0), Color("#30353A"), 0.12, 0.64)
