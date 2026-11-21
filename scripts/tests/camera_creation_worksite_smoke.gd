@@ -729,8 +729,8 @@ func _run_camera_worksite_test() -> void:
 	worksite.call("set_camera_sensor_research_levels", {"Night Mode": 1})
 	worksite.set("camera_sensor_selected_index", 12)
 	worksite.call("_refresh_camera_sensor_controls")
-	if camera_sensor_label.text != "Night Mode  ·  0 / 30" or not camera_sensor_toggle.disabled or not night_mode_button.disabled:
-		_fail("Night Mode should remain locked until its initial research project is approved and enabled on the selected camera.")
+	if camera_sensor_label.text != "Night Mode  ·  0 / 30" or camera_sensor_toggle.disabled or not night_mode_button.disabled:
+		_fail("Night Mode should unlock after its initial research, while the studio switch stays unavailable until Night Mode is enabled for this camera.")
 		worksite.free()
 		return
 	camera_sensor_toggle.emit_signal("toggled", true)
