@@ -733,7 +733,13 @@ func _run_camera_worksite_test() -> void:
 		_fail("Night Mode should unlock after its initial research, while the studio switch stays unavailable until Night Mode is enabled for this camera.")
 		worksite.free()
 		return
+	var points_before_night_mode := float(worksite.call("_calculate_camera_technology_points"))
 	camera_sensor_toggle.emit_signal("toggled", true)
+	var points_after_night_unlock := float(worksite.call("_calculate_camera_technology_points"))
+	if not is_equal_approx(points_after_night_unlock - points_before_night_mode, 3.52):
+		_fail("Enabling Night Mode after its initial research did not add its 3.52 TP unlock value.")
+		worksite.free()
+		return
 	if night_mode_button.disabled:
 		_fail("The researched Night Mode setting did not unlock the studio day/night switch.")
 		worksite.free()
@@ -750,8 +756,8 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 	var night_tp := float(worksite.call("_calculate_camera_technology_points"))
-	if not is_equal_approx(night_tp, 5.62):
-		_fail("Night Mode did not add its 352-day unlock and two 105-day quality stages to Camera Technology TP.")
+	if not is_equal_approx(night_tp - points_after_night_unlock, 2.10):
+		_fail("Two 105-day Night Mode quality upgrades did not add their combined 2.10 TP value.")
 		worksite.free()
 		return
 
