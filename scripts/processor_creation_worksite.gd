@@ -1070,7 +1070,7 @@ func _build_processor_l2_cache_controls(parent: VBoxContainer) -> void:
 	_style_processor_cpu_core_slider(processor_l2_cache_slider)
 	processor_l2_cache_slider.value_changed.connect(_on_processor_l2_cache_slider_changed)
 	slider_row.add_child(processor_l2_cache_slider)
-	var maximum_label := _label("19,200 KB", 12, MUTED)
+	var maximum_label := _label("19200 KB", 12, MUTED)
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
 	processor_l2_cache_range_label = _label("AVAILABLE RANGE: 128–128 KB", 11, ACCENT)
@@ -1112,7 +1112,7 @@ func _build_processor_l3_cache_controls(parent: VBoxContainer) -> void:
 	var description := _label("SELECT L3 CACHE CAPACITY", 12, MUTED)
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	processor_l3_cache_step_content.add_child(description)
-	processor_l3_cache_value_label = _label("1,024 KB", 30, Color("#F2EEE7"))
+	processor_l3_cache_value_label = _label("1024 KB", 30, Color("#F2EEE7"))
 	processor_l3_cache_value_label.name = "ProcessorL3CacheCapacityValue"
 	processor_l3_cache_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	processor_l3_cache_step_content.add_child(processor_l3_cache_value_label)
@@ -1121,7 +1121,7 @@ func _build_processor_l3_cache_controls(parent: VBoxContainer) -> void:
 	slider_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider_row.add_theme_constant_override("separation", 12)
 	processor_l3_cache_step_content.add_child(slider_row)
-	var minimum_label := _label("1,024 KB", 12, MUTED)
+	var minimum_label := _label("1024 KB", 12, MUTED)
 	minimum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(minimum_label)
 	processor_l3_cache_slider = HSlider.new()
@@ -1137,10 +1137,10 @@ func _build_processor_l3_cache_controls(parent: VBoxContainer) -> void:
 	_style_processor_cpu_core_slider(processor_l3_cache_slider)
 	processor_l3_cache_slider.value_changed.connect(_on_processor_l3_cache_slider_changed)
 	slider_row.add_child(processor_l3_cache_slider)
-	var maximum_label := _label("153,600 KB", 12, MUTED)
+	var maximum_label := _label("153600 KB", 12, MUTED)
 	maximum_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	slider_row.add_child(maximum_label)
-	processor_l3_cache_range_label = _label("AVAILABLE RANGE: 1,024–1,024 KB", 11, ACCENT)
+	processor_l3_cache_range_label = _label("AVAILABLE RANGE: 1,024–1024 KB", 11, ACCENT)
 	processor_l3_cache_range_label.name = "ProcessorL3CacheRangeLabel"
 	processor_l3_cache_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	processor_l3_cache_step_content.add_child(processor_l3_cache_range_label)
