@@ -256,6 +256,7 @@ var die_surfaces: Array[MeshInstance3D] = []
 var processor_designs: Array[Dictionary] = []
 var processor_models_data: Array[Dictionary] = []
 var selected_design_index := 0
+var processor_design_research_level := 0
 var design_decrease_button: Button
 var design_increase_button: Button
 var design_value_label: Label
@@ -702,6 +703,19 @@ func set_instruction_scheduler_research_level(level: int) -> void:
 	_refresh_processor_instruction_scheduler_controls()
 
 
+func set_processor_design_research_level(level: int) -> void:
+	processor_design_research_level = clampi(level, 0, ResearchManagerScript.PROCESSOR_DESIGN_MAX_RESEARCH_LEVEL)
+	var last_unlocked_index := _get_maximum_processor_design_count() - 1
+	if selected_design_index > last_unlocked_index:
+		_select_processor_design(last_unlocked_index, false)
+	else:
+		_refresh_processor_design_controls()
+
+
+func _get_maximum_processor_design_count() -> int:
+	return ResearchManagerScript.get_processor_design_max_for_level(processor_design_research_level)
+
+
 func _build_processor_cpu_core_controls(parent: VBoxContainer) -> void:
 	processor_cpu_core_step_content = VBoxContainer.new()
 	processor_cpu_core_step_content.name = "ProcessorCpuCoreStepContent"
@@ -889,6 +903,7 @@ func _calculate_processor_technology_points() -> float:
 			total += ResearchManagerScript.get_technology_points_for_progress(technology_name, 1.0)
 	total += ResearchManagerScript.get_technology_points_for_progress("CPU Cores", float(maxi(0, processor_cpu_core_count - 1)))
 	total += ResearchManagerScript.get_technology_points_for_progress("Instruction Scheduler", float(processor_instruction_scheduler_selected_level))
+	total += ResearchManagerScript.get_technology_points_for_progress("Processor Design", float(maxi(0, selected_design_index)))
 	return maxf(0.0, total)
 
 
@@ -1197,7 +1212,8 @@ func _select_processor_design(index: int, reset_to_preset: bool = true) -> void:
 	if processor_models_data.is_empty() or processor_designs.is_empty():
 		return
 	var preserved_rotation := processor_root.rotation if is_instance_valid(processor_root) else DEFAULT_VIEW_ROTATION
-	selected_design_index = clampi(index, 0, mini(processor_models_data.size(), processor_designs.size()) - 1)
+	var maximum_selectable_design_count := mini(mini(processor_models_data.size(), processor_designs.size()), _get_maximum_processor_design_count())
+	selected_design_index = clampi(index, 0, maximum_selectable_design_count - 1)
 	for model_index in range(processor_models_data.size()):
 		var model_root := processor_models_data[model_index].get("root") as Node3D
 		if is_instance_valid(model_root):
@@ -1239,7 +1255,7 @@ func _refresh_processor_design_controls() -> void:
 	if is_instance_valid(design_decrease_button):
 		design_decrease_button.disabled = selected_design_index <= 0
 	if is_instance_valid(design_increase_button):
-		design_increase_button.disabled = selected_design_index >= processor_designs.size() - 1
+		design_increase_button.disabled = selected_design_index >= _get_maximum_processor_design_count() - 1
 
 func _build_package_body() -> void:
 	# The stepped package layers create the thin laminated edge visible on real SoC packages.
