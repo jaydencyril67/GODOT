@@ -17,7 +17,120 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect-changes:
+    name: Detect affected worksites
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.filter.outputs.full }}
+      globe: ${{ steps.filter.outputs.globe }}
+      camera: ${{ steps.filter.outputs.camera }}
+      processor: ${{ steps.filter.outputs.processor }}
+      research: ${{ steps.filter.outputs.research }}
+      navigation: ${{ steps.filter.outputs.navigation }}
+      lockscreen: ${{ steps.filter.outputs.lockscreen }}
+      osmodel: ${{ steps.filter.outputs.osmodel }}
+      xmorph: ${{ steps.filter.outputs.xmorph }}
+      pin: ${{ steps.filter.outputs.pin }}
+      homescreen: ${{ steps.filter.outputs.homescreen }}
+      osboot: ${{ steps.filter.outputs.osboot }}
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            for group in full globe camera processor research navigation lockscreen osmodel xmorph pin homescreen osboot; do
+              echo "$group=true" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$PR_BASE_SHA"
+          else
+            base="$BEFORE_SHA"
+          fi
+
+          if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]]; then
+            echo "No usable base commit; running the full smoke suite."
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only "$base" "$GITHUB_SHA" > changed-files.txt
+          cat changed-files.txt
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          changed = [line.strip() for line in Path("changed-files.txt").read_text().splitlines() if line.strip()]
+          groups = {
+              "globe": ("scripts/world/", "scenes/world_globe.tscn", "assets/globe/", "scripts/tests/world_globe_navigation_smoke.gd", "tools/build_globe_geography.py"),
+              "camera": ("scripts/camera", "scenes/camera", "scripts/tests/camera_creation_worksite_smoke.gd", "scripts/screen_technology_system.gd"),
+              "processor": ("scripts/processor", "scenes/processor", "scripts/tests/processor_worksite_smoke.gd"),
+              "research": ("scripts/digitalworld_research_manager.gd", "scripts/*research_dashboard", "scenes/*research_dashboard", "scripts/tests/research_dashboard_smoke.gd"),
+              "navigation": ("scripts/tests/home_transition_smoke.gd", "scripts/digitalworld_game.gd", "scenes/main.tscn"),
+              "lockscreen": ("scripts/lock_screen_designer", "assets/lock-screen/", "scripts/tests/lock_screen_designer_smoke.gd"),
+              "osmodel": ("scripts/os_worksite_phone_model.gd", "scripts/tests/os_worksite_phone_model_smoke.gd"),
+              "xmorph": ("research/XMorphClock/", "assets/lock-screen/clocks/", "scripts/tests/xmorph_lock_screen_assets_smoke.gd"),
+              "pin": ("scripts/tests/pin_entry_swipe_smoke.gd", "scripts/pin", "assets/system-ui/godot/pin-entry/"),
+              "homescreen": ("scripts/home_screen", "scripts/tests/home_screen_smoke.gd", "assets/system-ui/android-systemui/"),
+              "osboot": ("scripts/os_creation", "scripts/tests/os_creation_boot_lock_screen_smoke.gd", "scenes/os_creation")
+          }
+
+          selected = {name: False for name in groups}
+          full = False
+          for path in changed:
+              matched = False
+              for name, prefixes in groups.items():
+                  if any(path.startswith(prefix.rstrip("*")) if "*" not in prefix else __import__("fnmatch").fnmatch(path, prefix) for prefix in prefixes):
+                      selected[name] = True
+                      matched = True
+              if not matched:
+                  full = True
+
+          # Shared project configuration and workflow changes require broad regression.
+          if any(path in ("project.godot", "export_presets.cfg") or path.startswith((".github/", "addons/", "scripts/tests/")) and not any(path == p for p in [
+              "scripts/tests/world_globe_navigation_smoke.gd",
+              "scripts/tests/camera_creation_worksite_smoke.gd",
+              "scripts/tests/processor_worksite_smoke.gd",
+              "scripts/tests/research_dashboard_smoke.gd",
+              "scripts/tests/home_transition_smoke.gd",
+              "scripts/tests/lock_screen_designer_smoke.gd",
+              "scripts/tests/os_worksite_phone_model_smoke.gd",
+              "scripts/tests/xmorph_lock_screen_assets_smoke.gd",
+              "scripts/tests/pin_entry_swipe_smoke.gd",
+              "scripts/tests/home_screen_smoke.gd",
+              "scripts/tests/os_creation_boot_lock_screen_smoke.gd"
+          ]) for path in changed):
+              full = True
+
+          # Unknown script/scene/asset changes may affect shared dependencies: be conservative.
+          if any(path.startswith(("scripts/", "scenes/", "assets/")) and not any(
+              any(path.startswith(prefix.rstrip("*")) if "*" not in prefix else __import__("fnmatch").fnmatch(path, prefix) for prefix in prefixes)
+              for prefixes in groups.values()
+          ) for path in changed):
+              full = True
+
+          with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"full={str(full).lower()}\n")
+              for name, value in selected.items():
+                  output.write(f"{name}={str(value).lower()}\n")
+          PY
+
   camera-worksite-smoke:
+    if: needs.detect-changes.outputs.full == 'true' || needs.detect-changes.outputs.camera == 'true'
+    needs: detect-changes:
     name: Isolated Camera Creation Worksite smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -83,6 +196,7 @@ jobs:
           fi
 
   validate:
+    needs: detect-changes
     name: Validate Godot project and main startup
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -160,6 +274,8 @@ jobs:
           fi
 
   worksite-smoke-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.full == 'true' || needs.detect-changes.outputs[matrix.group] == 'true'
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -167,43 +283,53 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Home and Office navigation smoke test
+          - group: navigation
+            name: Home and Office navigation smoke test
             script: res://scripts/tests/home_transition_smoke.gd
             log: home-office-smoke.log
             marker: "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS"
-          - name: Research dashboards smoke test
+          - group: research
+            name: Research dashboards smoke test
             script: res://scripts/tests/research_dashboard_smoke.gd
             log: research-dashboard-smoke.log
             marker: "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS"
-          - name: Processor Worksite smoke test
+          - group: processor
+            name: Processor Worksite smoke test
             script: res://scripts/tests/processor_worksite_smoke.gd
             log: processor-worksite-smoke.log
             marker: "PROCESSOR_WORKSITE_SMOKE_TEST: PASS"
-          - name: Lock-screen designer smoke test
+          - group: lockscreen
+            name: Lock-screen designer smoke test
             script: res://scripts/tests/lock_screen_designer_smoke.gd
             log: lock-screen-designer-smoke.log
             marker: "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS"
-          - name: OS handset model smoke test
+          - group: osmodel
+            name: OS handset model smoke test
             script: res://scripts/tests/os_worksite_phone_model_smoke.gd
             log: os-worksite-phone-model-smoke.log
             marker: "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS"
-          - name: XMorph lock-screen assets smoke test
+          - group: xmorph
+            name: XMorph lock-screen assets smoke test
             script: res://scripts/tests/xmorph_lock_screen_assets_smoke.gd
             log: xmorph-lock-screen-smoke.log
             marker: "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS"
-          - name: PIN entry smoke test
+          - group: pin
+            name: PIN entry smoke test
             script: res://scripts/tests/pin_entry_swipe_smoke.gd
             log: pin-entry-smoke.log
             marker: "PIN_ENTRY_SWIPE_SMOKE_TEST: PASS"
-          - name: One UI home screen smoke test
+          - group: homescreen
+            name: One UI home screen smoke test
             script: res://scripts/tests/home_screen_smoke.gd
             log: home-screen-smoke.log
             marker: "ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS"
-          - name: OS boot and lock-screen handoff smoke test
+          - group: osboot
+            name: OS boot and lock-screen handoff smoke test
             script: res://scripts/tests/os_creation_boot_lock_screen_smoke.gd
             log: os-boot-lock-screen-smoke.log
             marker: "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS"
-          - name: Earth globe and landing navigation smoke test
+          - group: globe
+            name: Earth globe and landing navigation smoke test
             script: res://scripts/tests/world_globe_navigation_smoke.gd
             log: world-globe-smoke.log
             marker: "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS"
