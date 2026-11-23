@@ -257,7 +257,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/world_globe_navigation_smoke.gd 2>&1 | tee world-globe-smoke.log
+          set +e
+          timeout --signal=TERM --kill-after=10s 120s godot --headless --path . --script res://scripts/tests/world_globe_navigation_smoke.gd 2>&1 | tee world-globe-smoke.log
+          godot_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$godot_status" -eq 124 ]; then
+            echo "The globe smoke test exceeded its 120-second limit. Last progress marker:"
+            grep "WORLD_GLOBE_SMOKE:" world-globe-smoke.log | tail -n 1 || true
+            exit 124
+          fi
+          if [ "$godot_status" -ne 0 ]; then
+            echo "The globe smoke test exited with status $godot_status"
+            exit "$godot_status"
+          fi
           grep -q "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS" world-globe-smoke.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|WORLD_GLOBE_NAVIGATION_SMOKE_TEST:.*(FAIL|ERROR)' world-globe-smoke.log; then
             echo "Godot reported an error during the Earth globe and landing navigation smoke test."
