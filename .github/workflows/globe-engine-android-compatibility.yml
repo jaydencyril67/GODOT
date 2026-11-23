@@ -46,7 +46,7 @@ jobs:
           marker = 'target_sources( tiles3d_basisu PRIVATE "${TILES3D_BASISU_DIR}/zstd/zstd.c" )'
           if marker not in text:
               raise SystemExit("Could not locate Basis Universal target source declaration")
-          addition = marker + '\\ntarget_compile_definitions( tiles3d_basisu PRIVATE _GNU_SOURCE )'
+          addition = marker + '\ntarget_compile_definitions( tiles3d_basisu PRIVATE _GNU_SOURCE )'
           if "target_compile_definitions( tiles3d_basisu PRIVATE _GNU_SOURCE )" not in text:
               path.write_text(text.replace(marker, addition, 1))
           PY
