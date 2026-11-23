@@ -6,6 +6,8 @@ cpp_path, h_path = root / "GlobeCameraController.cpp", root / "GlobeCameraContro
 cpp, header = cpp_path.read_text(), h_path.read_text()
 occluder_header = root / "core/math/EllipsoidalOccluder.h"
 occluder = occluder_header.read_text()
+tile_layer_cpp = root / "GlobeTileLayer.cpp"
+tile_layer = tile_layer_cpp.read_text()
 
 def once(src, old, new, label):
     n = src.count(old)
@@ -213,4 +215,7 @@ cpp_path.write_text(cpp)
 h_path.write_text(header)
 occluder = once(occluder, "/// @param west,south,east,north the rectangle, radians. Its centre drives the\n", "/// @param west longitude of the western edge, radians.\n    /// @param south latitude of the southern edge, radians.\n    /// @param east longitude of the eastern edge, radians.\n    /// @param north latitude of the northern edge, radians. Its centre drives the\n", "Android Clang documentation warning")
 occluder_header.write_text(occluder)
-print("Native Android touch controls and Clang documentation compatibility patches applied.")
+tile_layer = once(tile_layer, "        constexpr int kFramingFrames = 5;\n", "        [[maybe_unused]] constexpr int kFramingFrames = 5;\n", "Android release-only framing constant")
+tile_layer = once(tile_layer, "        constexpr int kFramingFrameCap = 600;\n", "        [[maybe_unused]] constexpr int kFramingFrameCap = 600;\n", "Android release-only framing cap")
+tile_layer_cpp.write_text(tile_layer)
+print("Native Android touch controls and Android Clang/release compatibility patches applied.")
