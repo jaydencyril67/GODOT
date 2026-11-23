@@ -104,23 +104,19 @@ func _run_test() -> void:
 		_fail("The NASA cloud texture was not assigned to the cloud shader.")
 		return
 
-	var rotation_target_before: Vector2 = globe.get("_rotation_target")
+	var rotation_target_before: Quaternion = globe.get("_rotation_target")
 	globe.call("rotate_globe", Vector2(18.0, 12.0))
-	var rotation_target_after: Vector2 = globe.get("_rotation_target")
-	if rotation_target_after.x <= rotation_target_before.x:
-		_fail("Dragging right must advance the globe's horizontal rotation target.")
+	var rotation_target_after: Quaternion = globe.get("_rotation_target")
+	if absf(rotation_target_after.dot(rotation_target_before)) >= 0.999999:
+		_fail("A drag must change the globe's full 3D quaternion orientation.")
 		return
-	if rotation_target_after.y >= rotation_target_before.y:
-		_fail("Dragging down must lower the globe's vertical rotation target.")
+	if not is_equal_approx(rotation_target_after.length(), 1.0):
+		_fail("Globe trackball orientation must remain a normalized quaternion.")
 		return
-	var expected_zoom_factor := clampf(float(globe.get("_zoom_distance")) / 4.9, 0.58, 1.0)
-	if not is_equal_approx(rotation_target_after.x - rotation_target_before.x, 18.0 * 0.00075 * expected_zoom_factor):
-		_fail("Globe drag sensitivity must match the reduced, zoom-adjusted rotation setting.")
-		return
-	globe.call("rotate_globe", Vector2(-18.0, 0.0))
-	var reversed_rotation_target: Vector2 = globe.get("_rotation_target")
-	if reversed_rotation_target.x >= rotation_target_after.x:
-		_fail("Dragging left must reverse the horizontal rotation target.")
+	globe.call("_rotate_globe_from_points", Vector2(300.0, 300.0), Vector2(350.0, 320.0))
+	var trackball_rotation: Quaternion = globe.get("_rotation_target")
+	if absf(trackball_rotation.dot(rotation_target_after)) >= 0.999999:
+		_fail("Position-based virtual trackball input did not rotate the Earth.")
 		return
 	var initial_zoom := float(globe.call("get_zoom_distance"))
 	globe.call("zoom_globe", -0.5)
