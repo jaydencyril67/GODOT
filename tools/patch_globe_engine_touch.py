@@ -217,6 +217,35 @@ header = once(header, '        godot::Vector2 last_mouse_position_;\n',
     '        int touch_index_a_ = -1;\n        int touch_index_b_ = -1;\n'
     '        godot::Vector2 touch_position_a_;\n        godot::Vector2 touch_position_b_;\n'
     '        double touch_pinch_distance_ = 0.0;\n', "touch state")
+rebase_old = """            if ( Tileset3D *tileset = Object::cast_to<Tileset3D>( child ); tileset != nullptr )
+            {
+                // Only the already-attached content needs this; the next traversal re-derives
+                // every matrix from the moved frame on its own.
+                tileset->rebase( delta_in_parent_space( carrier, tileset, p_local_delta ) );
+                continue;
+            }
+        }
+    }"""
+rebase_new = """            if ( Tileset3D *tileset = Object::cast_to<Tileset3D>( child ); tileset != nullptr )
+            {
+                // Only the already-attached content needs this; the next traversal re-derives
+                // every matrix from the moved frame on its own.
+                tileset->rebase( delta_in_parent_space( carrier, tileset, p_local_delta ) );
+                continue;
+            }
+            // Custom geography overlays are also authored in the georeference frame.
+            // Move their carrier node with the floating origin so country borders and
+            // labels remain registered to the streamed ellipsoid after every rebase.
+            if ( godot::Node3D *custom_node = Object::cast_to<godot::Node3D>( child );
+                 custom_node != nullptr )
+            {
+                custom_node->set_position(
+                    custom_node->get_position() +
+                    delta_in_parent_space( carrier, custom_node, p_local_delta ) );
+            }
+        }
+    }"""
+cpp = once(cpp, rebase_old, rebase_new, "floating-origin custom geography overlay")
 cpp_path.write_text(cpp)
 h_path.write_text(header)
 occluder = once(occluder, "/// @param west,south,east,north the rectangle, radians. Its centre drives the\n", "/// @param west longitude of the western edge, radians.\n    /// @param south latitude of the southern edge, radians.\n    /// @param east longitude of the eastern edge, radians.\n    /// @param north latitude of the northern edge, radians. Its centre drives the\n", "Android Clang documentation warning")
