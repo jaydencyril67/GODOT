@@ -187,6 +187,23 @@ func _initialize_worksite() -> void:
 	_build_all_step_content_panels()
 	_show_step(0)
 	_update_phone_preview_mode()
+
+	# Recheck the cached digital faces after the full worksite UI has settled.
+	# Later preview configuration can invalidate their layout measurements, so
+	# startup must not report completion until all 41 faces are normalized again.
+	var digital_clock := lock_screen_designer.find_child("DigitalClock", true, false) as Control
+	if digital_clock == null:
+		setup_failed.emit("The digital lock-screen clock renderer could not be found.")
+		return
+	if not bool(digital_clock.call("are_all_styles_normalized")):
+		var final_clock_pass: bool = await lock_screen_designer.call(
+			"prepare_clock_styles_for_loading",
+			Callable(self, "_emit_setup_progress")
+		)
+		if not final_clock_pass or not bool(digital_clock.call("are_all_styles_normalized")):
+			setup_failed.emit("The 41 digital clock styles were not fully normalized before startup completion.")
+			return
+
 	setup_complete = true
 	setup_completed.emit()
 
