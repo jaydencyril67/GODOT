@@ -19,13 +19,13 @@ var _mouse_dragging := false
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
+var _country_geography_loaded := false
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_starfield()
 	_build_earth()
-	_build_country_geography()
 	_build_camera()
 	_update_country_label_visibility()
 	_build_interface()
@@ -361,6 +361,7 @@ func _build_country_geography() -> void:
 	if not parsed is Dictionary or not parsed.has("features"):
 		push_warning("Natural Earth country data is malformed.")
 		return
+	_country_geography_loaded = true
 
 	var border_material := StandardMaterial3D.new()
 	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -479,6 +480,8 @@ func _update_country_label_visibility() -> void:
 	# Keep the globe clean at the world scale. Geographic overlays appear
 	# progressively as the camera approaches the surface.
 	var show_boundaries := _zoom_distance <= 5.15
+	if show_boundaries and not _country_geography_loaded:
+		_build_country_geography()
 	if is_instance_valid(country_boundaries):
 		country_boundaries.visible = show_boundaries
 
