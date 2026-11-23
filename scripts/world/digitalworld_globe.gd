@@ -459,7 +459,7 @@ func _build_country_geography() -> void:
 	# shaded by globe lighting and depth-tested against the satellite terrain.
 	var border_material := StandardMaterial3D.new()
 	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	border_material.albedo_color = Color(0.62, 0.66, 0.70, 0.68)
+	border_material.albedo_color = Color(0.60, 0.67, 0.76, 0.84)
 	border_material.roughness = 1.0
 	border_material.metallic = 0.0
 	border_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -467,7 +467,7 @@ func _build_country_geography() -> void:
 	border_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var border_mesh := ImmediateMesh.new()
-	border_mesh.surface_begin(Mesh.PRIMITIVE_LINES, border_material)
+	border_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
 	var feature_count := 0
 	var segment_count := 0
 	for feature_variant in parsed["features"]:
@@ -603,7 +603,7 @@ func _build_state_geography() -> void:
 
 	var state_material := StandardMaterial3D.new()
 	state_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	state_material.albedo_color = Color(0.48, 0.55, 0.62, 0.48)
+	state_material.albedo_color = Color(0.42, 0.52, 0.64, 0.72)
 	state_material.roughness = 1.0
 	state_material.metallic = 0.0
 	state_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -611,7 +611,7 @@ func _build_state_geography() -> void:
 	state_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var state_mesh := ImmediateMesh.new()
-	state_mesh.surface_begin(Mesh.PRIMITIVE_LINES, state_material)
+	state_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
 	var feature_count := 0
 	var segment_count := 0
 	for feature_variant in parsed["features"]:
@@ -684,13 +684,36 @@ func _append_geographic_segment(
 	longitude_b: float,
 	radius: float
 ) -> void:
-	# Natural Earth already supplies densely sampled boundary vertices. Adding
-	# extra spherical subdivisions here multiplied vertex count dramatically
-	# and caused severe frame stalls on mobile GPUs.
+	# Render boundaries as narrow, shaded surface ribbons rather than GPU
+	# one-pixel line primitives. One-pixel lines become almost invisible on
+	# dense phone displays; ribbons retain a restrained cartographic edge.
 	var direction_a := _geo_to_globe_position(latitude_a, longitude_a, 1.0).normalized()
 	var direction_b := _geo_to_globe_position(latitude_b, longitude_b, 1.0).normalized()
-	mesh.surface_add_vertex(direction_a * radius)
-	mesh.surface_add_vertex(direction_b * radius)
+	var tangent := direction_b - direction_a
+	if tangent.length_squared() < 0.0000001:
+		return
+	tangent = tangent.normalized()
+	var half_width := 0.0035 if radius < EARTH_RADIUS * 1.0008 else 0.0026
+	var side_a := tangent.cross(direction_a).normalized() * half_width
+	var side_b := tangent.cross(direction_b).normalized() * half_width
+	var a_left := direction_a * radius + side_a
+	var a_right := direction_a * radius - side_a
+	var b_left := direction_b * radius + side_b
+	var b_right := direction_b * radius - side_b
+
+	# Two outward-facing triangles form a thin ribbon following the sphere.
+	mesh.surface_set_normal(direction_a)
+	mesh.surface_add_vertex(a_left)
+	mesh.surface_set_normal(direction_a)
+	mesh.surface_add_vertex(a_right)
+	mesh.surface_set_normal(direction_b)
+	mesh.surface_add_vertex(b_left)
+	mesh.surface_set_normal(direction_b)
+	mesh.surface_add_vertex(b_left)
+	mesh.surface_set_normal(direction_a)
+	mesh.surface_add_vertex(a_right)
+	mesh.surface_set_normal(direction_b)
+	mesh.surface_add_vertex(b_right)
 
 
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
