@@ -1,7 +1,0 @@
-[configuration]
-entry_symbol = "GDExtensionInit"
-compatibility_minimum = "4.7"
-reloadable = false
-
-[libraries]
-android.arm64 = "res://addons/lib/Android-aarch64/godot-3dtiles.so"
