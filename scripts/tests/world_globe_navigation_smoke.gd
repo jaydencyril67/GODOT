@@ -27,7 +27,18 @@ func _run_test() -> void:
 		return
 	var earth_material := earth.material_override as StandardMaterial3D
 	if earth_material == null or earth_material.albedo_texture == null:
-		_fail("The Earth surface texture did not import or load.")
+		_fail("The NASA Blue Marble Earth surface texture did not import or load.")
+		return
+	if earth_material.albedo_texture.get_width() < 2048 or earth_material.albedo_texture.get_height() < 1024:
+		_fail("The Earth surface texture is below the required 2K equirectangular resolution.")
+		return
+	var clouds := globe.find_child("Earth_Cloud_Layer", true, false) as MeshInstance3D
+	if clouds == null or clouds.material_override == null:
+		_fail("The separate NASA cloud layer was not created.")
+		return
+	var cloud_material := clouds.material_override as ShaderMaterial
+	if cloud_material == null or cloud_material.get_shader_parameter("cloud_texture") == null:
+		_fail("The NASA cloud texture was not assigned to the cloud shader.")
 		return
 
 	var initial_rotation: Vector3 = (globe.get("earth_pivot") as Node3D).rotation
