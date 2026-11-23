@@ -103,14 +103,14 @@ func _build_camera() -> void:
 		return
 	_native_camera = ClassDB.instantiate("GlobeCameraController") as Camera3D
 	_native_camera.name = "Globe_Camera_Controller"
-	_native_camera.fov = 38.0
+	_native_camera.fov = 45.0
 	_native_camera.set("inertia_enabled", false)
 	_native_camera.set("rotate_speed_scale", 0.72)
 	_native_camera.set("zoom_speed_scale", 0.62)
 	_native_camera.set("manage_clip", true)
 	add_child(_native_camera)
 	_native_camera.current = true
-	_native_camera.call("orbit_to", 0.0, 18.0, 16000000.0)
+	_native_camera.call("orbit_to", 0.0, 18.0, 18000000.0)
 	globe_camera = _native_camera
 
 
@@ -123,7 +123,7 @@ func _process(delta: float) -> void:
 		_zoom_distance = clampf(float(_native_camera.call("get_distance")) / WGS84_EQUATORIAL_RADIUS, ZOOM_MIN, ZOOM_MAX)
 		for label in country_labels:
 			if is_instance_valid(label):
-				var label_scale := clampf(height / 280.0, 9000.0, 42000.0)
+				var label_scale := COUNTRY_RADIUS_SCALE
 				label.scale = Vector3.ONE * label_scale
 	_update_country_label_visibility()
 
@@ -205,7 +205,8 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 		return super._geo_to_globe_position(latitude, longitude, radius)
 	var lat := deg_to_rad(clampf(latitude, -90.0, 90.0))
 	var lon := deg_to_rad(wrapf(longitude, -180.0, 180.0))
-	var scale_factor := radius / EARTH_RADIUS
+	var adjusted_radius := EARTH_RADIUS + (radius - EARTH_RADIUS) * 0.02
+	var scale_factor := adjusted_radius / EARTH_RADIUS
 	var horizontal := WGS84_EQUATORIAL_RADIUS * scale_factor * cos(lat)
 	return Vector3(cos(lon) * horizontal, WGS84_POLAR_RADIUS * scale_factor * sin(lat), -sin(lon) * horizontal)
 
