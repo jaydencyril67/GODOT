@@ -24,3 +24,11 @@ NASA imagery is credited as a courtesy; no NASA endorsement is implied. NASA med
 - Source dataset: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/
 - License: Natural Earth vector and raster map data are public domain.
 - Scope: country/territory outlines and label coordinates for the global overview. This 1:110m dataset is intentionally a low-detail overview layer; higher-resolution 1:50m and 1:10m layers are not yet included.
+
+
+## Cartographic presentation
+- Boundary and label presentation is an original implementation inspired by the restrained visual hierarchy used by Google Earth.
+- Google Earth datasets, source code, map tiles, logos, and proprietary visual assets are not included or copied.
+- Country geometry remains sourced from Natural Earth. The current bundled layer is Admin 0 at 1:110m scale and is suitable only for global overview use.
+- The current style pass uses shaded cool-grey boundary lines, removes duplicate shared polygon edges where coordinates match, keeps boundaries close to the globe surface, and reduces country-label prominence.
+- Higher-resolution Admin 0, Admin 1, and Admin 2 geography is a separate future data integration; it is not represented as available in this build.
