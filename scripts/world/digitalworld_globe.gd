@@ -365,12 +365,13 @@ func _build_country_geography() -> void:
 		return
 	_country_geography_loaded = true
 
-	# Country boundaries are a subtle earth-toned surface detail, not bright
-	# floating strokes. Keep them almost flush with the satellite surface and
-	# let the globe lighting shade them naturally.
+	# Google-Earth-inspired cartographic styling: quiet cool-grey boundaries,
+	# shaded by the globe lighting and depth-tested against the terrain.
+	# The lines sit almost flush with the satellite surface rather than
+	# appearing as bright, detached outlines.
 	var border_material := StandardMaterial3D.new()
 	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	border_material.albedo_color = Color(0.25, 0.31, 0.24, 0.86)
+	border_material.albedo_color = Color(0.62, 0.66, 0.70, 0.68)
 	border_material.roughness = 1.0
 	border_material.metallic = 0.0
 	border_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -381,6 +382,7 @@ func _build_country_geography() -> void:
 	border_mesh.surface_begin(Mesh.PRIMITIVE_LINES, border_material)
 	var feature_count := 0
 	var segment_count := 0
+	var drawn_boundary_edges: Dictionary = {}
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -401,13 +403,23 @@ func _build_country_geography() -> void:
 				# one segment creates a false line across an entire hemisphere.
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
+				# Adjacent country polygons often contain the same shared edge in
+				# opposite directions. Draw it once so shared borders stay crisp
+				# and do not become artificially brighter or thicker.
+				var edge_key := _geographic_edge_key(
+					float(point_a[1]), float(point_a[0]),
+					float(point_b[1]), float(point_b[0])
+				)
+				if drawn_boundary_edges.has(edge_key):
+					continue
+				drawn_boundary_edges[edge_key] = true
 				_append_geographic_segment(
 					border_mesh,
 					float(point_a[1]),
 					float(point_a[0]),
 					float(point_b[1]),
 					float(point_b[0]),
-					EARTH_RADIUS * 1.0012
+					EARTH_RADIUS * 1.0007
 				)
 				segment_count += 1
 	border_mesh.surface_end()
@@ -421,7 +433,8 @@ func _build_country_geography() -> void:
 	earth_pivot.add_child(country_boundaries)
 	country_boundaries.set_meta("country_feature_count", feature_count)
 	country_boundaries.set_meta("geographic_segment_count", segment_count)
-	country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0012)
+	country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
+	country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0")
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
@@ -430,14 +443,14 @@ func _build_country_geography() -> void:
 		var label := Label3D.new()
 		label.name = "Country_Label_" + str(feature.get("n", "Unknown")).replace(" ", "_")
 		label.text = str(feature.get("n", ""))
-		label.position = _geo_to_globe_position(float(feature.get("y", 0.0)), float(feature.get("x", 0.0)), EARTH_RADIUS * 1.021)
+		label.position = _geo_to_globe_position(float(feature.get("y", 0.0)), float(feature.get("x", 0.0)), EARTH_RADIUS * 1.014)
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.no_depth_test = false
-		label.font_size = 48
-		label.pixel_size = 0.00055
-		label.modulate = Color(0.91, 0.95, 1.0, 0.96)
-		label.outline_size = 6
-		label.outline_modulate = Color(0.015, 0.035, 0.065, 0.92)
+		label.font_size = 40
+		label.pixel_size = 0.00042
+		label.modulate = Color(0.91, 0.94, 0.97, 0.92)
+		label.outline_size = 4
+		label.outline_modulate = Color(0.015, 0.025, 0.045, 0.82)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -447,6 +460,14 @@ func _build_country_geography() -> void:
 
 	if feature_count == 0:
 		push_warning("Natural Earth country data contained no country features.")
+
+
+func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float) -> String:
+	var point_a := "%.3f,%.3f" % [latitude_a, longitude_a]
+	var point_b := "%.3f,%.3f" % [latitude_b, longitude_b]
+	if point_a < point_b:
+		return point_a + "|" + point_b
+	return point_b + "|" + point_a
 
 
 func _append_geographic_segment(
