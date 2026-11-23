@@ -609,58 +609,12 @@ func _build_country_geography() -> void:
 	# Keep each GPU mesh small and publish completed chunks immediately. A
 	# single 50m ImmediateMesh held over half a million vertices before it
 	# became visible, which made Android appear frozen with no geography.
-	for feature_variant in parsed["features"]:
-		if not feature_variant is Dictionary:
-			continue
-		var feature: Dictionary = feature_variant
-		feature_count += 1
-		for ring_variant in feature.get("r", []):
-			if not ring_variant is Array:
-				continue
-			var ring: Array = ring_variant
-			if ring.size() < 2:
-				continue
-			for point_index in range(ring.size()):
-				var point_a: Array = ring[point_index]
-				var point_b: Array = ring[(point_index + 1) % ring.size()]
-				if point_a.size() < 2 or point_b.size() < 2:
-					continue
-				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
-					continue
-				_append_geographic_segment(
-					chunk_mesh,
-					float(point_a[1]),
-					float(point_a[0]),
-					float(point_b[1]),
-					float(point_b[0]),
-					EARTH_RADIUS * 1.0007
-				)
-				segment_count += 1
-				chunk_segment_count += 1
-				if segment_count % 1500 == 0:
-					_debug_rendered_segments = segment_count
-					_debug_load_stage = "Building country mesh (%s): %d segments" % [tier, segment_count]
-					await get_tree().process_frame
-					if not is_inside_tree() or _resolve_country_data_path() != requested_data_path:
-						chunk_mesh.surface_end()
-						if is_instance_valid(country_boundaries):
-							country_boundaries.queue_free()
-							country_boundaries = null
-						_country_building = false
-						return
-				if chunk_segment_count >= 6000:
-					chunk_mesh.surface_end()
-					_attach_country_mesh_chunk(chunk_mesh)
-					chunk_mesh = ImmediateMesh.new()
-					chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
-					chunk_segment_count = 0
-	if chunk_segment_count > 0:
-		chunk_mesh.surface_end()
-		_attach_country_mesh_chunk(chunk_mesh)
-	else:
-		chunk_mesh.surface_end()
 	if is_instance_valid(country_boundaries):
-		country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
+		country_boundaries.set_meta("country_feature_count", feature_count)
+		country_boundaries.set_meta("geographic_segment_count", segment_count)
+		country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
+		country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0_" + tier)
+		country_boundaries.set_meta("geographic_resolution", tier)
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
