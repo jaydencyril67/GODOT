@@ -65,16 +65,12 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
-	var detailed_country_layer_ready := await _wait_for_country_layer(globe, "10m", 20.0)
+	var detailed_country_layer_ready := await _wait_for_country_layer(globe, "50m", 15.0)
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
-	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json"):
-		if not detailed_country_layer_ready or country_borders == null or str(country_borders.get_meta("geographic_resolution")) != "10m":
-			_fail("Close country zoom must switch to the detailed 1:10m country dataset.")
-			return
-		if int(country_borders.get_meta("country_feature_count", 0)) < 250:
-			_fail("The 1:10m country dataset did not load the expected global country set.")
-			return
+	if not detailed_country_layer_ready or country_borders == null or str(country_borders.get_meta("geographic_resolution")) != "50m":
+		_fail("Close country zoom must retain the mobile-friendly 1:50m Admin-0 dataset.")
+		return
 	var close_visible_count := 0
 	for label_variant in country_labels:
 		var country_label := label_variant as Label3D
