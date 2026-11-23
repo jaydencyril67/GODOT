@@ -600,10 +600,68 @@ func _build_country_geography() -> void:
 
 	_debug_load_stage = "Building country boundary mesh (" + tier + ")"
 	_debug_dataset_path = data_path
-	var border_mesh := ImmediateMesh.new()
-	border_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
+	country_boundaries = null
 	var feature_count := 0
 	var segment_count := 0
+	var chunk_segment_count := 0
+	var chunk_mesh := ImmediateMesh.new()
+	chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
+	# Keep each GPU mesh small and publish completed chunks immediately. A
+	# single 50m ImmediateMesh held over half a million vertices before it
+	# became visible, which made Android appear frozen with no geography.
+	for feature_variant in parsed["features"]:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		feature_count += 1
+		for ring_variant in feature.get("r", []):
+			if not ring_variant is Array:
+				continue
+			var ring: Array = ring_variant
+			if ring.size() < 2:
+				continue
+			for point_index in range(ring.size()):
+				var point_a: Array = ring[point_index]
+				var point_b: Array = ring[(point_index + 1) % ring.size()]
+				if point_a.size() < 2 or point_b.size() < 2:
+					continue
+				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
+					continue
+				_append_geographic_segment(
+					chunk_mesh,
+					float(point_a[1]),
+					float(point_a[0]),
+					float(point_b[1]),
+					float(point_b[0]),
+					EARTH_RADIUS * 1.0007
+				)
+				segment_count += 1
+				chunk_segment_count += 1
+				if segment_count % 1500 == 0:
+					_debug_rendered_segments = segment_count
+					_debug_load_stage = "Building country mesh (%s): %d segments" % [tier, segment_count]
+					await get_tree().process_frame
+					if not is_inside_tree() or _resolve_country_data_path() != requested_data_path:
+						chunk_mesh.surface_end()
+						if is_instance_valid(country_boundaries):
+							country_boundaries.queue_free()
+							country_boundaries = null
+						_country_building = false
+						return
+				if chunk_segment_count >= 6000:
+					chunk_mesh.surface_end()
+					_attach_country_mesh_chunk(chunk_mesh)
+					chunk_mesh = ImmediateMesh.new()
+					chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
+					chunk_segment_count = 0
+	if chunk_segment_count > 0:
+		chunk_mesh.surface_end()
+		_attach_country_mesh_chunk(chunk_mesh)
+	else:
+		chunk_mesh.surface_end()
+	if is_instance_valid(country_boundaries):
+		country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
+
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -823,6 +881,23 @@ func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: flo
 	if point_a < point_b:
 		return point_a + "|" + point_b
 	return point_b + "|" + point_a
+
+
+func _attach_country_mesh_chunk(chunk_mesh: ImmediateMesh) -> void:
+	if chunk_mesh == null or chunk_mesh.get_surface_count() == 0:
+		return
+	var chunk_instance := MeshInstance3D.new()
+	chunk_instance.mesh = chunk_mesh
+	chunk_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	chunk_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	if not is_instance_valid(country_boundaries):
+		chunk_instance.name = "Country_Boundaries"
+		country_boundaries = chunk_instance
+		country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
+		earth_pivot.add_child(country_boundaries)
+	else:
+		chunk_instance.name = "Country_Boundary_Chunk"
+		country_boundaries.add_child(chunk_instance)
 
 
 func _append_geographic_segment(
