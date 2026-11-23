@@ -587,20 +587,18 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 	var narrow := viewport_size.x < viewport_size.y * 1.25
 	var ui_scale := clampf(minf(viewport_size.x / 1152.0, viewport_size.y / 648.0), 0.68, 1.0)
 
-	var backdrop := ColorRect.new()
-	backdrop.name = "Country_Subdivision_Backdrop"
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color(0.002, 0.006, 0.016, 0.88)
-	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
-	backdrop.gui_input.connect(_on_country_subdivision_backdrop_input)
-	_country_subdivision_overlay.add_child(backdrop)
+	# This is a full research-style page, not a dialog over the globe. The page
+	# occupies the complete viewport and has its own navigation back to Earth.
+	var page_background := ColorRect.new()
+	page_background.name = "Country_Subdivision_Page_Background"
+	page_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_background.color = Color("#101315")
+	page_background.mouse_filter = Control.MOUSE_FILTER_STOP
+	_country_subdivision_overlay.add_child(page_background)
 
 	var panel := PanelContainer.new()
 	panel.name = "Country_Subdivision_Panel"
-	panel.anchor_left = 0.035 if narrow else 0.13
-	panel.anchor_top = 0.055
-	panel.anchor_right = 0.965 if narrow else 0.87
-	panel.anchor_bottom = 0.945
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = 0.0
 	panel.offset_top = 0.0
 	panel.offset_right = 0.0
@@ -608,27 +606,24 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color("#111315")
-	panel_style.border_color = Color("#806239")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
-	panel_style.shadow_size = 16
+	panel_style.bg_color = Color("#101315")
+	panel_style.set_border_width_all(0)
+	panel_style.set_corner_radius_all(0)
 	panel.add_theme_stylebox_override("panel", panel_style)
 	_country_subdivision_overlay.add_child(panel)
 
 	var inner_margin := MarginContainer.new()
-	inner_margin.add_theme_constant_override("margin_left", roundi(16.0 * ui_scale))
-	inner_margin.add_theme_constant_override("margin_right", roundi(16.0 * ui_scale))
-	inner_margin.add_theme_constant_override("margin_top", roundi(14.0 * ui_scale))
-	inner_margin.add_theme_constant_override("margin_bottom", roundi(14.0 * ui_scale))
+	inner_margin.add_theme_constant_override("margin_left", roundi((18.0 if narrow else 42.0) * ui_scale))
+	inner_margin.add_theme_constant_override("margin_right", roundi((18.0 if narrow else 42.0) * ui_scale))
+	inner_margin.add_theme_constant_override("margin_top", roundi((18.0 if narrow else 28.0) * ui_scale))
+	inner_margin.add_theme_constant_override("margin_bottom", roundi((16.0 if narrow else 24.0) * ui_scale))
 	panel.add_child(inner_margin)
 
 	var content := VBoxContainer.new()
 	content.name = "Country_Subdivision_Content"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", roundi(9.0 * ui_scale))
+	content.add_theme_constant_override("separation", roundi(10.0 * ui_scale))
 	inner_margin.add_child(content)
 
 	var header := HBoxContainer.new()
@@ -645,8 +640,8 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 
 	var close_button := Button.new()
 	close_button.name = "Country_Subdivision_Close_Button"
-	close_button.text = "CLOSE"
-	close_button.custom_minimum_size = Vector2(roundi(72.0 * ui_scale), roundi(38.0 * ui_scale))
+	close_button.text = "←  BACK TO WORLD"
+	close_button.custom_minimum_size = Vector2(roundi(156.0 * ui_scale), roundi(42.0 * ui_scale))
 	close_button.focus_mode = Control.FOCUS_NONE
 	close_button.add_theme_font_size_override("font_size", maxi(10, roundi(12.0 * ui_scale)))
 	close_button.add_theme_color_override("font_color", Color("#EEE9DF"))
@@ -666,7 +661,7 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 	var title := Label.new()
 	title.name = "Country_Subdivision_Country_Name"
 	title.text = country_name.to_upper()
-	title.add_theme_font_size_override("font_size", maxi(18, roundi(25.0 * ui_scale)))
+	title.add_theme_font_size_override("font_size", maxi(20, roundi(30.0 * ui_scale)))
 	title.add_theme_color_override("font_color", Color("#EEE9DF"))
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(title)
@@ -688,7 +683,7 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 	_country_subdivision_search.name = "Country_Subdivision_Search"
 	_country_subdivision_search.placeholder_text = "Search states or provinces"
 	_country_subdivision_search.clear_button_enabled = true
-	_country_subdivision_search.custom_minimum_size.y = roundi(40.0 * ui_scale)
+	_country_subdivision_search.custom_minimum_size.y = roundi(42.0 * ui_scale)
 	_country_subdivision_search.add_theme_font_size_override("font_size", maxi(12, roundi(14.0 * ui_scale)))
 	_country_subdivision_search.add_theme_color_override("font_color", Color("#EEE9DF"))
 	_country_subdivision_search.add_theme_color_override("font_placeholder_color", Color("#AAA49A"))
@@ -720,7 +715,6 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 	_country_subdivision_list.add_theme_constant_override("h_separation", roundi(10.0 * ui_scale))
 	_country_subdivision_list.add_theme_constant_override("v_separation", roundi(8.0 * ui_scale))
 	scroll.add_child(_country_subdivision_list)
-
 
 func _filter_country_subdivision_list(query: String) -> void:
 	if not is_instance_valid(_country_subdivision_list):
