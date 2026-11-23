@@ -32,13 +32,14 @@ func _run_test() -> void:
 	if earth_material.albedo_texture.get_width() < 2048 or earth_material.albedo_texture.get_height() < 1024:
 		_fail("The Earth surface texture is below the required 2K equirectangular resolution.")
 		return
+	var country_layer_ready := await _wait_for_country_layer(globe, "50m", 15.0)
 	var country_borders := globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
-	if country_borders != null:
-		_fail("Country boundary geometry must remain unloaded at the far globe zoom.")
+	if not country_layer_ready or country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
+		_fail("The base country dataset must load and remain visible when the globe first opens.")
 		return
 	var country_labels := globe.get("country_labels") as Array
-	if not country_labels.is_empty():
-		_fail("Country labels must remain unloaded at the far globe zoom.")
+	if country_labels.size() < 150:
+		_fail("The initial country dataset did not create the expected country label set.")
 		return
 	var equator_west: Vector3 = globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0)
 	var equator_east: Vector3 = globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0)
@@ -46,7 +47,7 @@ func _run_test() -> void:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
 	globe.call("zoom_globe", -0.6)
-	var country_layer_ready := await _wait_for_country_layer(globe, "50m", 15.0)
+	country_layer_ready = await _wait_for_country_layer(globe, "50m", 15.0)
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
 	if not country_layer_ready or country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
