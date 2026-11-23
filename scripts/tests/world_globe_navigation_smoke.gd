@@ -62,6 +62,14 @@ func _run_test() -> void:
 	if globe.find_child("Country_Subdivision_Search", true, false) == null:
 		_fail("The country subdivision overlay is missing its directory search field.")
 		return
+	var subdivision_panel := globe.find_child("Country_Subdivision_Panel", true, false) as PanelContainer
+	if subdivision_panel == null or subdivision_panel.anchor_left != 0.0 or subdivision_panel.anchor_top != 0.0 or subdivision_panel.anchor_right != 1.0 or subdivision_panel.anchor_bottom != 1.0:
+		_fail("The country subdivision directory must occupy a full research-style page, not a modal card.")
+		return
+	var subdivision_back := globe.find_child("Country_Subdivision_Close_Button", true, false) as Button
+	if subdivision_back == null or not subdivision_back.text.contains("BACK TO WORLD"):
+		_fail("The full-page country directory must provide a clear back-to-world navigation control.")
+		return
 	globe.call("_close_country_subdivision_overlay")
 	await process_frame
 	if globe.find_child("Country_Subdivision_Overlay", true, false) != null:
