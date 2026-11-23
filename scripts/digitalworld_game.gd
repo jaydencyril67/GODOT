@@ -11,6 +11,7 @@ const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/proce
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
+const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
@@ -36,6 +37,7 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
+var world_globe: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
@@ -316,6 +318,9 @@ func _clear_world() -> void:
 	if is_instance_valid(landing_world):
 		landing_world.queue_free()
 	landing_world = null
+	if is_instance_valid(world_globe):
+		world_globe.queue_free()
+	world_globe = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -450,9 +455,10 @@ func _show_menu() -> void:
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
+	var globe_button := _add_action_button(menu, "EXPLORE EARTH", false, _show_world_globe)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, globe_button, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -467,6 +473,16 @@ func _show_menu() -> void:
 	menu.add_child(footer)
 
 	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, command_area, command_panel, landing_buttons))
+
+
+func _show_world_globe() -> void:
+	current_screen = "globe"
+	_clear_world()
+	_new_screen() # Hide and release the landing-page controls before opening the globe scene.
+	world_globe = WorldGlobeScene.instantiate() as Node3D
+	world_globe.name = "Standalone_Earth_Globe"
+	world_globe.connect("back_requested", Callable(self, "_show_menu"))
+	add_child(world_globe)
 
 
 func _animate_landing_menu(root: Control, welcome: Control, command_area: Control, command_panel: Control, buttons: Array[Button]) -> void:
