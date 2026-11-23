@@ -158,7 +158,8 @@ func _run_test() -> void:
 	globe.set("_rotation_drag_active", false)
 	var stopped_pointer: Vector2 = globe.get("_rotation_pointer_position")
 	globe.call("_update_drag_rotation", 1.0 / 60.0)
-	if (globe.get("_rotation_pointer_position") as Vector2) != stopped_pointer:
+	var stopped_pointer_after: Vector2 = globe.get("_rotation_pointer_position")
+	if stopped_pointer_after != stopped_pointer:
 		_fail("Globe rotation input must stop immediately when dragging ends.")
 		return
 
