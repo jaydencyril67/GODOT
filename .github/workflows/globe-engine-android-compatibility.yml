@@ -200,13 +200,11 @@ jobs:
           path = Path("export_presets.cfg")
           content = path.read_text()
           old = "architectures/armeabi-v7a=true"
-          gradle = "gradle_build/use_gradle_build=true"
-          if old not in content or gradle not in content:
-              raise SystemExit("Android export preset settings were not found")
-          content = content.replace(old, "architectures/armeabi-v7a=false", 1)
-          content = content.replace(gradle, "gradle_build/use_gradle_build=false", 1)
-          path.write_text(content)
+          if old not in content:
+              raise SystemExit("Android export preset architecture setting was not found")
+          path.write_text(content.replace(old, "architectures/armeabi-v7a=false", 1))
           PY
+          godot --headless --path . --install-android-build-template 2>&1 | tee android-gradle-template.log
           mkdir -p build
           godot --headless --path . --export-debug Android build/DigitalWorldMobiles-debug.apk 2>&1 | tee android-export.log
           test -s build/DigitalWorldMobiles-debug.apk
