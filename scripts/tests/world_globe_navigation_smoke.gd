@@ -155,6 +155,9 @@ func _run_test() -> void:
 	if not is_equal_approx(farthest_zoom, 7.2):
 		_fail("The far zoom limit must keep the Earth comfortably large on screen.")
 		return
+	if country_borders.mesh.surface_get_primitive_type(0) != Mesh.PRIMITIVE_TRIANGLES:
+		_fail("Country boundaries must use visible surface ribbons, not sub-pixel line primitives.")
+		return
 	var border_material := country_borders.mesh.surface_get_material(0) as StandardMaterial3D
 	if border_material == null or border_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
 		_fail("Country boundaries must be shaded and integrated with the Earth surface, not bright unshaded strokes.")
