@@ -63,7 +63,6 @@ var cloud_shell: MeshInstance3D
 var camera: Camera3D
 var target_distance := START_DISTANCE
 var dragging := false
-var last_pointer := Vector2.ZERO
 var country_catalog_loaded := false
 var country_catalog_loading := false
 var selection_generation := 0
@@ -77,7 +76,6 @@ var country_select: OptionButton
 var province_select: OptionButton
 var admin_panel: PanelContainer
 var status_label: Label
-var loading_label: Label
 var overview_texture: Texture2D
 
 
@@ -106,12 +104,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_zoom(target_distance + 0.34)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			dragging = event.pressed
-			last_pointer = event.position
 	elif event is InputEventMouseMotion and dragging:
 		_drag_planet(event.relative)
 	elif event is InputEventScreenTouch:
 		dragging = event.pressed
-		last_pointer = event.position
 	elif event is InputEventScreenDrag:
 		_drag_planet(event.relative)
 	elif event is InputEventMagnifyGesture:
@@ -435,7 +431,7 @@ func _load_overview_map() -> void:
 		var cached_image := Image.load_from_file(cache_path)
 		if cached_image != null and not cached_image.is_empty():
 			_apply_overview_image(cached_image)
-			status_label.text = "EARTH IMAGERY READY  ·  LOADING FRESH NASA MAP"
+			status_label.text = "CACHED EARTH IMAGERY  ·  CHECKING FOR AN UPDATE"
 	_request_bytes(OVERVIEW_URL, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 			if overview_texture == null:
@@ -448,7 +444,7 @@ func _load_overview_map() -> void:
 			return
 		_apply_overview_image(image)
 		status_label.text = "NASA BLUE MARBLE  ·  DRAG TO ROTATE  ·  PINCH TO ZOOM"
-	)
+	, true)
 
 
 func _apply_overview_image(image: Image) -> void:
@@ -624,7 +620,7 @@ func _on_province_selected(index: int) -> void:
 
 func _focus_geo(center: Vector2, distance: float) -> void:
 	var direction := _geo_to_sphere(center.x, center.y, 1.0).normalized()
-	planet_root.rotation = Quaternion(direction, Vector3.FORWARD).get_euler()
+	planet_root.rotation = Quaternion(direction, Vector3.BACK).get_euler()
 	target_distance = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
 
 
@@ -666,7 +662,6 @@ func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_n
 	line_material.emission_enabled = true
 	line_material.emission = color
 	line_material.emission_energy_multiplier = 0.7
-	line_material.no_depth_test = false
 	lines.set_material(line_material)
 	var features: Array = geojson.get("features", [])
 	for feature in features:
@@ -778,7 +773,7 @@ func _request_detail_map(bounds: Dictionary) -> void:
 	var height := clampi(int(float(width) * (north - south) / (east - west)), 256, 1600)
 	var bbox := "%.5f,%.5f,%.5f,%.5f" % [west, south, east, north]
 	var url := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=&format=image/jpeg&srs=EPSG:4326&bbox=" + bbox + "&width=%d&height=%d" % [width, height]
-	var cache_key := selected_country_iso + "_" + str(roundi(west * 10.0)) + "_" + str(roundi(south * 10.0))
+	var cache_key := selected_country_iso + "_" + str(roundi(west * 10.0)) + "_" + str(roundi(south * 10.0)) + "_" + str(roundi(east * 10.0)) + "_" + str(roundi(north * 10.0))
 	var cache_path := CACHE_ROOT + "/detail_" + cache_key + ".jpg"
 	_request_bytes(url, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
@@ -834,8 +829,8 @@ func _build_geo_patch(west: float, east: float, south: float, north: float, radi
 	return surface.commit()
 
 
-func _request_bytes(url: String, cache_path: String, body_limit: int, completed: Callable) -> void:
-	if not cache_path.is_empty() and FileAccess.file_exists(cache_path):
+func _request_bytes(url: String, cache_path: String, body_limit: int, completed: Callable, refresh_cache: bool = false) -> void:
+	if not refresh_cache and not cache_path.is_empty() and FileAccess.file_exists(cache_path):
 		var cached := FileAccess.open(cache_path, FileAccess.READ)
 		if cached != null:
 			var cached_body := cached.get_buffer(cached.get_length())
