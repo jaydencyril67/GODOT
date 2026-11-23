@@ -121,7 +121,8 @@ jobs:
               output.write(f"full={str(full).lower()}\n")
               for name, value in selected.items():
                   output.write(f"{name}={str(value).lower()}\n")
-              output.write(f"camera={str(full or selected.get('camera', False)).lower()}\n")          PY
+              output.write(f"camera={str(full or selected.get('camera', False)).lower()}\n")
+          PY
 
   camera-worksite-smoke:
     if: needs.detect_changes.outputs.full == 'true' || needs.detect_changes.outputs.camera == 'true'
