@@ -222,7 +222,7 @@ func _build_lock_screen(data: Dictionary) -> void:
 	unlock.pressed.connect(func(): set_component_view("home_screen"))
 	page_container.add_child(unlock)
 
-func _build_clock_display(data: Dictionary) -> void:
+func _build_clock_display(_data: Dictionary) -> void:
 	var container := VBoxContainer.new()
 	container.alignment = BoxContainer.ALIGNMENT_CENTER
 	container.add_theme_constant_override("separation", 4)
@@ -313,8 +313,8 @@ func _next_clock_style() -> void:
 	set_component_view("lock_screen")
 
 func _prev_clock_style() -> void:
-	var size := CLOCK_STYLE_NAMES.size()
-	_clock_style_index = (_clock_style_index - 1 + size) % size
+	var style_count := CLOCK_STYLE_NAMES.size()
+	_clock_style_index = (_clock_style_index - 1 + style_count) % style_count
 	set_component_view("lock_screen")
 
 func _clock_style_display_name() -> String:
