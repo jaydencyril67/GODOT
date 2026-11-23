@@ -170,43 +170,43 @@ jobs:
           - name: Home and Office navigation smoke test
             script: res://scripts/tests/home_transition_smoke.gd
             log: home-office-smoke.log
-            marker: HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS
+            marker: "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS"
           - name: Research dashboards smoke test
             script: res://scripts/tests/research_dashboard_smoke.gd
             log: research-dashboard-smoke.log
-            marker: PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS
+            marker: "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS"
           - name: Processor Worksite smoke test
             script: res://scripts/tests/processor_worksite_smoke.gd
             log: processor-worksite-smoke.log
-            marker: PROCESSOR_WORKSITE_SMOKE_TEST: PASS
+            marker: "PROCESSOR_WORKSITE_SMOKE_TEST: PASS"
           - name: Lock-screen designer smoke test
             script: res://scripts/tests/lock_screen_designer_smoke.gd
             log: lock-screen-designer-smoke.log
-            marker: HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS
+            marker: "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS"
           - name: OS handset model smoke test
             script: res://scripts/tests/os_worksite_phone_model_smoke.gd
             log: os-worksite-phone-model-smoke.log
-            marker: OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS
+            marker: "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS"
           - name: XMorph lock-screen assets smoke test
             script: res://scripts/tests/xmorph_lock_screen_assets_smoke.gd
             log: xmorph-lock-screen-smoke.log
-            marker: XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS
+            marker: "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS"
           - name: PIN entry smoke test
             script: res://scripts/tests/pin_entry_swipe_smoke.gd
             log: pin-entry-smoke.log
-            marker: PIN_ENTRY_SWIPE_SMOKE_TEST: PASS
+            marker: "PIN_ENTRY_SWIPE_SMOKE_TEST: PASS"
           - name: One UI home screen smoke test
             script: res://scripts/tests/home_screen_smoke.gd
             log: home-screen-smoke.log
-            marker: ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS
+            marker: "ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS"
           - name: OS boot and lock-screen handoff smoke test
             script: res://scripts/tests/os_creation_boot_lock_screen_smoke.gd
             log: os-boot-lock-screen-smoke.log
-            marker: OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS
+            marker: "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS"
           - name: Earth globe and landing navigation smoke test
             script: res://scripts/tests/world_globe_navigation_smoke.gd
             log: world-globe-smoke.log
-            marker: WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS
+            marker: "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS"
             timeout: 120
 
     steps:
