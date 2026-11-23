@@ -41,6 +41,27 @@ func _run_test() -> void:
 	if country_labels.size() < 150:
 		_fail("The initial country dataset did not create the expected country label set.")
 		return
+
+	# Country taps should open a research-style directory without adding
+	# subdivision boundary meshes to the globe.
+	var nigeria: Dictionary = globe.call("_find_country_feature_at", 9.0, 8.0)
+	if nigeria.is_empty() or str(nigeria.get("n", "")) != "Nigeria":
+		_fail("Country coordinate hit-testing did not identify Nigeria.")
+		return
+	await globe.call("_open_country_subdivision_overlay", nigeria)
+	var subdivision_overlay := globe.find_child("Country_Subdivision_Overlay", true, false) as CanvasLayer
+	var subdivision_entries: Array = globe.get("_selected_subdivision_entries")
+	if subdivision_overlay == null or subdivision_entries.size() < 30:
+		_fail("Selecting Nigeria did not show its complete state/province directory.")
+		return
+	if globe.find_child("Country_Subdivision_Search", true, false) == null:
+		_fail("The country subdivision overlay is missing its directory search field.")
+		return
+	globe.call("_close_country_subdivision_overlay")
+	await process_frame
+	if globe.find_child("Country_Subdivision_Overlay", true, false) != null:
+		_fail("The country subdivision overlay did not close cleanly.")
+		return
 	var equator_west: Vector3 = globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0)
 	var equator_east: Vector3 = globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0)
 	if equator_west.distance_to(Vector3(0.0, 0.0, 1.0)) > 0.001 or equator_east.distance_to(Vector3(0.0, 0.0, -1.0)) > 0.001:
