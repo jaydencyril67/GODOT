@@ -17,6 +17,9 @@ const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.2]
 var earth_pivot: Node3D
 var globe_camera: Camera3D
 var _zoom_distance := 4.9
+var _zoom_target_distance := 4.9
+var _zoom_settle_elapsed := 0.0
+var _geography_refresh_pending := false
 var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
@@ -278,6 +281,24 @@ func _build_interface() -> void:
 func _process(delta: float) -> void:
 	if is_instance_valid(cloud_layer):
 		cloud_layer.rotation.y += delta * 0.0008
+
+	# Smooth camera movement independently from touch input sampling.
+	if absf(_zoom_distance - _zoom_target_distance) > 0.001:
+		var zoom_blend := 1.0 - exp(-delta * 11.0)
+		_zoom_distance = lerpf(_zoom_distance, _zoom_target_distance, zoom_blend)
+		_update_camera_position()
+		_update_country_label_visibility()
+	else:
+		_zoom_distance = _zoom_target_distance
+
+	# Wait until pinch input settles before parsing data or constructing meshes.
+	if _geography_refresh_pending:
+		_zoom_settle_elapsed += delta
+		if _zoom_settle_elapsed >= 0.28 and is_equal_approx(_zoom_distance, _zoom_target_distance):
+			_geography_refresh_pending = false
+			_zoom_settle_elapsed = 0.0
+			_refresh_geography_for_zoom()
+
 	if _zoom_distance <= 3.2 and _state_geography_loaded:
 		_state_refresh_elapsed += delta
 		if _state_refresh_elapsed >= 0.45:
@@ -356,16 +377,38 @@ func rotate_globe(pointer_delta: Vector2) -> void:
 
 
 func zoom_globe(distance_delta: float) -> void:
-	_zoom_distance = clampf(_zoom_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
-	_update_camera_zoom()
+	_zoom_target_distance = clampf(_zoom_target_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
+	_zoom_settle_elapsed = 0.0
+	_geography_refresh_pending = true
 
 
 func _update_camera_zoom() -> void:
+	_zoom_target_distance = _zoom_distance
+	_update_camera_position()
+	_update_country_label_visibility()
+
+
+func _update_camera_position() -> void:
 	if not is_instance_valid(globe_camera):
 		return
 	globe_camera.position = Vector3(0.0, 0.0, _zoom_distance)
 	globe_camera.look_at(Vector3.ZERO, Vector3.UP)
-	_update_country_label_visibility()
+
+
+func _refresh_geography_for_zoom() -> void:
+	var desired_country_path := _resolve_country_data_path()
+	var desired_tier := "110m"
+	if desired_country_path == COUNTRY_DATA_50M_PATH:
+		desired_tier = "50m"
+	elif desired_country_path == COUNTRY_DATA_10M_PATH:
+		desired_tier = "10m"
+	if _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD:
+		if not _country_geography_loaded or _country_geography_tier != desired_tier:
+			_build_country_geography()
+	if _zoom_distance <= 3.2:
+		_build_state_geography()
+	elif is_instance_valid(state_boundaries):
+		state_boundaries.visible = false
 
 
 func _read_geography_data(path: String, compressed: bool = false) -> Variant:
@@ -408,7 +451,7 @@ func _build_country_geography() -> void:
 	if _country_geography_loaded and _country_geography_tier == tier:
 		return
 
-	var parsed: Variant = _read_geography_data(data_path, data_path != COUNTRY_DATA_PATH)
+	var parsed: Variant = _read_geography_data(data_path)
 	if parsed == null:
 		return
 	_country_feature_data = parsed["features"]
@@ -551,7 +594,7 @@ func _build_state_geography() -> void:
 		_state_geography_loaded = false
 		_state_geography_continent = continent
 		return
-	var parsed: Variant = _read_geography_data(state_path, true)
+	var parsed: Variant = _read_geography_data(state_path)
 	if parsed == null:
 		return
 
@@ -669,8 +712,6 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 func _update_country_label_visibility() -> void:
 	# Load only the geographic level justified by the current camera zoom.
 	var show_boundaries := _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
-	if show_boundaries:
-		_build_country_geography()
 	if is_instance_valid(country_boundaries):
 		country_boundaries.visible = show_boundaries
 
@@ -686,8 +727,6 @@ func _update_country_label_visibility() -> void:
 			label.visible = max_label_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
 
 	var show_states := _zoom_distance <= 3.2
-	if show_states and not _state_geography_loaded:
-		_build_state_geography()
 	if is_instance_valid(state_boundaries):
 		state_boundaries.visible = show_states
 
