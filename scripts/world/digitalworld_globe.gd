@@ -11,6 +11,8 @@ const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.00075
 const ROTATION_SMOOTHING := 8.5
 const ROTATION_INPUT_LIMIT := 60.0
+const ZOOM_SMOOTHING := 4.2
+const PINCH_ZOOM_SENSITIVITY := 0.0035
 const ZOOM_MIN := 1.9
 const ZOOM_MAX := 7.2
 const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
@@ -343,6 +345,16 @@ func _process(delta: float) -> void:
 		earth_pivot.rotation.x = lerpf(earth_pivot.rotation.x, _rotation_target.y, rotation_blend)
 
 
+	# Ease the camera toward the pinch-selected distance. This is a damped,
+	# finite settle (not inertia): once the target is reached, zoom stops.
+	if is_instance_valid(globe_camera) and not is_equal_approx(_zoom_distance, _zoom_target_distance):
+		var zoom_blend := 1.0 - exp(-delta * ZOOM_SMOOTHING)
+		_zoom_distance = lerpf(_zoom_distance, _zoom_target_distance, zoom_blend)
+		if absf(_zoom_target_distance - _zoom_distance) < 0.001:
+			_zoom_distance = _zoom_target_distance
+		_update_camera_position()
+		_update_country_label_visibility()
+
 	# Wait until pinch input settles before parsing data or constructing meshes.
 	if _geography_refresh_pending:
 		_zoom_settle_elapsed += delta
@@ -372,7 +384,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touch_points.size() >= 2:
 			var pinch_distance := _get_pinch_distance()
 			if _previous_pinch_distance > 0.0:
-				zoom_globe((_previous_pinch_distance - pinch_distance) * 0.008)
+				zoom_globe((_previous_pinch_distance - pinch_distance) * PINCH_ZOOM_SENSITIVITY)
 			_previous_pinch_distance = pinch_distance
 		else:
 			rotate_globe(drag.relative)
@@ -385,10 +397,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_mouse_dragging = mouse_button.pressed
 			get_viewport().set_input_as_handled()
 		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom_globe(-0.35)
+			zoom_globe(-0.12)
 			get_viewport().set_input_as_handled()
 		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_globe(0.35)
+			zoom_globe(0.12)
 			get_viewport().set_input_as_handled()
 		return
 
@@ -419,11 +431,9 @@ func rotate_globe(pointer_delta: Vector2) -> void:
 	_rotation_target.y = clampf(_rotation_target.y - rotation_step.y, -1.25, 1.25)
 
 func zoom_globe(distance_delta: float) -> void:
-	# Pinch movement directly controls the camera; there is no glide after release.
-	_zoom_distance = clampf(_zoom_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
-	_zoom_target_distance = _zoom_distance
-	_update_camera_position()
-	_update_country_label_visibility()
+	# Accumulate finger movement into a bounded target, then ease toward it.
+	# There is no momentum: the camera stops as soon as it reaches this target.
+	_zoom_target_distance = clampf(_zoom_target_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
 	_zoom_settle_elapsed = 0.0
 	_geography_refresh_pending = true
 
