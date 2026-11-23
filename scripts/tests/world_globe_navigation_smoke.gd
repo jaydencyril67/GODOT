@@ -121,8 +121,17 @@ func _run_test() -> void:
 	if border_material == null or border_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
 		_fail("Country boundaries must be shaded and integrated with the Earth surface, not bright unshaded strokes.")
 		return
+	if absf(border_material.albedo_color.r - border_material.albedo_color.g) > 0.08 or border_material.albedo_color.b < border_material.albedo_color.g:
+		_fail("Country boundaries must use the restrained cool-grey Google Earth inspired palette.")
+		return
+	if country_borders.get_meta("cartographic_style") != "subtle_google_earth_inspired_admin0":
+		_fail("The country boundary layer is missing its intended cartographic style metadata.")
+		return
 	if float(country_borders.get_meta("surface_radius")) > 1.603:
 		_fail("Country boundaries are floating too far above the Earth surface.")
+		return
+	if country_labels.is_empty() or (country_labels[0] as Label3D).font_size > 44:
+		_fail("Country names must use the quieter, smaller geographic label treatment.")
 		return
 
 	globe.queue_free()
