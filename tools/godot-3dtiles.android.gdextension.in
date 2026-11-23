@@ -4,4 +4,5 @@ compatibility_minimum = "4.7"
 reloadable = false
 
 [libraries]
+linux.x86_64 = "res://addons/lib/linux-x86_64/godot-3dtiles.so"
 android.arm64 = "res://addons/lib/Android-aarch64/godot-3dtiles.so"
