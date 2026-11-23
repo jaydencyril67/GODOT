@@ -163,8 +163,8 @@ func _input(event: InputEvent) -> void:
 			_mouse_tap_active = false
 
 
-func _tap_is_on_globe(position: Vector2) -> bool:
-	if position.y < 82.0 and position.x < 220.0:
+func _tap_is_on_globe(screen_position: Vector2) -> bool:
+	if screen_position.y < 82.0 and screen_position.x < 220.0:
 		return false
 	return true
 
