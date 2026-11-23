@@ -10,6 +10,8 @@ const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.j
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.00075
 const ROTATION_SMOOTHING := 12.0
+const ROTATION_POINTER_SMOOTHING := 36.0
+const ROTATION_MAX_POINTER_STEP := 28.0
 const TRACKBALL_RADIUS_FACTOR := 0.72
 const ZOOM_SMOOTHING := 4.2
 const PINCH_ZOOM_SENSITIVITY := 0.0035
@@ -36,6 +38,7 @@ var _mouse_press_position := Vector2.ZERO
 var _mouse_tap_eligible := false
 var _rotation_drag_active := false
 var _rotation_pointer_position := Vector2.ZERO
+var _rotation_pointer_target := Vector2.ZERO
 var _rotation_current := Quaternion.IDENTITY
 var _rotation_target := Quaternion.IDENTITY
 var cloud_layer: MeshInstance3D
@@ -281,6 +284,7 @@ func _process(delta: float) -> void:
 	# Earth, country geometry, labels and cloud shell share one quaternion
 	# orientation. This prevents independent layer drift and Euler-axis locking.
 	if is_instance_valid(earth_pivot):
+		_update_drag_rotation(delta)
 		var rotation_blend := 1.0 - exp(-delta * ROTATION_SMOOTHING)
 		_rotation_current = _rotation_current.slerp(_rotation_target, rotation_blend).normalized()
 		earth_pivot.quaternion = _rotation_current
@@ -320,6 +324,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_touch_tap_eligible[touch.index] = true
 			if _touch_points.size() == 1:
 				_rotation_pointer_position = touch.position
+				_rotation_pointer_target = touch.position
 				_rotation_drag_active = true
 			elif _touch_points.size() == 2:
 				_rotation_drag_active = false
@@ -342,9 +347,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _touch_points.size() == 1:
 				var remaining_key = _touch_points.keys()[0]
 				_rotation_pointer_position = _touch_points[remaining_key]
+				_rotation_pointer_target = _rotation_pointer_position
 				_rotation_drag_active = true
 			else:
 				_rotation_drag_active = false
+				_rotation_pointer_target = _rotation_pointer_position
 		get_viewport().set_input_as_handled()
 		return
 
@@ -361,8 +368,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				zoom_globe((_previous_pinch_distance - pinch_distance) * PINCH_ZOOM_SENSITIVITY)
 			_previous_pinch_distance = pinch_distance
 		elif _rotation_drag_active:
-			_rotate_globe_from_points(_rotation_pointer_position, drag.position)
-			_rotation_pointer_position = drag.position
+			_rotation_pointer_target = drag.position
 		get_viewport().set_input_as_handled()
 		return
 
@@ -373,6 +379,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_mouse_dragging = true
 				_mouse_press_position = mouse_button.position
 				_mouse_tap_eligible = true
+				_rotation_pointer_position = mouse_button.position
+				_rotation_pointer_target = mouse_button.position
+				_rotation_drag_active = true
 			else:
 				var is_country_tap := (
 					_mouse_dragging
@@ -381,9 +390,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				)
 				_mouse_dragging = false
 				_mouse_tap_eligible = false
+				_rotation_drag_active = false
+				_rotation_pointer_target = _rotation_pointer_position
 				if is_country_tap:
 					_select_country_at_screen_position(mouse_button.position)
-			_rotation_pointer_position = mouse_button.position
 			get_viewport().set_input_as_handled()
 		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
 			zoom_globe(-0.12)
@@ -397,8 +407,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mouse_motion := event as InputEventMouseMotion
 		if _mouse_press_position.distance_to(mouse_motion.position) > COUNTRY_TAP_DRAG_THRESHOLD:
 			_mouse_tap_eligible = false
-		_rotate_globe_from_points(_rotation_pointer_position, mouse_motion.position)
-		_rotation_pointer_position = mouse_motion.position
+		_rotation_pointer_target = mouse_motion.position
 		get_viewport().set_input_as_handled()
 
 
@@ -830,6 +839,24 @@ func _get_pinch_distance() -> float:
 	var first_position: Vector2 = _touch_points[keys[0]]
 	var second_position: Vector2 = _touch_points[keys[1]]
 	return first_position.distance_to(second_position)
+
+
+func _update_drag_rotation(delta: float) -> void:
+	# Touch events do not arrive at perfectly even intervals on every Android
+	# device. Filter the pointer path at render cadence so one delayed event
+	# cannot become a visible rotational jump.
+	if not _rotation_drag_active:
+		return
+	var remaining := _rotation_pointer_target - _rotation_pointer_position
+	if remaining.length_squared() < 0.0001:
+		return
+	var blend := 1.0 - exp(-maxf(delta, 0.0) * ROTATION_POINTER_SMOOTHING)
+	var pointer_step := remaining * blend
+	if pointer_step.length() > ROTATION_MAX_POINTER_STEP:
+		pointer_step = pointer_step.normalized() * ROTATION_MAX_POINTER_STEP
+	var next_position := _rotation_pointer_position + pointer_step
+	_apply_trackball_rotation(_rotation_pointer_position, next_position)
+	_rotation_pointer_position = next_position
 
 
 func _trackball_vector(screen_position: Vector2) -> Vector3:
