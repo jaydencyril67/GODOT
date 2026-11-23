@@ -384,16 +384,24 @@ func _read_geography_data(path: String, compressed: bool = false) -> Variant:
 	if file == null:
 		push_warning("Geographic data could not be opened: " + path)
 		return null
-	var source_text := ""
-	if compressed:
-		var compressed_bytes := file.get_buffer(file.get_length())
-		var decompressed_bytes := compressed_bytes.decompress_dynamic(128 * 1024 * 1024, FileAccess.COMPRESSION_GZIP)
+
+	# Detect the actual file format instead of trusting its extension. The
+	# generated Natural Earth assets are gzip streams even though their names
+	# end in .json.
+	var source_bytes := file.get_buffer(file.get_length())
+	var is_gzip := compressed or (
+		source_bytes.size() >= 2
+		and source_bytes[0] == 0x1f
+		and source_bytes[1] == 0x8b
+	)
+	if is_gzip:
+		var decompressed_bytes := source_bytes.decompress_dynamic(128 * 1024 * 1024, FileAccess.COMPRESSION_GZIP)
 		if decompressed_bytes.is_empty():
 			push_warning("Compressed geographic data could not be decompressed: " + path)
 			return null
-		source_text = decompressed_bytes.get_string_from_utf8()
-	else:
-		source_text = file.get_as_text()
+		source_bytes = decompressed_bytes
+
+	var source_text := source_bytes.get_string_from_utf8()
 	var parsed: Variant = JSON.parse_string(source_text)
 	if not parsed is Dictionary or not parsed.has("features"):
 		push_warning("Geographic data is malformed: " + path)
