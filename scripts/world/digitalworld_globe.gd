@@ -4,6 +4,7 @@ signal back_requested
 
 const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_blue_marble.jpg")
 const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
+const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 3.7
@@ -16,13 +17,16 @@ var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
 var cloud_layer: MeshInstance3D
+var country_labels: Array[Label3D] = []
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_starfield()
 	_build_earth()
+	_build_country_geography()
 	_build_camera()
+	_update_country_label_visibility()
 	_build_interface()
 
 
@@ -239,7 +243,7 @@ func _build_interface() -> void:
 
 	var subtitle := Label.new()
 	subtitle.name = "Globe_Subtitle"
-	subtitle.text = "EARTH  •  CONTINENTS ONLY"
+	subtitle.text = "COUNTRIES  •  BORDERS  •  NAMES"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	subtitle.offset_top = 62.0
@@ -344,6 +348,103 @@ func _update_camera_zoom() -> void:
 		return
 	globe_camera.position = Vector3(0.0, 0.0, _zoom_distance)
 	globe_camera.look_at(Vector3.ZERO, Vector3.UP)
+	_update_country_label_visibility()
+
+
+func _build_country_geography() -> void:
+	var file := FileAccess.open(COUNTRY_DATA_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("Natural Earth country data could not be opened: " + COUNTRY_DATA_PATH)
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary or not parsed.has("features"):
+		push_warning("Natural Earth country data is malformed.")
+		return
+
+	var border_material := StandardMaterial3D.new()
+	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	border_material.albedo_color = Color(0.72, 0.86, 1.0, 0.78)
+	border_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	border_material.no_depth_test = false
+	border_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var border_mesh := ImmediateMesh.new()
+	border_mesh.surface_begin(Mesh.PRIMITIVE_LINES, border_material)
+	var feature_count := 0
+	for feature_variant in parsed["features"]:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		feature_count += 1
+		for ring_variant in feature.get("r", []):
+			if not ring_variant is Array:
+				continue
+			var ring: Array = ring_variant
+			if ring.size() < 2:
+				continue
+			for point_index in range(ring.size()):
+				var point_a: Array = ring[point_index]
+				var point_b: Array = ring[(point_index + 1) % ring.size()]
+				if point_a.size() < 2 or point_b.size() < 2:
+					continue
+				border_mesh.surface_add_vertex(_geo_to_globe_position(float(point_a[1]), float(point_a[0]), EARTH_RADIUS * 1.012))
+				border_mesh.surface_add_vertex(_geo_to_globe_position(float(point_b[1]), float(point_b[0]), EARTH_RADIUS * 1.012))
+	border_mesh.surface_end()
+
+	var borders := MeshInstance3D.new()
+	borders.name = "Country_Boundaries"
+	borders.mesh = border_mesh
+	borders.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	borders.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	earth_pivot.add_child(borders)
+
+	for feature_variant in parsed["features"]:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		var label := Label3D.new()
+		label.name = "Country_Label_" + str(feature.get("n", "Unknown")).replace(" ", "_")
+		label.text = str(feature.get("n", ""))
+		label.position = _geo_to_globe_position(float(feature.get("y", 0.0)), float(feature.get("x", 0.0)), EARTH_RADIUS * 1.021)
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.no_depth_test = false
+		label.font_size = 48
+		label.pixel_size = 0.00055
+		label.modulate = Color(0.91, 0.95, 1.0, 0.96)
+		label.outline_size = 6
+		label.outline_modulate = Color(0.015, 0.035, 0.065, 0.92)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		label.set_meta("natural_earth_label_rank", int(feature.get("rank", 5)))
+		earth_pivot.add_child(label)
+		country_labels.append(label)
+
+	if feature_count == 0:
+		push_warning("Natural Earth country data contained no country features.")
+
+
+func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
+	var latitude_radians := deg_to_rad(clampf(latitude, -90.0, 90.0))
+	var longitude_radians := deg_to_rad(longitude)
+	var horizontal_radius := cos(latitude_radians) * radius
+	return Vector3(
+		sin(longitude_radians) * horizontal_radius,
+		sin(latitude_radians) * radius,
+		cos(longitude_radians) * horizontal_radius
+	)
+
+
+func _update_country_label_visibility() -> void:
+	var max_label_rank := 2
+	if _zoom_distance <= 4.5:
+		max_label_rank = 7
+	elif _zoom_distance <= 5.2:
+		max_label_rank = 4
+	for label in country_labels:
+		if is_instance_valid(label):
+			label.visible = int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
+
 
 
 func get_zoom_distance() -> float:
