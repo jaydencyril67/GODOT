@@ -121,6 +121,9 @@ func _run_test() -> void:
 	if float(globe.get("_zoom_target_distance")) >= initial_zoom:
 		_fail("The globe zoom method did not move the camera closer.")
 		return
+	if not float(globe.get("_zoom_distance")) > float(globe.get("_zoom_target_distance")):
+		_fail("Globe zoom must ease toward its target instead of jumping instantly.")
+		return
 	globe.call("zoom_globe", -100.0)
 	var closest_zoom := float(globe.get("_zoom_target_distance"))
 	if not is_equal_approx(closest_zoom, 1.9):
