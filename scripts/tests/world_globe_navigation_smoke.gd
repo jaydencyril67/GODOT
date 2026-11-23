@@ -63,6 +63,15 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
+	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
+	country_labels = globe.get("country_labels") as Array
+	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json.gz"):
+		if country_borders == null or str(country_borders.get_meta("geographic_resolution")) != "10m":
+			_fail("Close country zoom must switch to the detailed 1:10m country dataset.")
+			return
+		if int(country_borders.get_meta("country_feature_count", 0)) < 250:
+			_fail("The 1:10m country dataset did not load the expected global country set.")
+			return
 	var close_visible_count := 0
 	for label_variant in country_labels:
 		var country_label := label_variant as Label3D
@@ -73,6 +82,14 @@ func _run_test() -> void:
 		return
 	globe.call("zoom_globe", -0.3)
 	var state_layer := globe.find_child("State_Province_Boundaries", true, false) as MeshInstance3D
+	var has_state_chunks := false
+	for continent in ["africa", "asia", "europe", "north_america", "south_america", "oceania", "other"]:
+		if FileAccess.file_exists("res://assets/globe/natural_earth_states_10m_" + continent + ".json.gz"):
+			has_state_chunks = true
+			break
+	if has_state_chunks and state_layer == null:
+		_fail("The close zoom did not load the state/province chunk for the camera's continent.")
+		return
 	if state_layer != null:
 		if state_layer.mesh == null or not state_layer.visible:
 			_fail("State/province boundaries must load only at the close geographic zoom level.")

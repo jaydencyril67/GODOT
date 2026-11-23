@@ -408,6 +408,7 @@ func _build_country_geography() -> void:
 		return
 	_country_feature_data = parsed["features"]
 	if is_instance_valid(country_boundaries):
+		earth_pivot.remove_child(country_boundaries)
 		country_boundaries.queue_free()
 	for old_label in country_labels:
 		if is_instance_valid(old_label):
@@ -536,6 +537,12 @@ func _build_state_geography() -> void:
 		return
 	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json.gz"
 	if not FileAccess.file_exists(state_path):
+		if is_instance_valid(state_boundaries):
+			earth_pivot.remove_child(state_boundaries)
+			state_boundaries.queue_free()
+		state_boundaries = null
+		_state_geography_loaded = false
+		_state_geography_continent = continent
 		return
 	var parsed: Variant = _read_geography_data(state_path)
 	if parsed == null:
@@ -592,6 +599,7 @@ func _build_state_geography() -> void:
 	state_mesh.surface_end()
 
 	if is_instance_valid(state_boundaries):
+		earth_pivot.remove_child(state_boundaries)
 		state_boundaries.queue_free()
 	state_boundaries = MeshInstance3D.new()
 	state_boundaries.name = "State_Province_Boundaries"
