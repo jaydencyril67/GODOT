@@ -33,6 +33,8 @@ jobs:
       pin: ${{ steps.filter.outputs.pin }}
       homescreen: ${{ steps.filter.outputs.homescreen }}
       osboot: ${{ steps.filter.outputs.osboot }}
+      matrix: ${{ steps.filter.outputs.matrix }}
+      has_tests: ${{ steps.filter.outputs.has_tests }}
     steps:
       - name: Check out repository history
         uses: actions/checkout@v4
@@ -49,9 +51,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            for group in full globe camera processor research navigation lockscreen osmodel xmorph pin homescreen osboot; do
-              echo "$group=true" >> "$GITHUB_OUTPUT"
-            done
+            echo "full=true" >> "$GITHUB_OUTPUT"
+            echo "camera=true" >> "$GITHUB_OUTPUT"
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -122,10 +125,34 @@ jobs:
           ) for path in changed):
               full = True
 
-          with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as output:
-              output.write(f"full={str(full).lower()}\n")
+          import json
+          tests = [
+              ("navigation", "Home and Office navigation smoke test", "res://scripts/tests/home_transition_smoke.gd", "home-office-smoke.log", "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS"),
+              ("research", "Research dashboards smoke test", "res://scripts/tests/research_dashboard_smoke.gd", "research-dashboard-smoke.log", "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS"),
+              ("processor", "Processor Worksite smoke test", "res://scripts/tests/processor_worksite_smoke.gd", "processor-worksite-smoke.log", "PROCESSOR_WORKSITE_SMOKE_TEST: PASS"),
+              ("lockscreen", "Lock-screen designer smoke test", "res://scripts/tests/lock_screen_designer_smoke.gd", "lock-screen-designer-smoke.log", "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS"),
+              ("osmodel", "OS handset model smoke test", "res://scripts/tests/os_worksite_phone_model_smoke.gd", "os-worksite-phone-model-smoke.log", "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS"),
+              ("xmorph", "XMorph lock-screen assets smoke test", "res://scripts/tests/xmorph_lock_screen_assets_smoke.gd", "xmorph-lock-screen-smoke.log", "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS"),
+              ("pin", "PIN entry smoke test", "res://scripts/tests/pin_entry_swipe_smoke.gd", "pin-entry-smoke.log", "PIN_ENTRY_SWIPE_SMOKE_TEST: PASS"),
+              ("homescreen", "One UI home screen smoke test", "res://scripts/tests/home_screen_smoke.gd", "home-screen-smoke.log", "ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS"),
+              ("osboot", "OS boot and lock-screen handoff smoke test", "res://scripts/tests/os_creation_boot_lock_screen_smoke.gd", "os-boot-lock-screen-smoke.log", "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS"),
+              ("globe", "Earth globe and landing navigation smoke test", "res://scripts/tests/world_globe_navigation_smoke.gd", "world-globe-smoke.log", "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS", 120)
+          ]
+          matrix = []
+          for group, name, script, log, marker, *timeout in tests:
+              if full or selected[group]:
+                  item = {"group": group, "name": name, "script": script, "log": log, "marker": marker}
+                  if timeout:
+                      item["timeout"] = timeout[0]
+                  matrix.append(item)
+
+          output_path = __import__("os").environ["GITHUB_OUTPUT"]
+          with open(output_path, "a") as output:
+              output.write(f"full={str(full).lower()}\\n")
               for name, value in selected.items():
-                  output.write(f"{name}={str(value).lower()}\n")
+                  output.write(f"{name}={str(value).lower()}\\n")
+              output.write(f"matrix={json.dumps(matrix, separators=(',', ':'))}\\n")
+              output.write(f"has_tests={str(bool(matrix)).lower()}\\n")
           PY
 
   camera-worksite-smoke:
@@ -275,65 +302,13 @@ jobs:
 
   worksite-smoke-tests:
     needs: detect_changes
-    if: needs.detect_changes.outputs.full == 'true' || needs.detect_changes.outputs[matrix.group] == 'true'
+    if: needs.detect_changes.outputs.has_tests == 'true'
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - group: navigation
-            name: Home and Office navigation smoke test
-            script: res://scripts/tests/home_transition_smoke.gd
-            log: home-office-smoke.log
-            marker: "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS"
-          - group: research
-            name: Research dashboards smoke test
-            script: res://scripts/tests/research_dashboard_smoke.gd
-            log: research-dashboard-smoke.log
-            marker: "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS"
-          - group: processor
-            name: Processor Worksite smoke test
-            script: res://scripts/tests/processor_worksite_smoke.gd
-            log: processor-worksite-smoke.log
-            marker: "PROCESSOR_WORKSITE_SMOKE_TEST: PASS"
-          - group: lockscreen
-            name: Lock-screen designer smoke test
-            script: res://scripts/tests/lock_screen_designer_smoke.gd
-            log: lock-screen-designer-smoke.log
-            marker: "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS"
-          - group: osmodel
-            name: OS handset model smoke test
-            script: res://scripts/tests/os_worksite_phone_model_smoke.gd
-            log: os-worksite-phone-model-smoke.log
-            marker: "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS"
-          - group: xmorph
-            name: XMorph lock-screen assets smoke test
-            script: res://scripts/tests/xmorph_lock_screen_assets_smoke.gd
-            log: xmorph-lock-screen-smoke.log
-            marker: "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS"
-          - group: pin
-            name: PIN entry smoke test
-            script: res://scripts/tests/pin_entry_swipe_smoke.gd
-            log: pin-entry-smoke.log
-            marker: "PIN_ENTRY_SWIPE_SMOKE_TEST: PASS"
-          - group: homescreen
-            name: One UI home screen smoke test
-            script: res://scripts/tests/home_screen_smoke.gd
-            log: home-screen-smoke.log
-            marker: "ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS"
-          - group: osboot
-            name: OS boot and lock-screen handoff smoke test
-            script: res://scripts/tests/os_creation_boot_lock_screen_smoke.gd
-            log: os-boot-lock-screen-smoke.log
-            marker: "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS"
-          - group: globe
-            name: Earth globe and landing navigation smoke test
-            script: res://scripts/tests/world_globe_navigation_smoke.gd
-            log: world-globe-smoke.log
-            marker: "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS"
-            timeout: 120
+      matrix: ${{ fromJSON(needs.detect_changes.outputs.matrix) }}
 
     steps:
       - name: Check out repository
