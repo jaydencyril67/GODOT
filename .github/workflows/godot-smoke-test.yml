@@ -1,0 +1,88 @@
+name: Reusable Godot smoke test
+
+on:
+  workflow_call:
+    inputs:
+      script:
+        description: Godot smoke-test script resource path
+        required: true
+        type: string
+      log:
+        description: Log filename
+        required: true
+        type: string
+      marker:
+        description: Required PASS marker
+        required: true
+        type: string
+      timeout_seconds:
+        description: Optional timeout in seconds
+        required: false
+        default: 0
+        type: number
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Execute selected smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import project assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp project.godot project.godot.ci-backup
+          restore_project() {
+            if [ -f project.godot.ci-backup ]; then mv project.godot.ci-backup project.godot; fi
+          }
+          trap restore_project EXIT
+          sed -i '/^theme\/custom=/d' project.godot
+          godot --headless --editor --path . --import --quit 2>&1 | tee smoke-import.log
+          restore_project
+          trap - EXIT
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' smoke-import.log; then
+            echo "Godot reported an error while importing project assets."
+            exit 1
+          fi
+
+      - name: Run selected smoke test
+        shell: bash
+        env:
+          TEST_SCRIPT: ${{ inputs.script }}
+          TEST_LOG: ${{ inputs.log }}
+          PASS_MARKER: ${{ inputs.marker }}
+          TEST_TIMEOUT: ${{ inputs.timeout_seconds }}
+        run: |
+          set -euo pipefail
+          if [ "$TEST_TIMEOUT" -gt 0 ]; then
+            set +e
+            timeout --signal=TERM --kill-after=10s "${TEST_TIMEOUT}s" godot --headless --path . --script "$TEST_SCRIPT" 2>&1 | tee "$TEST_LOG"
+            godot_status=${PIPESTATUS[0]}
+            set -e
+            if [ "$godot_status" -eq 124 ]; then
+              echo "Smoke test timed out. Last progress marker:"
+              grep -E 'SMOKE:' "$TEST_LOG" | tail -n 1 || true
+              exit 124
+            fi
+            if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          else
+            godot --headless --path . --script "$TEST_SCRIPT" 2>&1 | tee "$TEST_LOG"
+          fi
+          grep -Fq "$PASS_MARKER" "$TEST_LOG"
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|SMOKE_TEST:.*(FAIL|ERROR)' "$TEST_LOG"; then
+            echo "Godot reported an error during this smoke test."
+            exit 1
+          fi
