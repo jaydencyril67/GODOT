@@ -41,11 +41,27 @@ func _run_test() -> void:
 		_fail("The NASA cloud texture was not assigned to the cloud shader.")
 		return
 
-	var initial_rotation: Vector3 = (globe.get("earth_pivot") as Node3D).rotation
+	var pivot := globe.get("earth_pivot") as Node3D
+	var initial_rotation: Vector3 = pivot.rotation
 	globe.call("rotate_globe", Vector2(18.0, 12.0))
-	var rotated: Vector3 = (globe.get("earth_pivot") as Node3D).rotation
-	if rotated.is_equal_approx(initial_rotation):
-		_fail("The globe rotation method did not change the Earth orientation.")
+	var horizontal_rotation: Vector3 = pivot.rotation
+	if horizontal_rotation.y <= initial_rotation.y:
+		_fail("Dragging right must rotate the globe in the same direction as the phone worksite.")
+		return
+	if not is_equal_approx(horizontal_rotation.x, initial_rotation.x):
+		_fail("A diagonal drag must stay locked to its dominant horizontal axis.")
+		return
+	if not is_equal_approx(horizontal_rotation.y - initial_rotation.y, 18.0 * 0.0024):
+		_fail("Globe drag sensitivity must match the phone worksite's stable rotation sensitivity.")
+		return
+	globe.call("rotate_globe", Vector2(0.0, 12.0))
+	var vertical_rotation: Vector3 = pivot.rotation
+	if vertical_rotation.x <= horizontal_rotation.x:
+		_fail("Dragging down must rotate the globe in the same direction as the phone worksite.")
+		return
+	globe.call("rotate_globe", Vector2(-18.0, 0.0))
+	if pivot.rotation.y >= vertical_rotation.y:
+		_fail("Dragging left must reverse the horizontal rotation direction.")
 		return
 	var initial_zoom := float(globe.call("get_zoom_distance"))
 	globe.call("zoom_globe", -0.5)
