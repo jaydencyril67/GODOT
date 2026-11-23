@@ -39,8 +39,8 @@ func _run_test() -> void:
 	if country_borders.visible:
 		_fail("Country boundaries must remain hidden at the far globe zoom.")
 		return
-	var equator_west := globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0) as Vector3
-	var equator_east := globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0) as Vector3
+	var equator_west: Vector3 = globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0)
+	var equator_east: Vector3 = globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0)
 	if equator_west.distance_to(Vector3(0.0, 0.0, 1.0)) > 0.001 or equator_east.distance_to(Vector3(0.0, 0.0, -1.0)) > 0.001:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
