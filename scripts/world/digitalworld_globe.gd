@@ -269,7 +269,7 @@ func _process(delta: float) -> void:
 			_zoom_settle_elapsed = 0.0
 			_refresh_geography_for_zoom()
 
-	if _zoom_distance <= 3.2 and _country_geography_loaded:
+	if _zoom_distance <= 3.2 and _country_geography_loaded and not _country_building:
 		_state_refresh_elapsed += delta
 		if _state_refresh_elapsed >= 0.45:
 			_state_refresh_elapsed = 0.0
@@ -375,7 +375,7 @@ func _refresh_geography_for_zoom() -> void:
 	if _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD:
 		if not _country_geography_loaded or _country_geography_tier != desired_tier:
 			_build_country_geography()
-	if _zoom_distance <= 3.2 and _country_geography_loaded:
+	if _zoom_distance <= 3.2 and _country_geography_loaded and not _country_building:
 		_build_state_geography()
 	elif _zoom_distance > 3.2 and is_instance_valid(state_boundaries):
 		state_boundaries.visible = false
