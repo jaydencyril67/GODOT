@@ -81,6 +81,10 @@ func _run_test() -> void:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
 	globe.call("zoom_globe", -0.3)
+	var export_config := FileAccess.get_file_as_string("res://export_presets.cfg")
+	if not export_config.contains("*.json.gz"):
+		_fail("Android exports must include the compressed country and state geography assets.")
+		return
 	var state_layer := globe.find_child("State_Province_Boundaries", true, false) as MeshInstance3D
 	var has_state_chunks := false
 	for continent in ["africa", "asia", "europe", "north_america", "south_america", "oceania", "other"]:

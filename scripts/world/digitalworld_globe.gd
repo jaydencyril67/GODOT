@@ -528,6 +528,8 @@ func _get_nearest_country_continent() -> String:
 		if facing_score > best_dot:
 			best_dot = facing_score
 			best_continent = str(feature.get("continent", "other")).to_lower().replace(" ", "_")
+	if best_continent not in ["africa", "asia", "europe", "north_america", "south_america", "oceania", "antarctica"]:
+		best_continent = "other"
 	return best_continent
 
 
