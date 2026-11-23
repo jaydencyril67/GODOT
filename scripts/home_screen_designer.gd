@@ -153,7 +153,7 @@ func load_manifest_for_loading(progress_callback: Callable) -> bool:
 			var app: Dictionary = raw_app.duplicate(true)
 			var app_id := str(app.get("id", ""))
 			var icon_path := str(app.get("path", ""))
-			if not app_id.is_empty() and not icon_path.is_empty() and FileAccess.file_exists(icon_path):
+			if not app_id.is_empty() and not icon_path.is_empty() and ResourceLoader.exists(icon_path, "Texture2D"):
 				_app_manifest.append(app)
 				_apps_by_id[app_id] = app
 		if (index + 1) % 20 == 0 or index == total - 1:
@@ -310,7 +310,7 @@ func _load_app_manifest() -> void:
 		var app: Dictionary = raw_app.duplicate(true)
 		var app_id := str(app.get("id", ""))
 		var icon_path := str(app.get("path", ""))
-		if app_id.is_empty() or icon_path.is_empty() or not FileAccess.file_exists(icon_path):
+		if app_id.is_empty() or icon_path.is_empty() or not ResourceLoader.exists(icon_path, "Texture2D"):
 			continue
 		_app_manifest.append(app)
 		_apps_by_id[app_id] = app
@@ -546,7 +546,7 @@ func _make_app_tile(app: Dictionary, icon_size: int, label_size: int, tile_heigh
 	icon.name = "HomeAppIcon_" + app_id
 	var icon_path := str(app.get("path", ""))
 	if not icon_path.is_empty():
-		icon.texture = load(icon_path) as Texture2D
+		icon.texture = ResourceLoader.load(icon_path, "Texture2D") as Texture2D
 	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
