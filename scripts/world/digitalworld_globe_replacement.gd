@@ -207,7 +207,7 @@ func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
 	if hit_distance < 0.0:
 		return Vector2(999.0, 999.0)
 	var hit := relative_origin + ray_direction * hit_distance
-	var latitude := rad_to_deg(atan2(-hit.z * inv_b2, Vector2(hit.x, hit.y).length() * inv_a2))
+	var latitude := rad_to_deg(atan2(-hit.z / WGS84_POLAR_RADIUS, Vector2(hit.x, hit.y).length() / WGS84_EQUATORIAL_RADIUS))
 	var longitude := wrapf(rad_to_deg(atan2(hit.x, hit.y)), -180.0, 180.0)
 	return Vector2(latitude, longitude)
 
