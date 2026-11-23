@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  detect-changes:
+  detect_changes:
     name: Detect affected worksites
     runs-on: ubuntu-latest
     outputs:
@@ -129,8 +129,8 @@ jobs:
           PY
 
   camera-worksite-smoke:
-    if: needs.detect-changes.outputs.full == 'true' || needs.detect-changes.outputs.camera == 'true'
-    needs: detect-changes
+    if: needs.detect_changes.outputs.full == 'true' || needs.detect_changes.outputs.camera == 'true'
+    needs: detect_changes
     name: Isolated Camera Creation Worksite smoke test
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -196,7 +196,7 @@ jobs:
           fi
 
   validate:
-    needs: detect-changes
+    needs: detect_changes
     name: Validate Godot project and main startup
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -274,8 +274,8 @@ jobs:
           fi
 
   worksite-smoke-tests:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.full == 'true' || needs.detect-changes.outputs[matrix.group] == 'true'
+    needs: detect_changes
+    if: needs.detect_changes.outputs.full == 'true' || needs.detect_changes.outputs[matrix.group] == 'true'
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
