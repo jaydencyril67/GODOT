@@ -75,6 +75,8 @@ var selected_state_marker: Label3D
 var country_select: OptionButton
 var province_select: OptionButton
 var admin_panel: PanelContainer
+var retry_button: Button
+var country_catalog_attempted := false
 var status_label: Label
 var overview_texture: Texture2D
 
@@ -199,6 +201,9 @@ func _build_planet() -> void:
 	var earth_shader := Shader.new()
 	earth_shader.code = EARTH_SHADER
 	earth_material.shader = earth_shader
+	var fallback_ocean := Image.create(2, 2, false, Image.FORMAT_RGB8)
+	fallback_ocean.fill(Color("#0B3556"))
+	earth_material.set_shader_parameter("earth_map", ImageTexture.create_from_image(fallback_ocean))
 	earth_instance.material_override = earth_material
 	earth_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(earth_instance)
@@ -388,6 +393,14 @@ func _build_interface() -> void:
 	province_select.item_selected.connect(_on_province_selected)
 	selectors.add_child(province_select)
 
+	retry_button = Button.new()
+	retry_button.text = "RETRY WORLD DATA"
+	retry_button.visible = false
+	retry_button.custom_minimum_size = Vector2(0, 38)
+	retry_button.pressed.connect(_on_retry_pressed)
+	_style_button(retry_button, false)
+	selectors.add_child(retry_button)
+
 	var footer_spacer := Control.new()
 	footer_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(footer_spacer)
@@ -400,7 +413,7 @@ func _build_interface() -> void:
 	layout.add_child(status_label)
 
 	var attribution := Label.new()
-	attribution.text = "NASA GIBS imagery  ·  geoBoundaries CC BY 4.0"
+	attribution.text = "NASA GIBS / NASA ESDIS imagery  ·  geoBoundaries gbOpen (CC BY 4.0)"
 	attribution.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	attribution.add_theme_font_size_override("font_size", 9)
 	attribution.add_theme_color_override("font_color", Color("#72839D"))
@@ -457,12 +470,14 @@ func _update_admin_visibility() -> void:
 		return
 	var should_show := target_distance <= ADMIN_ZOOM_DISTANCE
 	admin_panel.visible = should_show
-	if should_show and not country_catalog_loaded and not country_catalog_loading:
+	if should_show and not country_catalog_loaded and not country_catalog_loading and not country_catalog_attempted:
 		_load_country_catalog()
 
 
 func _load_country_catalog() -> void:
+	country_catalog_attempted = true
 	country_catalog_loading = true
+	retry_button.visible = false
 	status_label.text = "LOADING COUNTRY INDEX…"
 	var cache_path := CACHE_ROOT + "/countries_adm0.json"
 	_request_bytes(GEOBOUNDARIES_ROOT + "/ALL/ADM0/", cache_path, 18 * 1024 * 1024, _on_country_catalog_loaded)
@@ -471,7 +486,8 @@ func _load_country_catalog() -> void:
 func _on_country_catalog_loaded(result: int, response_code: int, body: PackedByteArray) -> void:
 	country_catalog_loading = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-		status_label.text = "COUNTRY INDEX UNAVAILABLE  ·  TRY AGAIN"
+		status_label.text = "COUNTRY INDEX UNAVAILABLE  ·  USE RETRY"
+		retry_button.visible = true
 		country_select.clear()
 		country_select.add_item("Country index unavailable")
 		country_select.disabled = true
@@ -479,6 +495,7 @@ func _on_country_catalog_loaded(result: int, response_code: int, body: PackedByt
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not parsed is Array:
 		status_label.text = "COUNTRY INDEX FORMAT NOT RECOGNISED"
+		retry_button.visible = true
 		return
 	var countries: Array[Dictionary] = []
 	for item in parsed:
@@ -496,7 +513,18 @@ func _on_country_catalog_loaded(result: int, response_code: int, body: PackedByt
 		country_select.set_item_metadata(country_select.item_count - 1, str(country["iso"]))
 	country_select.disabled = countries.is_empty()
 	country_catalog_loaded = not countries.is_empty()
+	retry_button.visible = countries.is_empty()
 	status_label.text = "%d COUNTRIES AVAILABLE  ·  SELECT ONE TO LOAD ITS REGIONS" % countries.size()
+
+
+func _on_retry_pressed() -> void:
+	if not selected_country_iso.is_empty():
+		for index in range(1, country_select.item_count):
+			if str(country_select.get_item_metadata(index)) == selected_country_iso:
+				_on_country_selected(index)
+				return
+	country_catalog_attempted = false
+	_load_country_catalog()
 
 
 func _on_country_selected(index: int) -> void:
@@ -509,6 +537,7 @@ func _on_country_selected(index: int) -> void:
 	var generation := selection_generation
 	selected_country_iso = iso
 	selected_country_name = country_select.get_item_text(index)
+	retry_button.visible = false
 	_clear_boundaries()
 	province_select.clear()
 	province_select.add_item("Loading states / provinces…")
@@ -531,23 +560,31 @@ func _request_boundary_metadata(iso: String, level: String, cache_path: String, 
 				province_select.clear()
 				province_select.add_item("No regional dataset available")
 				province_select.disabled = true
-			status_label.text = "%s BOUNDARY METADATA UNAVAILABLE" % level
+			status_label.text = "%s BOUNDARY METADATA UNAVAILABLE  ·  USE RETRY" % level
+			retry_button.visible = true
 			return
 		var metadata: Variant = JSON.parse_string(body.get_string_from_utf8())
 		if not metadata is Dictionary:
+			retry_button.visible = true
+			status_label.text = "%s METADATA FORMAT NOT RECOGNISED  ·  USE RETRY" % level
 			return
 		var geojson_url := str(metadata.get("simplifiedGeometryGeoJSON", metadata.get("gjDownloadURL", "")))
 		if geojson_url.is_empty():
+			retry_button.visible = true
+			status_label.text = "%s DATASET HAS NO GEOMETRY URL  ·  USE RETRY" % level
 			return
 		var geojson_cache := CACHE_ROOT + "/" + level.to_lower() + "_" + iso + "_geometry.json"
 		_request_bytes(geojson_url, geojson_cache, 22 * 1024 * 1024, func(geo_result: int, geo_code: int, geo_body: PackedByteArray) -> void:
 			if generation != selection_generation:
 				return
 			if geo_result != HTTPRequest.RESULT_SUCCESS or geo_code != 200:
-				status_label.text = "%s BOUNDARIES COULD NOT BE DOWNLOADED" % level
+				status_label.text = "%s BOUNDARIES COULD NOT BE DOWNLOADED  ·  USE RETRY" % level
+				retry_button.visible = true
 				return
 			var geojson: Variant = JSON.parse_string(geo_body.get_string_from_utf8())
 			if not geojson is Dictionary:
+				retry_button.visible = true
+				status_label.text = "%s GEOMETRY FORMAT NOT RECOGNISED  ·  USE RETRY" % level
 				return
 			if level == "ADM0":
 				_process_country_geojson(geojson)
@@ -560,6 +597,8 @@ func _request_boundary_metadata(iso: String, level: String, cache_path: String, 
 func _process_country_geojson(geojson: Dictionary) -> void:
 	var features: Array = geojson.get("features", [])
 	if features.is_empty():
+		retry_button.visible = true
+		status_label.text = "COUNTRY GEOMETRY IS EMPTY  ·  USE RETRY"
 		return
 	var stats := _geojson_stats(geojson)
 	_add_boundary_mesh(geojson, Color("#C8E4FF"), 1.006, "CountryBoundary")
