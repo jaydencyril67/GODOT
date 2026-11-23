@@ -27,7 +27,10 @@ var country_labels: Array[Label3D] = []
 var state_boundaries: MeshInstance3D
 var _country_geography_loaded := false
 var _country_geography_tier := ""
+var _country_feature_data: Array = []
 var _state_geography_loaded := false
+var _state_geography_continent := ""
+var _state_refresh_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -276,6 +279,12 @@ func _build_interface() -> void:
 func _process(delta: float) -> void:
 	if is_instance_valid(cloud_layer):
 		cloud_layer.rotation.y += delta * 0.0008
+	if _zoom_distance <= 3.2 and _state_geography_loaded:
+		_state_refresh_elapsed += delta
+		if _state_refresh_elapsed >= 0.45:
+			_state_refresh_elapsed = 0.0
+			if _get_nearest_country_continent() != _state_geography_continent:
+				_build_state_geography()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -397,6 +406,7 @@ func _build_country_geography() -> void:
 	var parsed: Variant = _read_geography_data(data_path)
 	if parsed == null:
 		return
+	_country_feature_data = parsed["features"]
 	if is_instance_valid(country_boundaries):
 		country_boundaries.queue_free()
 	for old_label in country_labels:
@@ -498,10 +508,36 @@ func _build_country_geography() -> void:
 		push_warning("Natural Earth country data contained no country features.")
 
 
+func _get_nearest_country_continent() -> String:
+	if _country_feature_data.is_empty():
+		return "other"
+	var camera_direction := earth_pivot.to_local(globe_camera.global_position).normalized()
+	var best_dot := -2.0
+	var best_continent := "other"
+	for feature_variant in _country_feature_data:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		var direction := _geo_to_globe_position(
+			float(feature.get("y", 0.0)),
+			float(feature.get("x", 0.0)),
+			1.0
+		).normalized()
+		var facing_score := camera_direction.dot(direction)
+		if facing_score > best_dot:
+			best_dot = facing_score
+			best_continent = str(feature.get("continent", "other")).to_lower().replace(" ", "_")
+	return best_continent
+
+
 func _build_state_geography() -> void:
-	if _state_geography_loaded:
+	var continent := _get_nearest_country_continent()
+	if _state_geography_loaded and _state_geography_continent == continent:
 		return
-	var parsed: Variant = _read_geography_data(STATE_DATA_10M_PATH)
+	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json.gz"
+	if not FileAccess.file_exists(state_path):
+		return
+	var parsed: Variant = _read_geography_data(state_path)
 	if parsed == null:
 		return
 
@@ -555,17 +591,21 @@ func _build_state_geography() -> void:
 				segment_count += 1
 	state_mesh.surface_end()
 
+	if is_instance_valid(state_boundaries):
+		state_boundaries.queue_free()
 	state_boundaries = MeshInstance3D.new()
 	state_boundaries.name = "State_Province_Boundaries"
 	state_boundaries.mesh = state_mesh
 	state_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	state_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	state_boundaries.visible = false
+	state_boundaries.visible = _zoom_distance <= 3.2
 	earth_pivot.add_child(state_boundaries)
 	state_boundaries.set_meta("state_feature_count", feature_count)
 	state_boundaries.set_meta("geographic_segment_count", segment_count)
 	state_boundaries.set_meta("geographic_resolution", "10m_admin1")
+	state_boundaries.set_meta("continent", continent)
 	_state_geography_loaded = feature_count > 0
+	_state_geography_continent = continent
 
 
 func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float) -> String:

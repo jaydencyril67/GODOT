@@ -11,6 +11,7 @@ import argparse
 import gzip
 import io
 import json
+import math
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -47,10 +48,11 @@ def value(record: dict, *keys: str, default=None):
 
 
 def rounded(value_: float) -> float:
-    return round(float(value_), 4)
+    number = float(value_)
+    return round(number, 4) if math.isfinite(number) else 0.0
 
 
-def convert_archive(archive_bytes: bytes, stem: str, source: str, kind: str) -> dict:
+def convert_archive(archive_bytes: bytes, stem: str, source: str, kind: str, continent_by_code: dict | None = None) -> dict:
     import shapefile
 
     with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
@@ -93,7 +95,7 @@ def convert_archive(archive_bytes: bytes, stem: str, source: str, kind: str) -> 
                 feature = {
                     "n": str(name), "c": str(code),
                     "x": rounded(longitude), "y": rounded(latitude),
-                    "rank": int(rank), "r": rings,
+                    "rank": int(rank), "continent": str(value(record, "CONTINENT", default="Other")), "r": rings,
                 }
             else:
                 name = value(record, "name", "name_en", "admin", default="Unknown")
@@ -104,6 +106,7 @@ def convert_archive(archive_bytes: bytes, stem: str, source: str, kind: str) -> 
                 feature = {
                     "n": str(name), "a": str(admin), "c": str(code),
                     "x": rounded(longitude), "y": rounded(latitude),
+                    "continent": (continent_by_code or {}).get(str(code), str(value(record, "continent", default="Other"))),
                     "r": rings,
                 }
             features.append(feature)
@@ -125,21 +128,61 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("assets/globe"))
     args = parser.parse_args()
-    outputs = {
+    args.output.mkdir(parents=True, exist_ok=True)
+
+    country_outputs = {
         "countries_50m": "natural_earth_countries_50m.json.gz",
         "countries_10m": "natural_earth_countries_10m.json.gz",
-        "states_10m": "natural_earth_states_10m.json.gz",
     }
-    for key, (url, stem, source, kind) in SOURCES.items():
+    country_payloads = {}
+    for key in ("countries_50m", "countries_10m"):
+        url, stem, source, kind = SOURCES[key]
         print(f"Downloading {source}...")
         request = urllib.request.Request(url, headers={"User-Agent": "DigitalWorld-Globe-DataBuilder/1.0"})
         with urllib.request.urlopen(request, timeout=90) as response:
             archive = response.read()
         payload = convert_archive(archive, stem, source, kind)
-        minimum = 4000 if kind == "state" else (250 if key == "countries_10m" else 170)
+        minimum = 250 if key == "countries_10m" else 170
         if len(payload["features"]) < minimum:
             raise RuntimeError(f"{key} returned only {len(payload['features'])} features; expected at least {minimum}")
-        write_compressed(args.output / outputs[key], payload)
+        country_payloads[key] = payload
+        write_compressed(args.output / country_outputs[key], payload)
+
+    continent_by_code = {
+        str(feature.get("c", "")): str(feature.get("continent", "Other"))
+        for feature in country_payloads["countries_10m"]["features"]
+        if feature.get("c")
+    }
+    url, stem, source, kind = SOURCES["states_10m"]
+    print(f"Downloading {source}...")
+    request = urllib.request.Request(url, headers={"User-Agent": "DigitalWorld-Globe-DataBuilder/1.0"})
+    with urllib.request.urlopen(request, timeout=90) as response:
+        archive = response.read()
+    states = convert_archive(archive, stem, source, kind, continent_by_code)
+    if len(states["features"]) < 4000:
+        raise RuntimeError(f"states_10m returned only {len(states['features'])} features; expected at least 4000")
+
+    grouped = {}
+    for feature in states["features"]:
+        continent = str(feature.get("continent", "Other")).strip().lower().replace(" ", "_")
+        if continent not in {"africa", "asia", "europe", "north_america", "south_america", "oceania", "antarctica"}:
+            continent = "other"
+        grouped.setdefault(continent, []).append(feature)
+
+    old_combined = args.output / "natural_earth_states_10m.json.gz"
+    if old_combined.exists():
+        old_combined.unlink()
+    total = 0
+    for continent, features in sorted(grouped.items()):
+        payload = {
+            "source": source + " — " + continent.replace("_", " ").title(),
+            "features": features,
+        }
+        total += len(features)
+        write_compressed(args.output / f"natural_earth_states_10m_{continent}.json.gz", payload)
+    if total != len(states["features"]):
+        raise RuntimeError("State/province continent partition lost features")
+    print(f"Partitioned all {total} Admin-1 features into {len(grouped)} continent files.")
 
 
 if __name__ == "__main__":

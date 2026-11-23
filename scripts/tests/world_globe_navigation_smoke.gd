@@ -73,12 +73,15 @@ func _run_test() -> void:
 		return
 	globe.call("zoom_globe", -0.3)
 	var state_layer := globe.find_child("State_Province_Boundaries", true, false) as MeshInstance3D
-	if FileAccess.file_exists("res://assets/globe/natural_earth_states_10m.json.gz"):
-		if state_layer == null or state_layer.mesh == null or not state_layer.visible:
+	if state_layer != null:
+		if state_layer.mesh == null or not state_layer.visible:
 			_fail("State/province boundaries must load only at the close geographic zoom level.")
 			return
-		if int(state_layer.get_meta("state_feature_count", 0)) < 4000:
-			_fail("The Admin-1 dataset did not load the expected global state/province feature set.")
+		if int(state_layer.get_meta("state_feature_count", 0)) < 10:
+			_fail("The selected Admin-1 continent chunk did not load state/province features.")
+			return
+		if str(state_layer.get_meta("geographic_resolution")) != "10m_admin1":
+			_fail("The state/province layer is not using the 1:10m Admin-1 dataset.")
 			return
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
