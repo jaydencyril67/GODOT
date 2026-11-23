@@ -328,7 +328,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				for pointer_key in _touch_tap_eligible.keys():
 					_touch_tap_eligible[pointer_key] = false
 		else:
-			var can_select_country := (
+			var can_select_country: bool = (
 				_touch_points.size() == 1
 				and bool(_touch_tap_eligible.get(touch.index, false))
 				and _touch_start_positions.get(touch.index, touch.position).distance_to(touch.position) <= COUNTRY_TAP_DRAG_THRESHOLD
