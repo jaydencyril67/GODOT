@@ -4,6 +4,8 @@ from pathlib import Path
 root = Path("vendor/godot-3dtiles/src")
 cpp_path, h_path = root / "GlobeCameraController.cpp", root / "GlobeCameraController.h"
 cpp, header = cpp_path.read_text(), h_path.read_text()
+occluder_header = root / "core/math/EllipsoidalOccluder.h"
+occluder = occluder_header.read_text()
 
 def once(src, old, new, label):
     n = src.count(old)
@@ -209,4 +211,6 @@ header = once(header, '        godot::Vector2 last_mouse_position_;\n',
     '        double touch_pinch_distance_ = 0.0;\n', "touch state")
 cpp_path.write_text(cpp)
 h_path.write_text(header)
-print("Native Android one-finger orbit and two-finger pinch patch applied.")
+occluder = once(occluder, "/// @param west,south,east,north the rectangle, radians. Its centre drives the\n", "/// @param west longitude of the western edge, radians.\n    /// @param south latitude of the southern edge, radians.\n    /// @param east longitude of the eastern edge, radians.\n    /// @param north latitude of the northern edge, radians. Its centre drives the\n", "Android Clang documentation warning")
+occluder_header.write_text(occluder)
+print("Native Android touch controls and Clang documentation compatibility patches applied.")
