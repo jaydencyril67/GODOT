@@ -207,8 +207,8 @@ func _add_starfield() -> void:
 			randf_range(-1.0, 1.0),
 			randf_range(-1.0, 1.0)
 		).normalized()
-		var scale := randf_range(0.45, 1.45)
-		multi.set_instance_transform(index, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * scale), direction * 17.0))
+		var star_scale := randf_range(0.45, 1.45)
+		multi.set_instance_transform(index, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * star_scale), direction * 17.0))
 	var stars := MultiMeshInstance3D.new()
 	stars.name = "DistantStars"
 	stars.multimesh = multi
@@ -535,10 +535,10 @@ func _on_country_catalog_loaded(result: int, response_code: int, body: PackedByt
 	var countries: Array[Dictionary] = []
 	for item in parsed:
 		if item is Dictionary:
-			var name := str(item.get("boundaryName", "")).strip_edges()
+			var country_name := str(item.get("boundaryName", "")).strip_edges()
 			var iso := str(item.get("boundaryISO", "")).strip_edges()
-			if not name.is_empty() and iso.length() == 3:
-				countries.append({"name": name, "iso": iso})
+			if not country_name.is_empty() and iso.length() == 3:
+				countries.append({"name": country_name, "iso": iso})
 	countries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a["name"]).nocasecmp_to(str(b["name"])) < 0)
 	country_select.clear()
 	country_select.add_item("Choose a country…")
