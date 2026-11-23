@@ -562,7 +562,7 @@ func _build_country_geography() -> void:
 	if _country_geography_loaded and _country_geography_tier == tier:
 		_country_building = false
 		return
-	_country_feature_data.clear()	if is_instance_valid(country_boundaries):
+	if is_instance_valid(country_boundaries):
 		earth_pivot.remove_child(country_boundaries)
 		country_boundaries.queue_free()
 	for old_label in country_labels:
