@@ -253,6 +253,17 @@ jobs:
             exit 1
           fi
 
+      - name: Smoke-test standalone Earth globe and landing navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script res://scripts/tests/world_globe_navigation_smoke.gd 2>&1 | tee world-globe-smoke.log
+          grep -q "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS" world-globe-smoke.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|WORLD_GLOBE_NAVIGATION_SMOKE_TEST:.*(FAIL|ERROR)' world-globe-smoke.log; then
+            echo "Godot reported an error during the Earth globe and landing navigation smoke test."
+            exit 1
+          fi
+
       - name: Smoke-test main scene startup
         shell: bash
         run: |
