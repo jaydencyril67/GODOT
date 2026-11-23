@@ -9,6 +9,8 @@ const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 2.25
 const ZOOM_MAX := 7.2
+const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 4.5
+const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.2]
 
 var earth_pivot: Node3D
 var globe_camera: Camera3D
@@ -485,18 +487,18 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 func _update_country_label_visibility() -> void:
 	# Keep the globe clean at the world scale. Geographic overlays appear
 	# progressively as the camera approaches the surface.
-	var show_boundaries := _zoom_distance <= 5.55
+	var show_boundaries := _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
 	if show_boundaries and not _country_geography_loaded:
 		_build_country_geography()
 	if is_instance_valid(country_boundaries):
 		country_boundaries.visible = show_boundaries
 
 	var max_label_rank := -1
-	if _zoom_distance <= 5.55:
+	if _zoom_distance <= COUNTRY_LABEL_ZOOM_THRESHOLDS[0]:
 		max_label_rank = 2
-	if _zoom_distance <= 4.7:
+	if _zoom_distance <= COUNTRY_LABEL_ZOOM_THRESHOLDS[1]:
 		max_label_rank = 4
-	if _zoom_distance <= 3.65:
+	if _zoom_distance <= COUNTRY_LABEL_ZOOM_THRESHOLDS[2]:
 		max_label_rank = 7
 	for label in country_labels:
 		if is_instance_valid(label):
