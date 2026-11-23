@@ -73,6 +73,30 @@ func _build_earth() -> void:
 	add_child(_native_imagery_layer)
 
 
+func _build_interface() -> void:
+	super._build_interface()
+	if not _native_globe_ready:
+		return
+	var root := get_node_or_null("Globe_Interface/Globe_Interface_Root") as Control
+	if root == null:
+		return
+	var attribution := Label.new()
+	attribution.name = "Satellite_Imagery_Attribution"
+	attribution.text = "Satellite imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+	attribution.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	attribution.offset_left = 12.0
+	attribution.offset_top = -28.0
+	attribution.offset_right = 520.0
+	attribution.offset_bottom = -8.0
+	attribution.add_theme_font_size_override("font_size", 10)
+	attribution.add_theme_color_override("font_color", Color("#d5deea"))
+	attribution.add_theme_color_override("font_shadow_color", Color("#06101c"))
+	attribution.add_theme_constant_override("shadow_offset_x", 1)
+	attribution.add_theme_constant_override("shadow_offset_y", 1)
+	attribution.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(attribution)
+
+
 func _build_camera() -> void:
 	if not _native_globe_ready:
 		super._build_camera()
