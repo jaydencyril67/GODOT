@@ -1,0 +1,100 @@
+name: Globe Engine Android Compatibility
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: globe-engine-android-compatibility
+  cancel-in-progress: false
+
+jobs:
+  build-android-arm64:
+    name: Cross-compile godot-3dtiles for Android ARM64
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out DigitalWorld HQ
+        uses: actions/checkout@v4
+
+      - name: Check out pinned godot-3dtiles source
+        uses: actions/checkout@v4
+        with:
+          repository: weixu2015/godot-3dtiles
+          ref: 9d68f39ec212b6638cd0e8135cc40325f890e915
+          path: vendor/godot-3dtiles
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ndk;27.2.12479018
+
+      - name: Install Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ninja-build
+
+      - name: Verify native build toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --version
+          ninja --version
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          test -f "$NDK/build/cmake/android.toolchain.cmake"
+          echo "ANDROID_NDK=$NDK" >> "$GITHUB_ENV"
+          echo "Pinned upstream revision: 9d68f39ec212b6638cd0e8135cc40325f890e915"
+
+      - name: Configure Android ARM64 GDExtension
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S vendor/godot-3dtiles -B build/godot-3dtiles-android-arm64 -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_ANDROID_STL_TYPE=c++_shared \
+            -DGODOTCPP_TARGET=template_release \
+            -DGODOTCPP_API_VERSION=4.7 \
+            -DGODOTCPP_SYSTEM_HEADERS=ON \
+            -DGODOTCPP_ENABLE_TESTING=OFF \
+            -DGODOTCPP_WARNING_AS_ERROR=OFF \
+            -DBUILD_TESTING=OFF \
+            -DGODOT3DTILES_INSTALL_PREFIX="$GITHUB_WORKSPACE/output"
+
+      - name: Build Android ARM64 GDExtension
+        run: cmake --build build/godot-3dtiles-android-arm64 --parallel 2
+
+      - name: Install and validate Android native library
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --install build/godot-3dtiles-android-arm64
+          mapfile -t LIBRARIES < <(find output -type f -name '*.so' -print)
+          if [[ "${#LIBRARIES[@]}" -ne 1 ]]; then
+            echo "::error::Expected exactly one Android shared library; found ${#LIBRARIES[@]}."
+            find output -maxdepth 8 -type f -print
+            exit 1
+          fi
+          LIBRARY="${LIBRARIES[0]}"
+          file "$LIBRARY"
+          readelf -h "$LIBRARY" | tee android-library-header.txt
+          grep -q 'AArch64' android-library-header.txt
+          mkdir -p build/globe-engine-android
+          cp "$LIBRARY" build/globe-engine-android/
+          printf '%s\n' "$LIBRARY" > build/globe-engine-android/library-path.txt
+          echo "Android ARM64 native compilation succeeded." >> "$GITHUB_STEP_SUMMARY"
+          echo "This does not yet prove runtime loading or touch interaction." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Android ARM64 compatibility artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-3dtiles-android-arm64-compatibility
+          path: build/globe-engine-android/
+          if-no-files-found: error
+          retention-days: 14
