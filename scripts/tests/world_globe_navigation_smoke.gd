@@ -36,6 +36,14 @@ func _run_test() -> void:
 	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0:
 		_fail("Natural Earth country boundary geometry was not rendered.")
 		return
+	if country_borders.visible:
+		_fail("Country boundaries must remain hidden at the far globe zoom.")
+		return
+	var equator_west := globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0) as Vector3
+	var equator_east := globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0) as Vector3
+	if equator_west.distance_to(Vector3(0.0, 0.0, 1.0)) > 0.001 or equator_east.distance_to(Vector3(0.0, 0.0, -1.0)) > 0.001:
+		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
+		return
 	var country_labels := globe.get("country_labels") as Array
 	if country_labels.size() < 150:
 		_fail("The Natural Earth country label layer did not load the expected country set.")
@@ -45,16 +53,28 @@ func _run_test() -> void:
 		var country_label := label_variant as Label3D
 		if country_label != null and country_label.visible:
 			far_visible_count += 1
-	if far_visible_count == 0 or far_visible_count >= country_labels.size():
-		_fail("Country labels must be selectively visible at the default globe zoom.")
+	if far_visible_count != 0:
+		_fail("Country labels must remain hidden at the far globe zoom.")
 		return
-	globe.call("zoom_globe", -1.5)
+	globe.call("zoom_globe", -0.6)
+	if not country_borders.visible:
+		_fail("Country boundaries must appear after the camera enters country zoom.")
+		return
+	var country_zoom_visible_count := 0
+	for label_variant in country_labels:
+		var country_label := label_variant as Label3D
+		if country_label != null and country_label.visible:
+			country_zoom_visible_count += 1
+	if country_zoom_visible_count == 0:
+		_fail("Priority country names must appear at country zoom.")
+		return
+	globe.call("zoom_globe", -0.9)
 	var close_visible_count := 0
 	for label_variant in country_labels:
 		var country_label := label_variant as Label3D
 		if country_label != null and country_label.visible:
 			close_visible_count += 1
-	if close_visible_count <= far_visible_count:
+	if close_visible_count <= country_zoom_visible_count:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
 	globe.call("zoom_globe", 1.5)
