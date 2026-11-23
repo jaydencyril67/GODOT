@@ -1,6 +1,1 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://scripts/world/digitalworld_globe.gd" id="1_globe"]
-
-[node name="WorldGlobe" type="Node3D"]
-script = ExtResource("1_globe")
+[gd_scene load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://scripts/world/digitalworld_globe_replacement.gd" id="1_globe"]\n\n[node name="WorldGlobe" type="Node3D"]\nscript = ExtResource("1_globe")\n
