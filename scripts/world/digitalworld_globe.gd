@@ -5,9 +5,9 @@ signal back_requested
 const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_blue_marble.jpg")
 const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
-const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json.gz"
-const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json.gz"
-const STATE_DATA_10M_PATH := "res://assets/globe/natural_earth_states_10m.json.gz"
+const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json"
+const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json"
+const STATE_DATA_10M_PATH := "res://assets/globe/natural_earth_states_10m.json"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 2.25
@@ -369,9 +369,9 @@ func _update_camera_zoom() -> void:
 	_update_country_label_visibility()
 
 
-func _read_geography_data(path: String) -> Variant:
+func _read_geography_data(path: String, compressed: bool = false) -> Variant:
 	var file: FileAccess
-	if path.ends_with(".gz"):
+	if compressed:
 		file = FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_GZIP)
 	else:
 		file = FileAccess.open(path, FileAccess.READ)
@@ -403,7 +403,7 @@ func _build_country_geography() -> void:
 	if _country_geography_loaded and _country_geography_tier == tier:
 		return
 
-	var parsed: Variant = _read_geography_data(data_path)
+	var parsed: Variant = _read_geography_data(data_path, data_path != COUNTRY_DATA_PATH)
 	if parsed == null:
 		return
 	_country_feature_data = parsed["features"]
@@ -537,7 +537,7 @@ func _build_state_geography() -> void:
 	var continent := _get_nearest_country_continent()
 	if _state_geography_loaded and _state_geography_continent == continent:
 		return
-	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json.gz"
+	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json"
 	if not FileAccess.file_exists(state_path):
 		if is_instance_valid(state_boundaries):
 			earth_pivot.remove_child(state_boundaries)
@@ -546,7 +546,7 @@ func _build_state_geography() -> void:
 		_state_geography_loaded = false
 		_state_geography_continent = continent
 		return
-	var parsed: Variant = _read_geography_data(state_path)
+	var parsed: Variant = _read_geography_data(state_path, true)
 	if parsed == null:
 		return
 

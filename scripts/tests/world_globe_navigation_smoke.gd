@@ -65,7 +65,7 @@ func _run_test() -> void:
 	globe.call("zoom_globe", -0.9)
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
-	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json.gz"):
+	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json"):
 		if country_borders == null or str(country_borders.get_meta("geographic_resolution")) != "10m":
 			_fail("Close country zoom must switch to the detailed 1:10m country dataset.")
 			return
@@ -82,13 +82,13 @@ func _run_test() -> void:
 		return
 	globe.call("zoom_globe", -0.3)
 	var export_config := FileAccess.get_file_as_string("res://export_presets.cfg")
-	if not export_config.contains("*.json.gz"):
+	if not export_config.contains("*.json"):
 		_fail("Android exports must include the compressed country and state geography assets.")
 		return
 	var state_layer := globe.find_child("State_Province_Boundaries", true, false) as MeshInstance3D
 	var has_state_chunks := false
 	for continent in ["africa", "asia", "europe", "north_america", "south_america", "oceania", "other"]:
-		if FileAccess.file_exists("res://assets/globe/natural_earth_states_10m_" + continent + ".json.gz"):
+		if FileAccess.file_exists("res://assets/globe/natural_earth_states_10m_" + continent + ".json"):
 			has_state_chunks = true
 			break
 	if has_state_chunks and state_layer == null:

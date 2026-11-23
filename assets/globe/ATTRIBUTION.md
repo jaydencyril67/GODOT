@@ -38,6 +38,6 @@ NASA imagery is credited as a courtesy; no NASA endorsement is implied. NASA med
 - Country overview remains available from the existing Natural Earth 1:110m Admin-0 dataset.
 - Higher-detail country tiers are generated from Natural Earth 1:50m and 1:10m Admin-0 Countries, version 5.1.1.
 - First-level internal administrative divisions are generated from Natural Earth 1:10m Admin-1 States and Provinces, version 5.1.1 (4,596 features). No Admin-2 counties, cities, or deeper location layers are included.
-- Admin-1 data is partitioned into continent-sized gzip-compressed JSON chunks. The globe loads only the chunk nearest the current camera view and swaps chunks when the user rotates to another continent, avoiding a full-world state mesh on mobile.
+- Admin-1 data is partitioned into continent-sized gzip-compressed JSON payloads (the `.json` extension keeps the files visible to Godot’s project filesystem and Android export filters). The globe loads only the chunk nearest the current camera view and swaps chunks when the user rotates to another continent, avoiding a full-world state mesh on mobile.
 - Country tiers and state chunks are loaded only after their corresponding zoom thresholds are reached.
 - Natural Earth data is public domain. Source catalogue: https://www.naturalearthdata.com/downloads/10m-cultural-vectors/ and https://www.naturalearthdata.com/downloads/50m-cultural-vectors/

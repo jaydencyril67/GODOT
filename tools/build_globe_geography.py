@@ -131,8 +131,8 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
 
     country_outputs = {
-        "countries_50m": "natural_earth_countries_50m.json.gz",
-        "countries_10m": "natural_earth_countries_10m.json.gz",
+        "countries_50m": "natural_earth_countries_50m.json",
+        "countries_10m": "natural_earth_countries_10m.json",
     }
     country_payloads = {}
     for key in ("countries_50m", "countries_10m"):
@@ -169,7 +169,7 @@ def main() -> None:
             continent = "other"
         grouped.setdefault(continent, []).append(feature)
 
-    old_combined = args.output / "natural_earth_states_10m.json.gz"
+    old_combined = args.output / "natural_earth_states_10m.json"
     if old_combined.exists():
         old_combined.unlink()
     total = 0
@@ -179,9 +179,13 @@ def main() -> None:
             "features": features,
         }
         total += len(features)
-        write_compressed(args.output / f"natural_earth_states_10m_{continent}.json.gz", payload)
+        write_compressed(args.output / f"natural_earth_states_10m_{continent}.json", payload)
     if total != len(states["features"]):
         raise RuntimeError("State/province continent partition lost features")
+    for stale in args.output.glob("natural_earth_countries_*m.json.gz"):
+        stale.unlink()
+    for stale in args.output.glob("natural_earth_states_10m_*.json.gz"):
+        stale.unlink()
     print(f"Partitioned all {total} Admin-1 features into {len(grouped)} continent files.")
 
 
