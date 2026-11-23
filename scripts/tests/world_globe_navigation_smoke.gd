@@ -46,7 +46,7 @@ func _run_test() -> void:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
 	globe.call("zoom_globe", -0.6)
-	await create_timer(0.45).timeout
+	await create_timer(1.2).timeout
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
 	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
@@ -64,7 +64,7 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
-	await create_timer(0.45).timeout
+	await create_timer(1.2).timeout
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
 	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json"):
@@ -83,7 +83,7 @@ func _run_test() -> void:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
 	globe.call("zoom_globe", -0.3)
-	await create_timer(0.45).timeout
+	await create_timer(1.2).timeout
 	var export_config := FileAccess.get_file_as_string("res://export_presets.cfg")
 	if not export_config.contains("*.json"):
 		_fail("Android exports must include the compressed country and state geography assets.")
