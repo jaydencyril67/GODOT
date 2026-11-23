@@ -119,7 +119,6 @@ func _process(delta: float) -> void:
 		super._process(delta)
 		return
 	if is_instance_valid(_native_camera):
-		var height := float(_native_camera.call("camera_height_above_ellipsoid"))
 		_zoom_distance = clampf(float(_native_camera.call("get_distance")) / WGS84_EQUATORIAL_RADIUS, ZOOM_MIN, ZOOM_MAX)
 		for label in country_labels:
 			if is_instance_valid(label):
