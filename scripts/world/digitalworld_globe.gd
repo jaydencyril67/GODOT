@@ -282,7 +282,8 @@ func _build_interface() -> void:
 	_debug_panel.anchor_left = 1.0
 	_debug_panel.anchor_right = 1.0
 	_debug_panel.position = Vector2(-minf(350.0, get_viewport().get_visible_rect().size.x - 20.0), 76.0)
-	_debug_panel.custom_minimum_size = Vector2(330.0, 0.0)
+	_debug_panel.custom_minimum_size = Vector2(330.0, 280.0)
+	_debug_panel.size = Vector2(330.0, 280.0)
 	_debug_panel.visible = false
 	_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var debug_style := StyleBoxFlat.new()
