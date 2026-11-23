@@ -107,6 +107,23 @@ func _run_test() -> void:
 	if float(globe.call("get_zoom_distance")) >= initial_zoom:
 		_fail("The globe zoom method did not move the camera closer.")
 		return
+	globe.call("zoom_globe", -100.0)
+	var closest_zoom := float(globe.call("get_zoom_distance"))
+	if not is_equal_approx(closest_zoom, 2.25):
+		_fail("The close zoom limit must allow a detailed country-level view.")
+		return
+	globe.call("zoom_globe", 100.0)
+	var farthest_zoom := float(globe.call("get_zoom_distance"))
+	if not is_equal_approx(farthest_zoom, 7.2):
+		_fail("The far zoom limit must keep the Earth comfortably large on screen.")
+		return
+	var border_material := country_borders.mesh.surface_get_material(0) as StandardMaterial3D
+	if border_material == null or border_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
+		_fail("Country boundaries must be shaded and integrated with the Earth surface, not bright unshaded strokes.")
+		return
+	if float(country_borders.get_meta("surface_radius")) > 1.603:
+		_fail("Country boundaries are floating too far above the Earth surface.")
+		return
 
 	globe.queue_free()
 	await process_frame
