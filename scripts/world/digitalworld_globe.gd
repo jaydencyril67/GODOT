@@ -244,38 +244,6 @@ func _build_interface() -> void:
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	root.add_child(back_button)
 
-	var title := Label.new()
-	title.name = "Globe_Title"
-	title.text = "THE WORLD"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	title.offset_top = 26.0
-	title.offset_bottom = 62.0
-	title.add_theme_font_size_override("font_size", 23)
-	title.add_theme_color_override("font_color", Color("#edf3fb"))
-	root.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.name = "Globe_Subtitle"
-	subtitle.text = "SATELLITE EARTH  •  ZOOM TO EXPLORE"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	subtitle.offset_top = 62.0
-	subtitle.offset_bottom = 88.0
-	subtitle.add_theme_font_size_override("font_size", 10)
-	subtitle.add_theme_color_override("font_color", Color("#88a7c8"))
-	root.add_child(subtitle)
-
-	var controls_hint := Label.new()
-	controls_hint.name = "Globe_Controls_Hint"
-	controls_hint.text = "DRAG TO ROTATE     •     PINCH TO ZOOM"
-	controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	controls_hint.offset_top = -54.0
-	controls_hint.offset_bottom = -22.0
-	controls_hint.add_theme_font_size_override("font_size", 10)
-	controls_hint.add_theme_color_override("font_color", Color("#9aafc7"))
-	root.add_child(controls_hint)
 
 
 func _process(delta: float) -> void:
