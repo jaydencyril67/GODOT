@@ -117,7 +117,7 @@ jobs:
           grep -q 'AArch64' android-library-header.txt
           mkdir -p build/globe-engine-android/addons/lib/Android-aarch64
           cp "$LIBRARY" build/globe-engine-android/addons/lib/Android-aarch64/godot-3dtiles.so
-          cp tools/godot-3dtiles.android.gdextension build/globe-engine-android/addons/godot-3dtiles.gdextension
+          cp tools/godot-3dtiles.android.gdextension.in build/globe-engine-android/addons/godot-3dtiles.gdextension
           printf '%s\\n' "$LIBRARY" > build/globe-engine-android/library-path.txt
           echo "Android ARM64 native compilation succeeded." >> "$GITHUB_STEP_SUMMARY"
           echo "This does not yet prove runtime loading or touch interaction." >> "$GITHUB_STEP_SUMMARY"
