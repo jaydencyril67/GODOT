@@ -98,7 +98,7 @@ func _run_test() -> void:
 		if state_layer.mesh == null or not state_layer.visible:
 			_fail("State/province boundaries must load only at the close geographic zoom level.")
 			return
-		if int(state_layer.get_meta("state_feature_count", 0)) < 10:
+		if str(state_layer.get_meta("continent")) != "antarctica" and int(state_layer.get_meta("state_feature_count", 0)) < 10:
 			_fail("The selected Admin-1 continent chunk did not load state/province features.")
 			return
 		if str(state_layer.get_meta("geographic_resolution")) != "10m_admin1":
