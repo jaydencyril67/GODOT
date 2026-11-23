@@ -36,6 +36,19 @@ var _state_geography_continent := ""
 var _state_building := false
 var _state_refresh_elapsed := 0.0
 
+var _debug_panel_label: Label
+var _debug_panel: PanelContainer
+var _debug_load_stage := "Waiting for globe startup"
+var _debug_last_error := "None"
+var _debug_dataset_path := "Not selected"
+var _debug_asset_bytes := 0
+var _debug_parsed_features := 0
+var _debug_rendered_segments := 0
+var _debug_country_labels := 0
+var _debug_state_features := 0
+var _debug_state_segments := 0
+var _debug_parse_format := "Unknown"
+
 
 func _ready() -> void:
 	_build_environment()
@@ -249,9 +262,57 @@ func _build_interface() -> void:
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	root.add_child(back_button)
 
+	var debug_button := Button.new()
+	debug_button.name = "Globe_Debug_Toggle"
+	debug_button.text = "DEBUG"
+	debug_button.position = Vector2(-112.0, 18.0)
+	debug_button.anchor_left = 1.0
+	debug_button.anchor_right = 1.0
+	debug_button.custom_minimum_size = Vector2(94.0, 48.0)
+	debug_button.focus_mode = Control.FOCUS_NONE
+	debug_button.add_theme_font_size_override("font_size", 13)
+	debug_button.add_theme_color_override("font_color", Color("#dcecff"))
+	debug_button.add_theme_stylebox_override("normal", back_style)
+	debug_button.add_theme_stylebox_override("hover", back_style)
+	debug_button.add_theme_stylebox_override("pressed", back_style)
+	root.add_child(debug_button)
+
+	_debug_panel = PanelContainer.new()
+	_debug_panel.name = "Globe_Debug_Panel"
+	_debug_panel.anchor_left = 1.0
+	_debug_panel.anchor_right = 1.0
+	_debug_panel.position = Vector2(-minf(350.0, get_viewport().get_visible_rect().size.x - 20.0), 76.0)
+	_debug_panel.custom_minimum_size = Vector2(330.0, 0.0)
+	_debug_panel.visible = false
+	_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var debug_style := StyleBoxFlat.new()
+	debug_style.bg_color = Color(0.008, 0.018, 0.035, 0.94)
+	debug_style.border_color = Color("#4c789f")
+	debug_style.set_border_width_all(1)
+	debug_style.set_corner_radius_all(10)
+	debug_style.content_margin_left = 12
+	debug_style.content_margin_right = 12
+	debug_style.content_margin_top = 10
+	debug_style.content_margin_bottom = 10
+	_debug_panel.add_theme_stylebox_override("panel", debug_style)
+	root.add_child(_debug_panel)
+
+	_debug_panel_label = Label.new()
+	_debug_panel_label.name = "Globe_Debug_Readout"
+	_debug_panel_label.add_theme_font_size_override("font_size", 11)
+	_debug_panel_label.add_theme_color_override("font_color", Color("#d7e6f5"))
+	_debug_panel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_debug_panel.add_child(_debug_panel_label)
+	debug_button.pressed.connect(func() -> void:
+		_debug_panel.visible = not _debug_panel.visible
+		_update_debug_panel()
+	)
+	_update_debug_panel()
+
 
 
 func _process(delta: float) -> void:
+	_update_debug_panel()
 	if is_instance_valid(cloud_layer):
 		cloud_layer.rotation.y += delta * 0.0008
 
@@ -385,32 +446,46 @@ func _refresh_geography_for_zoom() -> void:
 
 
 func _read_geography_data(path: String, compressed: bool = false) -> Variant:
+	_debug_load_stage = "Opening " + path.get_file()
+	_debug_dataset_path = path
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
+		_debug_last_error = "Open failed (FileAccess error " + str(FileAccess.get_open_error()) + ")"
 		push_warning("Geographic data could not be opened: " + path)
 		return null
 
-	# Detect the actual file format instead of trusting its extension. The
-	# generated Natural Earth assets are gzip streams even though their names
-	# end in .json.
+	_debug_asset_bytes = file.get_length()
 	var source_bytes := file.get_buffer(file.get_length())
 	var is_gzip := compressed or (
 		source_bytes.size() >= 2
 		and source_bytes[0] == 0x1f
 		and source_bytes[1] == 0x8b
 	)
+	_debug_parse_format = "GZIP" if is_gzip else "Plain JSON"
 	if is_gzip:
+		_debug_load_stage = "Decompressing " + path.get_file()
 		var decompressed_bytes := source_bytes.decompress_dynamic(128 * 1024 * 1024, FileAccess.COMPRESSION_GZIP)
 		if decompressed_bytes.is_empty():
+			_debug_last_error = "GZIP decompression returned 0 bytes"
 			push_warning("Compressed geographic data could not be decompressed: " + path)
 			return null
 		source_bytes = decompressed_bytes
 
+	_debug_load_stage = "Parsing " + path.get_file()
 	var source_text := source_bytes.get_string_from_utf8()
-	var parsed: Variant = JSON.parse_string(source_text)
-	if not parsed is Dictionary or not parsed.has("features"):
+	var parser := JSON.new()
+	var parse_error := parser.parse(source_text)
+	if parse_error != OK:
+		_debug_last_error = "JSON line %d: %s" % [parser.get_error_line(), parser.get_error_message()]
+		push_warning("Geographic JSON parse failed: " + path + " - " + _debug_last_error)
+		return null
+	var parsed: Variant = parser.data
+	if not parsed is Dictionary or not parsed.has("features") or not parsed["features"] is Array:
+		_debug_last_error = "JSON parsed, but root.features is missing or not an Array"
 		push_warning("Geographic data is malformed: " + path)
 		return null
+	_debug_parsed_features = parsed["features"].size()
+	_debug_last_error = "None"
 	return parsed
 
 
@@ -426,6 +501,8 @@ func _build_country_geography() -> void:
 	if _country_building:
 		return
 	_country_building = true
+	_debug_load_stage = "Selecting country dataset"
+	_debug_last_error = "None"
 	var requested_data_path := _resolve_country_data_path()
 	var candidate_paths: Array[String] = []
 	if requested_data_path == COUNTRY_DATA_10M_PATH:
@@ -441,6 +518,7 @@ func _build_country_geography() -> void:
 	var data_path := ""
 	for candidate_path in candidate_paths:
 		if not FileAccess.file_exists(candidate_path):
+			_debug_last_error = "Missing asset: " + candidate_path.get_file()
 			push_warning("Globe geography asset is missing: " + candidate_path)
 			continue
 		var candidate_data: Variant = _read_geography_data(candidate_path)
@@ -451,6 +529,9 @@ func _build_country_geography() -> void:
 		push_warning("Globe geography asset has no usable features: " + candidate_path)
 
 	if parsed == null:
+		_debug_load_stage = "COUNTRY LOAD FAILED"
+		if _debug_last_error == "None":
+			_debug_last_error = "No dataset candidate contained usable features"
 		push_warning("No usable country geography dataset could be loaded; tried: " + str(candidate_paths))
 		_country_building = false
 		return
@@ -492,6 +573,8 @@ func _build_country_geography() -> void:
 	border_material.no_depth_test = false
 	border_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
+	_debug_load_stage = "Building country boundary mesh (" + tier + ")"
+	_debug_dataset_path = data_path
 	var border_mesh := ImmediateMesh.new()
 	border_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
 	var feature_count := 0
@@ -526,6 +609,7 @@ func _build_country_geography() -> void:
 				# Yield regularly so dense country geometry cannot monopolize the
 				# Android render thread during a zoom transition.
 				if segment_count % 1500 == 0:
+					_debug_rendered_segments = segment_count
 					await get_tree().process_frame
 					if not is_inside_tree() or _resolve_country_data_path() != requested_data_path:
 						border_mesh.surface_end()
@@ -571,7 +655,13 @@ func _build_country_geography() -> void:
 		earth_pivot.add_child(label)
 		country_labels.append(label)
 
-	_country_geography_loaded = feature_count > 0
+	_country_geography_loaded = feature_count > 0 and segment_count > 0
+	_debug_parsed_features = feature_count
+	_debug_rendered_segments = segment_count
+	_debug_country_labels = country_labels.size()
+	_debug_load_stage = "COUNTRIES READY" if _country_geography_loaded else "COUNTRY GEOMETRY EMPTY"
+	if segment_count == 0:
+		_debug_last_error = "Features parsed, but 0 boundary segments were generated. Check feature.r coordinate schema."
 	_country_geography_tier = tier
 	_country_building = false
 	# Labels are created asynchronously too; apply the settled zoom tier now.
@@ -624,6 +714,9 @@ func _build_state_geography() -> void:
 		return
 	var parsed: Variant = _read_geography_data(state_path)
 	if parsed == null:
+		_debug_load_stage = "STATE DATA LOAD FAILED"
+		if _debug_last_error == "None":
+			_debug_last_error = "Could not parse " + state_path.get_file()
 		_state_building = false
 		return
 
@@ -689,7 +782,12 @@ func _build_state_geography() -> void:
 	state_boundaries.set_meta("geographic_segment_count", segment_count)
 	state_boundaries.set_meta("geographic_resolution", "10m_admin1")
 	state_boundaries.set_meta("continent", continent)
-	_state_geography_loaded = feature_count > 0
+	_state_geography_loaded = feature_count > 0 and segment_count > 0
+	_debug_state_features = feature_count
+	_debug_state_segments = segment_count
+	_debug_load_stage = "STATES READY: " + continent if _state_geography_loaded else "STATE GEOMETRY EMPTY: " + continent
+	if segment_count == 0:
+		_debug_last_error = "State features parsed, but 0 boundary segments were generated"
 	_state_geography_continent = continent
 	_state_building = false
 
@@ -781,3 +879,32 @@ func _update_country_label_visibility() -> void:
 
 func get_zoom_distance() -> float:
 	return _zoom_distance
+
+
+func _update_debug_panel() -> void:
+	if not is_instance_valid(_debug_panel_label):
+		return
+	var country_visible := is_instance_valid(country_boundaries) and country_boundaries.visible
+	var state_visible := is_instance_valid(state_boundaries) and state_boundaries.visible
+	var country_mesh_surfaces := 0
+	if is_instance_valid(country_boundaries) and country_boundaries.mesh != null:
+		country_mesh_surfaces = country_boundaries.mesh.get_surface_count()
+	var state_mesh_surfaces := 0
+	if is_instance_valid(state_boundaries) and state_boundaries.mesh != null:
+		state_mesh_surfaces = state_boundaries.mesh.get_surface_count()
+	_debug_panel_label.text = (
+		"GLOBE / GEOGRAPHY DIAGNOSTICS\n"
+		+ "Stage: " + _debug_load_stage + "\n"
+		+ "Zoom: %.2f (target %.2f)\n" % [_zoom_distance, _zoom_target_distance]
+		+ "Country busy/loaded: %s / %s\n" % [str(_country_building), str(_country_geography_loaded)]
+		+ "Dataset: " + _debug_dataset_path.get_file() + " [" + _debug_parse_format + "]\n"
+		+ "File bytes: " + str(_debug_asset_bytes) + "\n"
+		+ "Features: " + str(_debug_parsed_features) + " | Segments: " + str(_debug_rendered_segments) + "\n"
+		+ "Labels: " + str(_debug_country_labels) + " | Mesh surfaces: " + str(country_mesh_surfaces) + "\n"
+		+ "Country visible: " + str(country_visible) + "\n"
+		+ "State busy/loaded: %s / %s\n" % [str(_state_building), str(_state_geography_loaded)]
+		+ "State continent: " + _state_geography_continent + "\n"
+		+ "State features/segments: %d / %d\n" % [_debug_state_features, _debug_state_segments]
+		+ "State visible/surfaces: %s / %d\n" % [str(state_visible), state_mesh_surfaces]
+		+ "Last error: " + _debug_last_error
+	)
