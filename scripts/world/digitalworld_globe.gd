@@ -5,6 +5,7 @@ signal back_requested
 const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_blue_marble.jpg")
 const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const EARTH_RADIUS := 1.6
+const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 3.7
 const ZOOM_MAX := 9.0
 
@@ -321,8 +322,16 @@ func _get_pinch_distance() -> float:
 func rotate_globe(pointer_delta: Vector2) -> void:
 	if not is_instance_valid(earth_pivot):
 		return
-	earth_pivot.rotation.x = clampf(earth_pivot.rotation.x + pointer_delta.y * 0.006, -1.25, 1.25)
-	earth_pivot.rotation.y -= pointer_delta.x * 0.006
+	# Match the phone worksite: lock each drag to its dominant axis for controlled,
+	# predictable movement instead of combining pitch and yaw on diagonal gestures.
+	if absf(pointer_delta.x) >= absf(pointer_delta.y):
+		earth_pivot.rotation.y += pointer_delta.x * DRAG_SENSITIVITY
+	else:
+		earth_pivot.rotation.x = clampf(
+			earth_pivot.rotation.x + pointer_delta.y * DRAG_SENSITIVITY,
+			-1.25,
+			1.25
+		)
 
 
 func zoom_globe(distance_delta: float) -> void:
