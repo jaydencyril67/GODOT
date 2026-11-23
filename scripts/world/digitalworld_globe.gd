@@ -11,7 +11,7 @@ const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.00075
 const ROTATION_SMOOTHING := 8.5
 const ROTATION_INPUT_LIMIT := 60.0
-const ZOOM_MIN := 1.72
+const ZOOM_MIN := 1.9
 const ZOOM_MAX := 7.2
 const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
 const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.0]
@@ -380,7 +380,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touch_points.size() >= 2:
 			var pinch_distance := _get_pinch_distance()
 			if _previous_pinch_distance > 0.0:
-				zoom_globe((_previous_pinch_distance - pinch_distance) * 0.01)
+				zoom_globe((_previous_pinch_distance - pinch_distance) * 0.008)
 			_previous_pinch_distance = pinch_distance
 		else:
 			rotate_globe(drag.relative)
