@@ -280,6 +280,13 @@ jobs:
       marker: "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS"
       timeout_seconds: 120
 
+
+  globe-engine-android-arm64:
+    name: Globe engine Android ARM64 compatibility build
+    needs: detect_changes
+    if: needs.detect_changes.outputs.full == 'true' || needs.detect_changes.outputs.globe == 'true'
+    uses: ./.github/workflows/globe-engine-android-compatibility.yml
+
   processor-smoke:
     name: Processor Worksite smoke test
     needs: detect_changes
