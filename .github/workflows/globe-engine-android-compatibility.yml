@@ -60,7 +60,7 @@ jobs:
       - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: ndk;27.2.12479018
+          packages: ndk;27.2.12479018;platform-tools;platforms;android-35;build-tools;35.0.0
 
       - name: Install Ninja
         run: |
@@ -208,7 +208,7 @@ jobs:
           godot --headless --path . --export-debug Android build/DigitalWorldMobiles-debug.apk 2>&1 | tee android-export.log
           test -s build/DigitalWorldMobiles-debug.apk
           unzip -l build/DigitalWorldMobiles-debug.apk | tee android-apk-contents.txt
-          if ! grep -qi 'godot-3dtiles' android-apk-contents.txt; then
+          if ! grep -Eqi 'arm64-v8a.*godot-3dtiles|godot-3dtiles.*arm64-v8a' android-apk-contents.txt; then
             echo "Android APK does not contain the native globe extension."
             exit 1
           fi
