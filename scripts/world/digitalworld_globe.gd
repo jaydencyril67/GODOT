@@ -512,8 +512,11 @@ func _read_geography_data(path: String, compressed: bool = false) -> Variant:
 
 
 func _resolve_country_data_path() -> String:
-	if _zoom_distance <= 3.8 and FileAccess.file_exists(COUNTRY_DATA_10M_PATH):
-		return COUNTRY_DATA_10M_PATH
+	# Admin-0 country outlines do not need 1:10m geometry. The global 10m
+	# dataset is expensive to turn into one ImmediateMesh on mobile and can
+	# keep the entire layer invisible until hundreds of thousands of vertices
+	# have been emitted. Keep country borders at 1:50m; 1:10m is reserved for
+	# the selected Admin-1 state/province chunk at close zoom.
 	if FileAccess.file_exists(COUNTRY_DATA_50M_PATH):
 		return COUNTRY_DATA_50M_PATH
 	return COUNTRY_DATA_PATH
@@ -534,8 +537,8 @@ func _build_country_geography() -> void:
 	else:
 		candidate_paths = [COUNTRY_DATA_PATH]
 
-	# Never let one missing/corrupt high-detail asset blank the entire globe.
-	# Fall back through 10m -> 50m -> 110m and use the first valid feature set.
+	# Never let a missing/corrupt country asset blank the globe.
+	# Prefer the mobile-friendly 50m Admin-0 set, then fall back to 110m.
 	var parsed: Variant = null
 	var data_path := ""
 	for candidate_path in candidate_paths:
