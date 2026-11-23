@@ -12,6 +12,7 @@ func _run_test() -> void:
 	var globe := GlobeScene.instantiate() as Node3D
 	root.add_child(globe)
 	await process_frame
+	print("WORLD_GLOBE_SMOKE: globe scene instantiated")
 
 	var earth := globe.find_child("Earth_Surface", true, false) as MeshInstance3D
 	var camera := globe.find_child("Globe_Camera", true, false) as Camera3D
@@ -32,7 +33,9 @@ func _run_test() -> void:
 	if earth_material.albedo_texture.get_width() < 2048 or earth_material.albedo_texture.get_height() < 1024:
 		_fail("The Earth surface texture is below the required 2K equirectangular resolution.")
 		return
+	print("WORLD_GLOBE_SMOKE: waiting for initial country geometry")
 	var country_layer_ready := await _wait_for_country_layer(globe, "50m", 15.0)
+	print("WORLD_GLOBE_SMOKE: initial country geometry wait finished")
 	var country_borders := globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	if not country_layer_ready or country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
 		_fail("The base country dataset must load and remain visible when the globe first opens.")
@@ -48,7 +51,9 @@ func _run_test() -> void:
 	if nigeria.is_empty() or str(nigeria.get("n", "")) != "Nigeria":
 		_fail("Country coordinate hit-testing did not identify Nigeria.")
 		return
+	print("WORLD_GLOBE_SMOKE: opening Nigeria subdivision directory")
 	await globe.call("_open_country_subdivision_overlay", nigeria)
+	print("WORLD_GLOBE_SMOKE: Nigeria subdivision directory loaded")
 	var subdivision_overlay := globe.find_child("Country_Subdivision_Overlay", true, false) as CanvasLayer
 	var subdivision_entries: Array = globe.get("_selected_subdivision_entries")
 	if subdivision_overlay == null or subdivision_entries.size() < 30:
@@ -68,6 +73,7 @@ func _run_test() -> void:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
 	globe.call("zoom_globe", -0.6)
+	print("WORLD_GLOBE_SMOKE: checking country zoom")
 	if not await _wait_for_zoom_settled(globe, 4.3, 5.0):
 		_fail("The eased globe camera did not settle at country zoom.")
 		return
@@ -89,6 +95,7 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
+	print("WORLD_GLOBE_SMOKE: checking close country zoom")
 	if not await _wait_for_zoom_settled(globe, 3.4, 5.0):
 		_fail("The eased globe camera did not settle at close country zoom.")
 		return
@@ -125,6 +132,7 @@ func _run_test() -> void:
 		_fail("The NASA cloud texture was not assigned to the cloud shader.")
 		return
 
+	print("WORLD_GLOBE_SMOKE: checking rotation and zoom controls")
 	var rotation_target_before: Quaternion = globe.get("_rotation_target")
 	globe.call("rotate_globe", Vector2(18.0, 12.0))
 	var rotation_target_after: Quaternion = globe.get("_rotation_target")
@@ -204,6 +212,7 @@ func _run_test() -> void:
 	globe.queue_free()
 	await process_frame
 
+	print("WORLD_GLOBE_SMOKE: globe checks passed; checking landing navigation")
 	var game := MainScene.instantiate()
 	root.add_child(game)
 	await process_frame
@@ -226,6 +235,7 @@ func _run_test() -> void:
 
 	game.queue_free()
 	await process_frame
+	print("WORLD_GLOBE_SMOKE: landing navigation checks passed")
 	print("WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS")
 	quit()
 
