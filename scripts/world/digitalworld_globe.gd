@@ -17,6 +17,9 @@ const ZOOM_MIN := 1.9
 const ZOOM_MAX := 7.2
 const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
 const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.0]
+const COUNTRY_TAP_DRAG_THRESHOLD := 12.0
+const STATE_DATA_PATH_FORMAT := "res://assets/globe/natural_earth_states_10m_%s.json"
+const STATE_DATA_CONTINENTS := ["africa", "antarctica", "asia", "europe", "north_america", "oceania", "south_america", "other"]
 
 var earth_pivot: Node3D
 var globe_camera: Camera3D
@@ -25,8 +28,12 @@ var _zoom_target_distance := 4.9
 var _zoom_settle_elapsed := 0.0
 var _geography_refresh_pending := false
 var _touch_points: Dictionary = {}
+var _touch_start_positions: Dictionary = {}
+var _touch_tap_eligible: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
+var _mouse_press_position := Vector2.ZERO
+var _mouse_tap_eligible := false
 var _rotation_drag_active := false
 var _rotation_pointer_position := Vector2.ZERO
 var _rotation_current := Quaternion.IDENTITY
@@ -34,7 +41,15 @@ var _rotation_target := Quaternion.IDENTITY
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
+var _country_features: Array = []
 var _country_geography_loaded := false
+var _country_subdivision_overlay: CanvasLayer
+var _country_subdivision_list: GridContainer
+var _country_subdivision_search: LineEdit
+var _country_subdivision_count_label: Label
+var _selected_subdivision_entries: Array[Dictionary] = []
+var _selected_country_name := ""
+var _subdivision_request_id := 0
 var _country_geography_tier := ""
 var _country_building := false
 
@@ -291,18 +306,38 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(_country_subdivision_overlay):
+		if event.is_action_pressed("ui_cancel"):
+			_close_country_subdivision_overlay()
+			get_viewport().set_input_as_handled()
+		return
+
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
 			_touch_points[touch.index] = touch.position
+			_touch_start_positions[touch.index] = touch.position
+			_touch_tap_eligible[touch.index] = true
 			if _touch_points.size() == 1:
 				_rotation_pointer_position = touch.position
 				_rotation_drag_active = true
 			elif _touch_points.size() == 2:
 				_rotation_drag_active = false
 				_previous_pinch_distance = _get_pinch_distance()
+			if _touch_points.size() >= 2:
+				for pointer_key in _touch_tap_eligible.keys():
+					_touch_tap_eligible[pointer_key] = false
 		else:
+			var can_select_country := (
+				_touch_points.size() == 1
+				and bool(_touch_tap_eligible.get(touch.index, false))
+				and _touch_start_positions.get(touch.index, touch.position).distance_to(touch.position) <= COUNTRY_TAP_DRAG_THRESHOLD
+			)
+			if can_select_country:
+				_select_country_at_screen_position(touch.position)
 			_touch_points.erase(touch.index)
+			_touch_start_positions.erase(touch.index)
+			_touch_tap_eligible.erase(touch.index)
 			_previous_pinch_distance = 0.0
 			if _touch_points.size() == 1:
 				var remaining_key = _touch_points.keys()[0]
@@ -317,6 +352,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var drag := event as InputEventScreenDrag
 		if _touch_points.has(drag.index):
 			_touch_points[drag.index] = drag.position
+			var touch_start: Vector2 = _touch_start_positions.get(drag.index, drag.position)
+			if touch_start.distance_to(drag.position) > COUNTRY_TAP_DRAG_THRESHOLD:
+				_touch_tap_eligible[drag.index] = false
 		if _touch_points.size() >= 2:
 			var pinch_distance := _get_pinch_distance()
 			if _previous_pinch_distance > 0.0:
@@ -331,7 +369,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
-			_mouse_dragging = mouse_button.pressed
+			if mouse_button.pressed:
+				_mouse_dragging = true
+				_mouse_press_position = mouse_button.position
+				_mouse_tap_eligible = true
+			else:
+				var is_country_tap := (
+					_mouse_dragging
+					and _mouse_tap_eligible
+					and _mouse_press_position.distance_to(mouse_button.position) <= COUNTRY_TAP_DRAG_THRESHOLD
+				)
+				_mouse_dragging = false
+				_mouse_tap_eligible = false
+				if is_country_tap:
+					_select_country_at_screen_position(mouse_button.position)
 			_rotation_pointer_position = mouse_button.position
 			get_viewport().set_input_as_handled()
 		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -344,9 +395,432 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventMouseMotion and _mouse_dragging:
 		var mouse_motion := event as InputEventMouseMotion
+		if _mouse_press_position.distance_to(mouse_motion.position) > COUNTRY_TAP_DRAG_THRESHOLD:
+			_mouse_tap_eligible = false
 		_rotate_globe_from_points(_rotation_pointer_position, mouse_motion.position)
 		_rotation_pointer_position = mouse_motion.position
 		get_viewport().set_input_as_handled()
+
+
+func _select_country_at_screen_position(screen_position: Vector2) -> void:
+	if not _country_geography_loaded or _country_features.is_empty():
+		return
+	if is_instance_valid(_country_subdivision_overlay):
+		return
+	var coordinates := _screen_to_globe_coordinates(screen_position)
+	if coordinates.x < -90.0 or coordinates.x > 90.0 or coordinates.y < -180.0 or coordinates.y > 180.0:
+		return
+	var country := _find_country_feature_at(coordinates.x, coordinates.y)
+	if not country.is_empty():
+		call_deferred("_open_country_subdivision_overlay", country)
+
+
+func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
+	# Convert the pointer ray into a surface coordinate. The first sphere hit
+	# is always the visible hemisphere, so taps on the far side cannot select
+	# a country hidden behind the Earth.
+	if not is_instance_valid(globe_camera) or not is_instance_valid(earth_pivot):
+		return Vector2(999.0, 999.0)
+	var ray_origin := globe_camera.project_ray_origin(screen_position)
+	var ray_direction := globe_camera.project_ray_normal(screen_position).normalized()
+	var relative_origin := ray_origin - earth_pivot.global_position
+	var projection := relative_origin.dot(ray_direction)
+	var constant := relative_origin.length_squared() - EARTH_RADIUS * EARTH_RADIUS
+	var discriminant := projection * projection - constant
+	if discriminant < 0.0:
+		return Vector2(999.0, 999.0)
+	var hit_distance := -projection - sqrt(discriminant)
+	if hit_distance < 0.0:
+		hit_distance = -projection + sqrt(discriminant)
+	if hit_distance < 0.0:
+		return Vector2(999.0, 999.0)
+	var local_hit := earth_pivot.to_local(ray_origin + ray_direction * hit_distance).normalized()
+	var latitude := rad_to_deg(asin(clampf(local_hit.y, -1.0, 1.0)))
+	var longitude := wrapf(rad_to_deg(atan2(local_hit.x, local_hit.z)) - 180.0, -180.0, 180.0)
+	return Vector2(latitude, longitude)
+
+
+func _find_country_feature_at(latitude: float, longitude: float) -> Dictionary:
+	for feature_variant in _country_features:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		if _point_is_inside_country_feature(latitude, longitude, feature):
+			return feature
+	return {}
+
+
+func _point_is_inside_country_feature(latitude: float, longitude: float, feature: Dictionary) -> bool:
+	var inside := false
+	for ring_variant in feature.get("r", []):
+		if ring_variant is Array and _point_is_inside_geographic_ring(latitude, longitude, ring_variant):
+			# Natural Earth stores outer rings and holes as separate parts.
+			# Even-odd parity preserves islands and excludes interior lakes.
+			inside = not inside
+	return inside
+
+
+func _point_is_inside_geographic_ring(latitude: float, longitude: float, ring: Array) -> bool:
+	if ring.size() < 3:
+		return false
+	var inside := false
+	var previous: Array = ring[ring.size() - 1]
+	for current_variant in ring:
+		if not current_variant is Array:
+			previous = current_variant if current_variant is Array else previous
+			continue
+		var current: Array = current_variant
+		if previous.size() >= 2 and current.size() >= 2:
+			var longitude_a := _longitude_near(float(previous[0]), longitude)
+			var longitude_b := _longitude_near(float(current[0]), longitude)
+			var latitude_a := float(previous[1])
+			var latitude_b := float(current[1])
+			if (latitude_a > latitude) != (latitude_b > latitude):
+				var crossing_longitude := longitude_a + (
+					(longitude_b - longitude_a) * (latitude - latitude_a) / (latitude_b - latitude_a)
+				)
+				if longitude < crossing_longitude:
+					inside = not inside
+		previous = current
+	return inside
+
+
+func _longitude_near(value: float, reference: float) -> float:
+	var adjusted := value
+	while adjusted - reference > 180.0:
+		adjusted -= 360.0
+	while adjusted - reference < -180.0:
+		adjusted += 360.0
+	return adjusted
+
+
+func _normalise_country_match_name(value: String) -> String:
+	return value.strip_edges().to_lower().replace(".", "").replace(",", "").replace(" ", "")
+
+
+func _open_country_subdivision_overlay(country: Dictionary) -> void:
+	_subdivision_request_id += 1
+	var request_id := _subdivision_request_id
+	_selected_country_name = str(country.get("n", "Unknown"))
+	_selected_subdivision_entries.clear()
+	_build_country_subdivision_overlay(_selected_country_name)
+	_set_country_subdivision_message("Loading state and province records…")
+	await get_tree().process_frame
+	if request_id != _subdivision_request_id or not is_instance_valid(_country_subdivision_overlay):
+		return
+
+	var continent_key := str(country.get("continent", "other")).strip_edges().to_lower().replace(" ", "_")
+	if not STATE_DATA_CONTINENTS.has(continent_key):
+		continent_key = "other"
+	var state_data_path := STATE_DATA_PATH_FORMAT % continent_key
+	var parsed_states: Variant = _read_geography_data(state_data_path)
+	if request_id != _subdivision_request_id or not is_instance_valid(_country_subdivision_overlay):
+		return
+	if not parsed_states is Dictionary:
+		_set_country_subdivision_message("State and province records could not be loaded for this country.")
+		_update_country_subdivision_count(0)
+		return
+
+	var country_code := str(country.get("c", "")).strip_edges()
+	var country_match_name := _normalise_country_match_name(_selected_country_name)
+	var matching_entries: Array[Dictionary] = []
+	var seen_names: Dictionary = {}
+	for state_variant in parsed_states.get("features", []):
+		if not state_variant is Dictionary:
+			continue
+		var state: Dictionary = state_variant
+		var state_code := str(state.get("c", "")).strip_edges()
+		if country_code.is_empty() or state_code != country_code:
+			continue
+		_append_country_subdivision_entry(state, matching_entries, seen_names)
+
+	# Admin-0 name is a conservative fallback for a small number of Natural
+	# Earth records whose disputed-territory codes do not line up across scales.
+	if matching_entries.is_empty():
+		for state_variant in parsed_states.get("features", []):
+			if not state_variant is Dictionary:
+				continue
+			var state: Dictionary = state_variant
+			if _normalise_country_match_name(str(state.get("a", ""))) == country_match_name:
+				_append_country_subdivision_entry(state, matching_entries, seen_names)
+
+	matching_entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a.get("n", "")).to_lower() < str(b.get("n", "")).to_lower()
+	)
+	_selected_subdivision_entries = matching_entries
+	_update_country_subdivision_count(matching_entries.size())
+	if matching_entries.is_empty():
+		_set_country_subdivision_message("No state or province records are available for %s." % _selected_country_name)
+	else:
+		_filter_country_subdivision_list("")
+
+
+func _append_country_subdivision_entry(state: Dictionary, entries: Array[Dictionary], seen_names: Dictionary) -> void:
+	var subdivision_name := str(state.get("n", "")).strip_edges()
+	if subdivision_name.is_empty() or subdivision_name == "Unknown":
+		return
+	var key := subdivision_name.to_lower()
+	if seen_names.has(key):
+		return
+	seen_names[key] = true
+	entries.append({"n": subdivision_name})
+
+
+func _build_country_subdivision_overlay(country_name: String) -> void:
+	if is_instance_valid(_country_subdivision_overlay):
+		_country_subdivision_overlay.queue_free()
+	_country_subdivision_overlay = CanvasLayer.new()
+	_country_subdivision_overlay.name = "Country_Subdivision_Overlay"
+	_country_subdivision_overlay.layer = 60
+	add_child(_country_subdivision_overlay)
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var narrow := viewport_size.x < viewport_size.y * 1.25
+	var ui_scale := clampf(minf(viewport_size.x / 1152.0, viewport_size.y / 648.0), 0.68, 1.0)
+
+	var backdrop := ColorRect.new()
+	backdrop.name = "Country_Subdivision_Backdrop"
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.002, 0.006, 0.016, 0.88)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	backdrop.gui_input.connect(_on_country_subdivision_backdrop_input)
+	_country_subdivision_overlay.add_child(backdrop)
+
+	var panel := PanelContainer.new()
+	panel.name = "Country_Subdivision_Panel"
+	panel.anchor_left = 0.035 if narrow else 0.13
+	panel.anchor_top = 0.055
+	panel.anchor_right = 0.965 if narrow else 0.87
+	panel.anchor_bottom = 0.945
+	panel.offset_left = 0.0
+	panel.offset_top = 0.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#111315")
+	panel_style.border_color = Color("#806239")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.48)
+	panel_style.shadow_size = 16
+	panel.add_theme_stylebox_override("panel", panel_style)
+	_country_subdivision_overlay.add_child(panel)
+
+	var inner_margin := MarginContainer.new()
+	inner_margin.add_theme_constant_override("margin_left", roundi(16.0 * ui_scale))
+	inner_margin.add_theme_constant_override("margin_right", roundi(16.0 * ui_scale))
+	inner_margin.add_theme_constant_override("margin_top", roundi(14.0 * ui_scale))
+	inner_margin.add_theme_constant_override("margin_bottom", roundi(14.0 * ui_scale))
+	panel.add_child(inner_margin)
+
+	var content := VBoxContainer.new()
+	content.name = "Country_Subdivision_Content"
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", roundi(9.0 * ui_scale))
+	inner_margin.add_child(content)
+
+	var header := HBoxContainer.new()
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_theme_constant_override("separation", 8)
+	content.add_child(header)
+	var eyebrow := Label.new()
+	eyebrow.text = "WORLD REGION DIRECTORY"
+	eyebrow.add_theme_font_size_override("font_size", maxi(10, roundi(12.0 * ui_scale)))
+	eyebrow.add_theme_color_override("font_color", Color("#C58A3A"))
+	eyebrow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	eyebrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(eyebrow)
+
+	var close_button := Button.new()
+	close_button.name = "Country_Subdivision_Close_Button"
+	close_button.text = "CLOSE"
+	close_button.custom_minimum_size = Vector2(roundi(72.0 * ui_scale), roundi(38.0 * ui_scale))
+	close_button.focus_mode = Control.FOCUS_NONE
+	close_button.add_theme_font_size_override("font_size", maxi(10, roundi(12.0 * ui_scale)))
+	close_button.add_theme_color_override("font_color", Color("#EEE9DF"))
+	var close_style := StyleBoxFlat.new()
+	close_style.bg_color = Color("#202326")
+	close_style.border_color = Color("#72552F")
+	close_style.set_border_width_all(1)
+	close_style.set_corner_radius_all(7)
+	close_style.content_margin_left = 10
+	close_style.content_margin_right = 10
+	close_button.add_theme_stylebox_override("normal", close_style)
+	close_button.add_theme_stylebox_override("hover", close_style)
+	close_button.add_theme_stylebox_override("pressed", close_style)
+	close_button.pressed.connect(_close_country_subdivision_overlay)
+	header.add_child(close_button)
+
+	var title := Label.new()
+	title.name = "Country_Subdivision_Country_Name"
+	title.text = country_name.to_upper()
+	title.add_theme_font_size_override("font_size", maxi(18, roundi(25.0 * ui_scale)))
+	title.add_theme_color_override("font_color", Color("#EEE9DF"))
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(title)
+
+	var section := Label.new()
+	section.text = "STATES & PROVINCES"
+	section.add_theme_font_size_override("font_size", maxi(11, roundi(14.0 * ui_scale)))
+	section.add_theme_color_override("font_color", Color("#C58A3A"))
+	content.add_child(section)
+
+	_country_subdivision_count_label = Label.new()
+	_country_subdivision_count_label.name = "Country_Subdivision_Count"
+	_country_subdivision_count_label.text = "LOADING DIRECTORY"
+	_country_subdivision_count_label.add_theme_font_size_override("font_size", maxi(10, roundi(11.0 * ui_scale)))
+	_country_subdivision_count_label.add_theme_color_override("font_color", Color("#AAA49A"))
+	content.add_child(_country_subdivision_count_label)
+
+	_country_subdivision_search = LineEdit.new()
+	_country_subdivision_search.name = "Country_Subdivision_Search"
+	_country_subdivision_search.placeholder_text = "Search states or provinces"
+	_country_subdivision_search.clear_button_enabled = true
+	_country_subdivision_search.custom_minimum_size.y = roundi(40.0 * ui_scale)
+	_country_subdivision_search.add_theme_font_size_override("font_size", maxi(12, roundi(14.0 * ui_scale)))
+	_country_subdivision_search.add_theme_color_override("font_color", Color("#EEE9DF"))
+	_country_subdivision_search.add_theme_color_override("font_placeholder_color", Color("#AAA49A"))
+	var search_style := StyleBoxFlat.new()
+	search_style.bg_color = Color("#202326")
+	search_style.border_color = Color("#514B40")
+	search_style.set_border_width_all(1)
+	search_style.set_corner_radius_all(7)
+	search_style.content_margin_left = 12
+	search_style.content_margin_right = 12
+	_country_subdivision_search.add_theme_stylebox_override("normal", search_style)
+	_country_subdivision_search.add_theme_stylebox_override("focus", search_style)
+	_country_subdivision_search.text_changed.connect(_filter_country_subdivision_list)
+	content.add_child(_country_subdivision_search)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "Country_Subdivision_Scroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	content.add_child(scroll)
+
+	_country_subdivision_list = GridContainer.new()
+	_country_subdivision_list.name = "Country_Subdivision_List"
+	_country_subdivision_list.columns = 1 if narrow else 2
+	_country_subdivision_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_country_subdivision_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_country_subdivision_list.add_theme_constant_override("h_separation", roundi(10.0 * ui_scale))
+	_country_subdivision_list.add_theme_constant_override("v_separation", roundi(8.0 * ui_scale))
+	scroll.add_child(_country_subdivision_list)
+
+
+func _filter_country_subdivision_list(query: String) -> void:
+	if not is_instance_valid(_country_subdivision_list):
+		return
+	for child in _country_subdivision_list.get_children():
+		_country_subdivision_list.remove_child(child)
+		child.queue_free()
+	var normalized_query := query.strip_edges().to_lower()
+	var visible_index := 0
+	for entry in _selected_subdivision_entries:
+		var subdivision_name := str(entry.get("n", ""))
+		if not normalized_query.is_empty() and not subdivision_name.to_lower().contains(normalized_query):
+			continue
+		visible_index += 1
+		_add_country_subdivision_card(subdivision_name, visible_index)
+	if visible_index == 0:
+		var empty_label := Label.new()
+		empty_label.text = "No matching states or provinces." if not _selected_subdivision_entries.is_empty() else "No subdivision records to display."
+		empty_label.add_theme_font_size_override("font_size", 13)
+		empty_label.add_theme_color_override("font_color", Color("#AAA49A"))
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.custom_minimum_size.y = 58.0
+		_country_subdivision_list.add_child(empty_label)
+
+
+func _add_country_subdivision_card(subdivision_name: String, index: int) -> void:
+	var card := PanelContainer.new()
+	card.name = "Country_Subdivision_Card_%03d" % index
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 58.0
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color("#1B1E20")
+	card_style.border_color = Color("#514936")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(8)
+	card_style.content_margin_left = 11
+	card_style.content_margin_right = 11
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", card_style)
+	_country_subdivision_list.add_child(card)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 9)
+	card.add_child(row)
+
+	var number_label := Label.new()
+	number_label.text = "%02d" % index
+	number_label.custom_minimum_size.x = 24.0
+	number_label.add_theme_font_size_override("font_size", 12)
+	number_label.add_theme_color_override("font_color", Color("#C58A3A"))
+	number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(number_label)
+
+	var name_label := Label.new()
+	name_label.text = subdivision_name
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_color_override("font_color", Color("#EEE9DF"))
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(name_label)
+
+
+func _set_country_subdivision_message(message: String) -> void:
+	if not is_instance_valid(_country_subdivision_list):
+		return
+	for child in _country_subdivision_list.get_children():
+		_country_subdivision_list.remove_child(child)
+		child.queue_free()
+	var message_label := Label.new()
+	message_label.text = message
+	message_label.add_theme_font_size_override("font_size", 13)
+	message_label.add_theme_color_override("font_color", Color("#AAA49A"))
+	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_label.custom_minimum_size.y = 66.0
+	_country_subdivision_list.add_child(message_label)
+
+
+func _update_country_subdivision_count(count: int) -> void:
+	if not is_instance_valid(_country_subdivision_count_label):
+		return
+	var noun := "STATE / PROVINCE" if count == 1 else "STATES / PROVINCES"
+	_country_subdivision_count_label.text = "%d %s" % [count, noun]
+
+
+func _on_country_subdivision_backdrop_input(event: InputEvent) -> void:
+	var close_requested := false
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		close_requested = true
+	elif event is InputEventScreenTouch and event.pressed:
+		close_requested = true
+	if close_requested:
+		_close_country_subdivision_overlay()
+
+
+func _close_country_subdivision_overlay() -> void:
+	_subdivision_request_id += 1
+	if is_instance_valid(_country_subdivision_overlay):
+		_country_subdivision_overlay.queue_free()
+	_country_subdivision_overlay = null
+	_country_subdivision_list = null
+	_country_subdivision_search = null
+	_country_subdivision_count_label = null
+	_selected_subdivision_entries.clear()
+	_selected_country_name = ""
+
 
 
 func _get_pinch_distance() -> float:
@@ -535,6 +1009,7 @@ func _build_country_geography() -> void:
 		tier = "50m"
 	elif data_path == COUNTRY_DATA_10M_PATH:
 		tier = "10m"
+	_country_features = parsed["features"]
 	if _country_geography_loaded and _country_geography_tier == tier:
 		_country_building = false
 		return
