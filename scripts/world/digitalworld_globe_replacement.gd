@@ -154,29 +154,33 @@ func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
 		return super._screen_to_globe_coordinates(screen_position)
 	var ray_origin := _native_camera.project_ray_origin(screen_position)
 	var ray_direction := _native_camera.project_ray_normal(screen_position).normalized()
-	var centre := _native_camera.call("resolve_ellipsoid_center") as Vector3
+	var centre: Vector3 = _native_camera.call("resolve_ellipsoid_center")
 	var relative_origin := ray_origin - centre
-	var projection := relative_origin.dot(ray_direction)
-	var discriminant := projection * projection - (relative_origin.length_squared() - WGS84_EQUATORIAL_RADIUS * WGS84_EQUATORIAL_RADIUS)
+	var inv_a2 := 1.0 / (WGS84_EQUATORIAL_RADIUS * WGS84_EQUATORIAL_RADIUS)
+	var inv_b2 := 1.0 / (WGS84_POLAR_RADIUS * WGS84_POLAR_RADIUS)
+	var qa := (ray_direction.x * ray_direction.x + ray_direction.z * ray_direction.z) * inv_a2 + ray_direction.y * ray_direction.y * inv_b2
+	var qb := 2.0 * ((relative_origin.x * ray_direction.x + relative_origin.z * ray_direction.z) * inv_a2 + relative_origin.y * ray_direction.y * inv_b2)
+	var qc := (relative_origin.x * relative_origin.x + relative_origin.z * relative_origin.z) * inv_a2 + relative_origin.y * relative_origin.y * inv_b2 - 1.0
+	var discriminant := qb * qb - 4.0 * qa * qc
 	if discriminant < 0.0:
 		return Vector2(999.0, 999.0)
-	var hit_distance := -projection - sqrt(discriminant)
+	var hit_distance := (-qb - sqrt(discriminant)) / (2.0 * qa)
 	if hit_distance < 0.0:
-		hit_distance = -projection + sqrt(discriminant)
+		hit_distance = (-qb + sqrt(discriminant)) / (2.0 * qa)
 	if hit_distance < 0.0:
 		return Vector2(999.0, 999.0)
-	var hit := ray_origin + ray_direction * hit_distance - centre
-	var latitude := rad_to_deg(atan2(hit.y / WGS84_POLAR_RADIUS, Vector2(hit.x, hit.z).length() / WGS84_EQUATORIAL_RADIUS))
-	var longitude := wrapf(rad_to_deg(atan2(hit.x, hit.z)) - 180.0, -180.0, 180.0)
+	var hit := relative_origin + ray_direction * hit_distance
+	var latitude := rad_to_deg(atan2(hit.y * inv_b2, Vector2(hit.x, hit.z).length() * inv_a2))
+	var longitude := wrapf(rad_to_deg(atan2(-hit.z, hit.x)), -180.0, 180.0)
 	return Vector2(latitude, longitude)
 
 
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
 	var lat := deg_to_rad(clampf(latitude, -90.0, 90.0))
-	var lon := deg_to_rad(wrapf(longitude + 180.0, -180.0, 180.0))
+	var lon := deg_to_rad(wrapf(longitude, -180.0, 180.0))
 	var scale_factor := radius / EARTH_RADIUS
 	var horizontal := WGS84_EQUATORIAL_RADIUS * scale_factor * cos(lat)
-	return Vector3(sin(lon) * horizontal, WGS84_POLAR_RADIUS * scale_factor * sin(lat), cos(lon) * horizontal)
+	return Vector3(cos(lon) * horizontal, WGS84_POLAR_RADIUS * scale_factor * sin(lat), -sin(lon) * horizontal)
 
 
 func _append_geographic_segment(mesh: ImmediateMesh, latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float, radius: float) -> void:
