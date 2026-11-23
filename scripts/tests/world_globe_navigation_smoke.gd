@@ -139,6 +139,29 @@ func _run_test() -> void:
 	if absf(trackball_rotation.dot(rotation_target_after)) >= 0.999999:
 		_fail("Position-based virtual trackball input did not rotate the Earth.")
 		return
+
+	# Raw pointer events are filtered at frame cadence, and a single frame is
+	# prevented from consuming an arbitrarily large input jump.
+	var pointer_start := Vector2(300.0, 300.0)
+	var pointer_target := Vector2(380.0, 300.0)
+	globe.set("_rotation_pointer_position", pointer_start)
+	globe.set("_rotation_pointer_target", pointer_target)
+	globe.set("_rotation_drag_active", true)
+	globe.call("_update_drag_rotation", 1.0 / 60.0)
+	var filtered_pointer: Vector2 = globe.get("_rotation_pointer_position")
+	if filtered_pointer.distance_to(pointer_start) <= 0.0 or filtered_pointer.distance_to(pointer_target) <= 0.0:
+		_fail("Globe drag input must be progressively filtered rather than snapping to each raw touch event.")
+		return
+	if filtered_pointer.distance_to(pointer_start) > 28.0:
+		_fail("A single globe rotation frame exceeded the maximum filtered pointer step.")
+		return
+	globe.set("_rotation_drag_active", false)
+	var stopped_pointer: Vector2 = globe.get("_rotation_pointer_position")
+	globe.call("_update_drag_rotation", 1.0 / 60.0)
+	if (globe.get("_rotation_pointer_position") as Vector2) != stopped_pointer:
+		_fail("Globe rotation input must stop immediately when dragging ends.")
+		return
+
 	var initial_zoom := float(globe.call("get_zoom_distance"))
 	globe.call("zoom_globe", -0.5)
 	if float(globe.get("_zoom_target_distance")) >= initial_zoom:
