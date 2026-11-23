@@ -34,6 +34,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Patch native Android one-finger rotation and two-finger pinch controls
+        run: python3 tools/patch_globe_engine_touch.py
+
       - name: Preserve Android's built-in portable qsort fallback for bundled Zstandard on Android
         shell: bash
         run: |
