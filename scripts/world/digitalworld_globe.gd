@@ -709,7 +709,7 @@ func _build_country_subdivision_overlay(country_name: String) -> void:
 
 	_country_subdivision_list = GridContainer.new()
 	_country_subdivision_list.name = "Country_Subdivision_List"
-	_country_subdivision_list.columns = 1 if narrow else 2
+	_country_subdivision_list.columns = 5
 	_country_subdivision_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_country_subdivision_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_country_subdivision_list.add_theme_constant_override("h_separation", roundi(10.0 * ui_scale))
