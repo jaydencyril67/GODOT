@@ -8,7 +8,10 @@ const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
 const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json"
 const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json"
 const EARTH_RADIUS := 1.6
-const DRAG_SENSITIVITY := 0.0024
+const DRAG_SENSITIVITY := 0.00125
+const ROTATION_SMOOTHING := 8.5
+const ROTATION_INPUT_LIMIT := 80.0
+const ZOOM_SMOOTHING := 7.5
 const ZOOM_MIN := 2.25
 const ZOOM_MAX := 7.2
 const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
@@ -23,6 +26,7 @@ var _geography_refresh_pending := false
 var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
+var _rotation_target := Vector2.ZERO
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
@@ -54,6 +58,7 @@ func _ready() -> void:
 	_build_environment()
 	_build_starfield()
 	_build_earth()
+	_rotation_target = Vector2(earth_pivot.rotation.y, earth_pivot.rotation.x)
 	_build_camera()
 	_update_country_label_visibility()
 	_build_interface()
@@ -338,9 +343,17 @@ func _process(delta: float) -> void:
 	if is_instance_valid(cloud_layer):
 		cloud_layer.rotation.y += delta * 0.0008
 
+	# Smooth globe orientation independently from touch input sampling.
+	# This filters small finger-direction changes and keeps movement consistent
+	# across the full zoom range.
+	if is_instance_valid(earth_pivot):
+		var rotation_blend := 1.0 - exp(-delta * ROTATION_SMOOTHING)
+		earth_pivot.rotation.y = lerp_angle(earth_pivot.rotation.y, _rotation_target.x, rotation_blend)
+		earth_pivot.rotation.x = lerpf(earth_pivot.rotation.x, _rotation_target.y, rotation_blend)
+
 	# Smooth camera movement independently from touch input sampling.
 	if absf(_zoom_distance - _zoom_target_distance) > 0.001:
-		var zoom_blend := 1.0 - exp(-delta * 11.0)
+		var zoom_blend := 1.0 - exp(-delta * ZOOM_SMOOTHING)
 		_zoom_distance = lerpf(_zoom_distance, _zoom_target_distance, zoom_blend)
 		_update_camera_position()
 		_update_country_label_visibility()
@@ -420,17 +433,14 @@ func _get_pinch_distance() -> float:
 func rotate_globe(pointer_delta: Vector2) -> void:
 	if not is_instance_valid(earth_pivot):
 		return
-	# Match the phone worksite: lock each drag to its dominant axis for controlled,
-	# predictable movement instead of combining pitch and yaw on diagonal gestures.
-	if absf(pointer_delta.x) >= absf(pointer_delta.y):
-		earth_pivot.rotation.y += pointer_delta.x * DRAG_SENSITIVITY
-	else:
-		earth_pivot.rotation.x = clampf(
-			earth_pivot.rotation.x - pointer_delta.y * DRAG_SENSITIVITY,
-			-1.25,
-			1.25
-		)
-
+	# Limit sudden input spikes, then accumulate into a target orientation.
+	# The target is smoothed in _process(), avoiding jitter from event-by-event
+	# axis switching while preserving precise horizontal and vertical control.
+	var stable_delta := pointer_delta.limit_length(ROTATION_INPUT_LIMIT)
+	var zoom_factor := clampf(_zoom_distance / 4.9, 0.58, 1.0)
+	var rotation_step := stable_delta * DRAG_SENSITIVITY * zoom_factor
+	_rotation_target.x = wrapf(_rotation_target.x + rotation_step.x, -PI, PI)
+	_rotation_target.y = clampf(_rotation_target.y - rotation_step.y, -1.25, 1.25)
 
 func zoom_globe(distance_delta: float) -> void:
 	_zoom_target_distance = clampf(_zoom_target_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
