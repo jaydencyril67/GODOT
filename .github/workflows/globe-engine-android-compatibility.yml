@@ -129,3 +129,95 @@ jobs:
           path: build/globe-engine-android/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Set up Godot 4.7.2 Android export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Set up Java for Android export
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Stage native extension for Android project export
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p addons/lib/Android-aarch64 addons/lib/linux-x86_64
+          cp build/globe-engine-android/addons/lib/Android-aarch64/godot-3dtiles.so addons/lib/Android-aarch64/
+          cp tools/godot-3dtiles.android.gdextension.in addons/godot-3dtiles.gdextension
+          # The Linux editor host needs a harmless ABI-compatible extension entry
+          # while exporting the Android APK. It registers no classes and is never
+          # included in the Android package; Android loads the real ARM64 library.
+          cat > build/gdextension_editor_stub.cpp <<'CPP'
+          #include <cstdint>
+          using GDExtensionBool = std::uint8_t;
+          using GDExtensionInterfaceGetProcAddress = void *(*)(const char *);
+          using GDExtensionClassLibraryPtr = void *;
+          enum GDExtensionInitializationLevel : std::uint32_t {
+              GDEXTENSION_INITIALIZATION_CORE = 0,
+              GDEXTENSION_INITIALIZATION_SERVERS = 1,
+              GDEXTENSION_INITIALIZATION_SCENE = 2,
+              GDEXTENSION_INITIALIZATION_EDITOR = 3
+          };
+          struct GDExtensionInitialization {
+              GDExtensionInitializationLevel minimum_initialization_level;
+              void *userdata;
+              void (*initialize)(void *, GDExtensionInitializationLevel);
+              void (*deinitialize)(void *, GDExtensionInitializationLevel);
+          };
+          extern "C" __attribute__((visibility("default")))
+          GDExtensionBool GDExtensionInit(
+              GDExtensionInterfaceGetProcAddress,
+              GDExtensionClassLibraryPtr,
+              GDExtensionInitialization *initialization) {
+              initialization->minimum_initialization_level = GDEXTENSION_INITIALIZATION_SCENE;
+              initialization->userdata = nullptr;
+              initialization->initialize = [](void *, GDExtensionInitializationLevel) {};
+              initialization->deinitialize = [](void *, GDExtensionInitializationLevel) {};
+              return 1;
+          }
+          CPP
+          g++ -std=c++17 -shared -fPIC build/gdextension_editor_stub.cpp -o addons/lib/linux-x86_64/godot-3dtiles.so
+
+      - name: Import project and export Android ARM64 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --import --quit 2>&1 | tee android-project-import.log
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' android-project-import.log; then
+            echo "Godot project import failed before Android export."
+            exit 1
+          fi
+          # The native replacement is built for ARM64; do not produce an ARM32
+          # variant that cannot load the extension.
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("export_presets.cfg")
+          content = path.read_text()
+          old = "architectures/armeabi-v7a=true"
+          if old not in content:
+              raise SystemExit("Android export preset architecture setting was not found")
+          path.write_text(content.replace(old, "architectures/armeabi-v7a=false", 1))
+          PY
+          mkdir -p build
+          godot --headless --path . --export-debug Android build/DigitalWorldMobiles-debug.apk 2>&1 | tee android-export.log
+          test -s build/DigitalWorldMobiles-debug.apk
+          unzip -l build/DigitalWorldMobiles-debug.apk | tee android-apk-contents.txt
+          if ! grep -qi 'godot-3dtiles' android-apk-contents.txt; then
+            echo "Android APK does not contain the native globe extension."
+            exit 1
+          fi
+          echo "Android ARM64 APK exported with the native globe extension." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload DigitalWorld Android ARM64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DigitalWorldMobiles-Android-ARM64-debug
+          path: build/DigitalWorldMobiles-debug.apk
+          if-no-files-found: error
+          retention-days: 14
