@@ -216,7 +216,7 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 		return super._geo_to_globe_position(latitude, longitude, radius)
 	var lat := deg_to_rad(clampf(latitude, -90.0, 90.0))
 	var lon := deg_to_rad(wrapf(longitude, -180.0, 180.0))
-	var adjusted_radius := EARTH_RADIUS + (radius - EARTH_RADIUS) * 0.02
+	var adjusted_radius := EARTH_RADIUS + (radius - EARTH_RADIUS) * 0.001
 	var scale_factor := adjusted_radius / EARTH_RADIUS
 	var horizontal := WGS84_EQUATORIAL_RADIUS * scale_factor * cos(lat)
 	# Local ENU coordinates for an origin at (WGS84_A, 0, 0).
