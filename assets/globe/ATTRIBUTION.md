@@ -16,3 +16,11 @@
 - Rendered as a separate transparent shell above the Earth surface.
 
 NASA imagery is credited as a courtesy; no NASA endorsement is implied. NASA media guidance: https://www.nasa.gov/nasa-brand-center/images-and-media/
+
+
+## Country geography
+- Asset: `natural_earth_countries.json`
+- Source: Natural Earth, 1:110m Admin 0 Countries.
+- Source dataset: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/
+- License: Natural Earth vector and raster map data are public domain.
+- Scope: country/territory outlines and label coordinates for the global overview. This 1:110m dataset is intentionally a low-detail overview layer; higher-resolution 1:50m and 1:10m layers are not yet included.
