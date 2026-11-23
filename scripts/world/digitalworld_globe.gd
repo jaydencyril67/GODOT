@@ -17,6 +17,7 @@ var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
 var cloud_layer: MeshInstance3D
+var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
 
 
@@ -371,6 +372,7 @@ func _build_country_geography() -> void:
 	var border_mesh := ImmediateMesh.new()
 	border_mesh.surface_begin(Mesh.PRIMITIVE_LINES, border_material)
 	var feature_count := 0
+	var segment_count := 0
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -387,16 +389,30 @@ func _build_country_geography() -> void:
 				var point_b: Array = ring[(point_index + 1) % ring.size()]
 				if point_a.size() < 2 or point_b.size() < 2:
 					continue
-				border_mesh.surface_add_vertex(_geo_to_globe_position(float(point_a[1]), float(point_a[0]), EARTH_RADIUS * 1.012))
-				border_mesh.surface_add_vertex(_geo_to_globe_position(float(point_b[1]), float(point_b[0]), EARTH_RADIUS * 1.012))
+				# GeoJSON rings can cross the antimeridian. Drawing that edge as
+				# one segment creates a false line across an entire hemisphere.
+				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
+					continue
+				_append_geographic_segment(
+					border_mesh,
+					float(point_a[1]),
+					float(point_a[0]),
+					float(point_b[1]),
+					float(point_b[0]),
+					EARTH_RADIUS * 1.012
+				)
+				segment_count += 1
 	border_mesh.surface_end()
 
-	var borders := MeshInstance3D.new()
-	borders.name = "Country_Boundaries"
-	borders.mesh = border_mesh
-	borders.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	borders.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	earth_pivot.add_child(borders)
+	country_boundaries = MeshInstance3D.new()
+	country_boundaries.name = "Country_Boundaries"
+	country_boundaries.mesh = border_mesh
+	country_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	country_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	country_boundaries.visible = false
+	earth_pivot.add_child(country_boundaries)
+	country_boundaries.set_meta("country_feature_count", feature_count)
+	country_boundaries.set_meta("geographic_segment_count", segment_count)
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
@@ -424,9 +440,33 @@ func _build_country_geography() -> void:
 		push_warning("Natural Earth country data contained no country features.")
 
 
+func _append_geographic_segment(
+	mesh: ImmediateMesh,
+	latitude_a: float,
+	longitude_a: float,
+	latitude_b: float,
+	longitude_b: float,
+	radius: float
+) -> void:
+	var direction_a := _geo_to_globe_position(latitude_a, longitude_a, 1.0).normalized()
+	var direction_b := _geo_to_globe_position(latitude_b, longitude_b, 1.0).normalized()
+	var angular_distance := rad_to_deg(direction_a.angle_to(direction_b))
+	var subdivisions := maxi(1, ceili(angular_distance / 1.5))
+	for step in range(subdivisions):
+		var start_weight := float(step) / float(subdivisions)
+		var end_weight := float(step + 1) / float(subdivisions)
+		var start_direction := direction_a.slerp(direction_b, start_weight).normalized()
+		var end_direction := direction_a.slerp(direction_b, end_weight).normalized()
+		mesh.surface_add_vertex(start_direction * radius)
+		mesh.surface_add_vertex(end_direction * radius)
+
+
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
+	# The equirectangular Blue Marble texture starts at 180°W on its left
+	# edge. Godot's SphereMesh seam is at UV x=0, so rotate geographic
+	# longitude by 180° to keep vector data registered to the satellite map.
 	var latitude_radians := deg_to_rad(clampf(latitude, -90.0, 90.0))
-	var longitude_radians := deg_to_rad(longitude)
+	var longitude_radians := deg_to_rad(wrapf(longitude + 180.0, -180.0, 180.0))
 	var horizontal_radius := cos(latitude_radians) * radius
 	return Vector3(
 		sin(longitude_radians) * horizontal_radius,
@@ -436,14 +476,22 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 
 
 func _update_country_label_visibility() -> void:
-	var max_label_rank := 2
-	if _zoom_distance <= 4.5:
-		max_label_rank = 7
-	elif _zoom_distance <= 5.2:
+	# Keep the globe clean at the world scale. Geographic overlays appear
+	# progressively as the camera approaches the surface.
+	var show_boundaries := _zoom_distance <= 5.15
+	if is_instance_valid(country_boundaries):
+		country_boundaries.visible = show_boundaries
+
+	var max_label_rank := -1
+	if _zoom_distance <= 5.15:
+		max_label_rank = 2
+	if _zoom_distance <= 4.65:
 		max_label_rank = 4
+	if _zoom_distance <= 4.1:
+		max_label_rank = 7
 	for label in country_labels:
 		if is_instance_valid(label):
-			label.visible = int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
+			label.visible = max_label_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
 
 
 
