@@ -827,7 +827,7 @@ func _request_detail_map(bounds: Dictionary) -> void:
 func _apply_detail_patch(image: Image, west: float, east: float, south: float, north: float) -> void:
 	if is_instance_valid(detail_patch):
 		detail_patch.queue_free()
-	var detail_mesh := _build_geo_patch(west, east, south, north, 1.008, 32, 20)
+	var detail_mesh := _build_geo_patch(west, east, south, north, 1.0045, 32, 20)
 	detail_patch = MeshInstance3D.new()
 	detail_patch.name = "ZoomedSatelliteDetail"
 	detail_patch.mesh = detail_mesh
