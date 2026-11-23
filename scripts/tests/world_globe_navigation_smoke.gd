@@ -32,6 +32,32 @@ func _run_test() -> void:
 	if earth_material.albedo_texture.get_width() < 2048 or earth_material.albedo_texture.get_height() < 1024:
 		_fail("The Earth surface texture is below the required 2K equirectangular resolution.")
 		return
+	var country_borders := globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
+	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0:
+		_fail("Natural Earth country boundary geometry was not rendered.")
+		return
+	var country_labels := globe.get("country_labels") as Array
+	if country_labels.size() < 150:
+		_fail("The Natural Earth country label layer did not load the expected country set.")
+		return
+	var far_visible_count := 0
+	for label_variant in country_labels:
+		var country_label := label_variant as Label3D
+		if country_label != null and country_label.visible:
+			far_visible_count += 1
+	if far_visible_count == 0 or far_visible_count >= country_labels.size():
+		_fail("Country labels must be selectively visible at the default globe zoom.")
+		return
+	globe.call("zoom_globe", -1.5)
+	var close_visible_count := 0
+	for label_variant in country_labels:
+		var country_label := label_variant as Label3D
+		if country_label != null and country_label.visible:
+			close_visible_count += 1
+	if close_visible_count <= far_visible_count:
+		_fail("Zooming closer must progressively reveal more country names.")
+		return
+	globe.call("zoom_globe", 1.5)
 	var clouds := globe.find_child("Earth_Cloud_Layer", true, false) as MeshInstance3D
 	if clouds == null or clouds.material_override == null:
 		_fail("The separate NASA cloud layer was not created.")
