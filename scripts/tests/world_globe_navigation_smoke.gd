@@ -33,40 +33,34 @@ func _run_test() -> void:
 		_fail("The Earth surface texture is below the required 2K equirectangular resolution.")
 		return
 	var country_borders := globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
-	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0:
-		_fail("Natural Earth country boundary geometry was not rendered.")
+	if country_borders != null:
+		_fail("Country boundary geometry must remain unloaded at the far globe zoom.")
 		return
-	if country_borders.visible:
-		_fail("Country boundaries must remain hidden at the far globe zoom.")
+	var country_labels := globe.get("country_labels") as Array
+	if not country_labels.is_empty():
+		_fail("Country labels must remain unloaded at the far globe zoom.")
 		return
 	var equator_west: Vector3 = globe.call("_geo_to_globe_position", 0.0, -180.0, 1.0)
 	var equator_east: Vector3 = globe.call("_geo_to_globe_position", 0.0, 0.0, 1.0)
 	if equator_west.distance_to(Vector3(0.0, 0.0, 1.0)) > 0.001 or equator_east.distance_to(Vector3(0.0, 0.0, -1.0)) > 0.001:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
-	var country_labels := globe.get("country_labels") as Array
+	globe.call("zoom_globe", -0.6)
+	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
+	country_labels = globe.get("country_labels") as Array
+	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
+		_fail("Country boundary geometry must load and become visible at country zoom.")
+		return
 	if country_labels.size() < 150:
 		_fail("The Natural Earth country label layer did not load the expected country set.")
-		return
-	var far_visible_count := 0
-	for label_variant in country_labels:
-		var country_label := label_variant as Label3D
-		if country_label != null and country_label.visible:
-			far_visible_count += 1
-	if far_visible_count != 0:
-		_fail("Country labels must remain hidden at the far globe zoom.")
-		return
-	globe.call("zoom_globe", -0.6)
-	if not country_borders.visible:
-		_fail("Country boundaries must appear after the camera enters country zoom.")
 		return
 	var country_zoom_visible_count := 0
 	for label_variant in country_labels:
 		var country_label := label_variant as Label3D
 		if country_label != null and country_label.visible:
 			country_zoom_visible_count += 1
-	if country_zoom_visible_count == 0:
-		_fail("Priority country names must appear at country zoom.")
+	if country_zoom_visible_count == 0 or country_zoom_visible_count >= country_labels.size():
+		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
 	var close_visible_count := 0
@@ -77,7 +71,6 @@ func _run_test() -> void:
 	if close_visible_count <= country_zoom_visible_count:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
-	globe.call("zoom_globe", 1.5)
 	var clouds := globe.find_child("Earth_Cloud_Layer", true, false) as MeshInstance3D
 	if clouds == null or clouds.material_override == null:
 		_fail("The separate NASA cloud layer was not created.")
