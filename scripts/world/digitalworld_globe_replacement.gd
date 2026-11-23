@@ -10,6 +10,7 @@ const COUNTRY_RADIUS_SCALE := WGS84_EQUATORIAL_RADIUS / EARTH_RADIUS
 
 var _native_globe_ready := false
 var _native_camera: Camera3D
+var _native_georeference: Node3D
 var _native_imagery_layer: Node3D
 var _native_globe: Node3D
 var _tap_points: Dictionary = {}
@@ -37,7 +38,7 @@ func _load_native_extension() -> bool:
 	if result != GDExtensionManager.LOAD_STATUS_OK and not ClassDB.class_exists("Globe3D"):
 		push_warning("Android globe extension could not be loaded: %s" % str(result))
 		return false
-	return ClassDB.class_exists("Globe3D") and ClassDB.class_exists("GlobeTileLayer") and ClassDB.class_exists("GlobeCameraController")
+	return ClassDB.class_exists("Globe3D") and ClassDB.class_exists("GlobeTileLayer") and ClassDB.class_exists("GlobeCameraController") and ClassDB.class_exists("Georeference3D") and ClassDB.class_exists("EarthCenteredEarthFixed")
 
 
 func _build_earth() -> void:
@@ -45,9 +46,21 @@ func _build_earth() -> void:
 		super._build_earth()
 		return
 
+	# Anchor the engine's ENU frame at the equator. The native controller can then
+	# rebase this shared frame around the camera without losing country overlays.
+	var origin := ClassDB.instantiate("EarthCenteredEarthFixed") as Resource
+	origin.set("ecef_x", WGS84_EQUATORIAL_RADIUS)
+	origin.set("ecef_y", 0.0)
+	origin.set("ecef_z", 0.0)
+	_native_georeference = ClassDB.instantiate("Georeference3D") as Node3D
+	_native_georeference.name = "Earth_Georeference"
+	_native_georeference.set("origin_authority", origin)
+	_native_georeference.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	add_child(_native_georeference)
+
 	earth_pivot = Node3D.new()
 	earth_pivot.name = "Earth_Geography_Pivot"
-	add_child(earth_pivot)
+	_native_georeference.add_child(earth_pivot)
 
 	_native_globe = ClassDB.instantiate("Globe3D") as Node3D
 	_native_globe.name = "WGS84_Globe"
@@ -58,7 +71,7 @@ func _build_earth() -> void:
 	_native_globe.set("show_atmosphere", true)
 	_native_globe.set("atmosphere_intensity", 48.0)
 	_native_globe.set("atmosphere_color", Color("#79b9ff"))
-	add_child(_native_globe)
+	_native_georeference.add_child(_native_globe)
 
 	_native_imagery_layer = ClassDB.instantiate("GlobeTileLayer") as Node3D
 	_native_imagery_layer.name = "Satellite_Imagery_Tiles"
@@ -70,8 +83,7 @@ func _build_earth() -> void:
 	_native_imagery_layer.set("attribution", "Esri, Maxar, Earthstar Geographics, and the GIS User Community")
 	_native_imagery_layer.set("print_telemetry", false)
 	_native_imagery_layer.set("show_tile_bounds", false)
-	add_child(_native_imagery_layer)
-
+	_native_georeference.add_child(_native_imagery_layer)
 
 func _build_interface() -> void:
 	super._build_interface()
@@ -180,11 +192,12 @@ func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
 	var ray_direction := _native_camera.project_ray_normal(screen_position).normalized()
 	var centre: Vector3 = _native_camera.call("resolve_ellipsoid_center")
 	var relative_origin := ray_origin - centre
+	# With the georeference's ENU frame, the polar axis maps to world -Z.
 	var inv_a2 := 1.0 / (WGS84_EQUATORIAL_RADIUS * WGS84_EQUATORIAL_RADIUS)
 	var inv_b2 := 1.0 / (WGS84_POLAR_RADIUS * WGS84_POLAR_RADIUS)
-	var qa := (ray_direction.x * ray_direction.x + ray_direction.z * ray_direction.z) * inv_a2 + ray_direction.y * ray_direction.y * inv_b2
-	var qb := 2.0 * ((relative_origin.x * ray_direction.x + relative_origin.z * ray_direction.z) * inv_a2 + relative_origin.y * ray_direction.y * inv_b2)
-	var qc := (relative_origin.x * relative_origin.x + relative_origin.z * relative_origin.z) * inv_a2 + relative_origin.y * relative_origin.y * inv_b2 - 1.0
+	var qa := (ray_direction.x * ray_direction.x + ray_direction.y * ray_direction.y) * inv_a2 + ray_direction.z * ray_direction.z * inv_b2
+	var qb := 2.0 * ((relative_origin.x * ray_direction.x + relative_origin.y * ray_direction.y) * inv_a2 + relative_origin.z * ray_direction.z * inv_b2)
+	var qc := (relative_origin.x * relative_origin.x + relative_origin.y * relative_origin.y) * inv_a2 + relative_origin.z * relative_origin.z * inv_b2 - 1.0
 	var discriminant := qb * qb - 4.0 * qa * qc
 	if discriminant < 0.0:
 		return Vector2(999.0, 999.0)
@@ -194,10 +207,9 @@ func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
 	if hit_distance < 0.0:
 		return Vector2(999.0, 999.0)
 	var hit := relative_origin + ray_direction * hit_distance
-	var latitude := rad_to_deg(atan2(hit.y * inv_b2, Vector2(hit.x, hit.z).length() * inv_a2))
-	var longitude := wrapf(rad_to_deg(atan2(-hit.z, hit.x)), -180.0, 180.0)
+	var latitude := rad_to_deg(atan2(-hit.z * inv_b2, Vector2(hit.x, hit.y).length() * inv_a2))
+	var longitude := wrapf(rad_to_deg(atan2(hit.x, hit.y)), -180.0, 180.0)
 	return Vector2(latitude, longitude)
-
 
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
 	if not _native_globe_ready:
@@ -207,8 +219,12 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 	var adjusted_radius := EARTH_RADIUS + (radius - EARTH_RADIUS) * 0.02
 	var scale_factor := adjusted_radius / EARTH_RADIUS
 	var horizontal := WGS84_EQUATORIAL_RADIUS * scale_factor * cos(lat)
-	return Vector3(cos(lon) * horizontal, WGS84_POLAR_RADIUS * scale_factor * sin(lat), -sin(lon) * horizontal)
-
+	# Local ENU coordinates for an origin at (WGS84_A, 0, 0).
+	return Vector3(
+		horizontal * sin(lon),
+		WGS84_POLAR_RADIUS * scale_factor * sin(lat),
+		horizontal * cos(lon) - WGS84_EQUATORIAL_RADIUS
+	)
 
 func _append_geographic_segment(mesh: ImmediateMesh, latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float, radius: float) -> void:
 	if not _native_globe_ready:
@@ -216,8 +232,12 @@ func _append_geographic_segment(mesh: ImmediateMesh, latitude_a: float, longitud
 		return
 	var a := _geo_to_globe_position(latitude_a, longitude_a, radius)
 	var b := _geo_to_globe_position(latitude_b, longitude_b, radius)
-	var normal_a := Vector3(a.x / pow(WGS84_EQUATORIAL_RADIUS, 2.0), a.y / pow(WGS84_POLAR_RADIUS, 2.0), a.z / pow(WGS84_EQUATORIAL_RADIUS, 2.0)).normalized()
-	var normal_b := Vector3(b.x / pow(WGS84_EQUATORIAL_RADIUS, 2.0), b.y / pow(WGS84_POLAR_RADIUS, 2.0), b.z / pow(WGS84_EQUATORIAL_RADIUS, 2.0)).normalized()
+	var lat_a := deg_to_rad(latitude_a)
+	var lon_a := deg_to_rad(longitude_a)
+	var lat_b := deg_to_rad(latitude_b)
+	var lon_b := deg_to_rad(longitude_b)
+	var normal_a := Vector3(cos(lat_a) * sin(lon_a), sin(lat_a), cos(lat_a) * cos(lon_a)).normalized()
+	var normal_b := Vector3(cos(lat_b) * sin(lon_b), sin(lat_b), cos(lat_b) * cos(lon_b)).normalized()
 	var tangent := b - a
 	if tangent.length_squared() < 0.01:
 		return
@@ -236,7 +256,6 @@ func _append_geographic_segment(mesh: ImmediateMesh, latitude_a: float, longitud
 	mesh.surface_add_vertex(a - side_a)
 	mesh.surface_set_normal(normal_b)
 	mesh.surface_add_vertex(b - side_b)
-
 
 func _update_country_label_visibility() -> void:
 	if not _native_globe_ready:
