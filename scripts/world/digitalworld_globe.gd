@@ -328,7 +328,7 @@ func rotate_globe(pointer_delta: Vector2) -> void:
 		earth_pivot.rotation.y += pointer_delta.x * DRAG_SENSITIVITY
 	else:
 		earth_pivot.rotation.x = clampf(
-			earth_pivot.rotation.x + pointer_delta.y * DRAG_SENSITIVITY,
+			earth_pivot.rotation.x - pointer_delta.y * DRAG_SENSITIVITY,
 			-1.25,
 			1.25
 		)
