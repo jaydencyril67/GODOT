@@ -32,6 +32,9 @@ func _ready() -> void:
 func _load_native_extension() -> bool:
 	if ClassDB.class_exists("Globe3D") and ClassDB.class_exists("GlobeCameraController"):
 		return true
+	# The Android-only runtime engine is deliberately not loaded by desktop editor builds.
+	if OS.get_name() != "Android":
+		return false
 	if not FileAccess.file_exists(EXTENSION_PATH):
 		return false
 	var result := GDExtensionManager.load_extension(EXTENSION_PATH)
