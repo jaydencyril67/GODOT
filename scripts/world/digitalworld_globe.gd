@@ -7,12 +7,12 @@ const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
-const ZOOM_MIN := 3.7
-const ZOOM_MAX := 9.0
+const ZOOM_MIN := 2.25
+const ZOOM_MAX := 7.2
 
 var earth_pivot: Node3D
 var globe_camera: Camera3D
-var _zoom_distance := 5.6
+var _zoom_distance := 4.9
 var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
@@ -363,9 +363,14 @@ func _build_country_geography() -> void:
 		return
 	_country_geography_loaded = true
 
+	# Country boundaries are a subtle earth-toned surface detail, not bright
+	# floating strokes. Keep them almost flush with the satellite surface and
+	# let the globe lighting shade them naturally.
 	var border_material := StandardMaterial3D.new()
-	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	border_material.albedo_color = Color(0.72, 0.86, 1.0, 0.78)
+	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	border_material.albedo_color = Color(0.25, 0.31, 0.24, 0.86)
+	border_material.roughness = 1.0
+	border_material.metallic = 0.0
 	border_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	border_material.no_depth_test = false
 	border_material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -400,7 +405,7 @@ func _build_country_geography() -> void:
 					float(point_a[0]),
 					float(point_b[1]),
 					float(point_b[0]),
-					EARTH_RADIUS * 1.012
+					EARTH_RADIUS * 1.0012
 				)
 				segment_count += 1
 	border_mesh.surface_end()
@@ -414,6 +419,7 @@ func _build_country_geography() -> void:
 	earth_pivot.add_child(country_boundaries)
 	country_boundaries.set_meta("country_feature_count", feature_count)
 	country_boundaries.set_meta("geographic_segment_count", segment_count)
+	country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0012)
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
@@ -452,7 +458,7 @@ func _append_geographic_segment(
 	var direction_a := _geo_to_globe_position(latitude_a, longitude_a, 1.0).normalized()
 	var direction_b := _geo_to_globe_position(latitude_b, longitude_b, 1.0).normalized()
 	var angular_distance := rad_to_deg(direction_a.angle_to(direction_b))
-	var subdivisions := maxi(1, ceili(angular_distance / 1.5))
+	var subdivisions := maxi(1, ceili(angular_distance / 0.5))
 	for step in range(subdivisions):
 		var start_weight := float(step) / float(subdivisions)
 		var end_weight := float(step + 1) / float(subdivisions)
@@ -479,18 +485,18 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 func _update_country_label_visibility() -> void:
 	# Keep the globe clean at the world scale. Geographic overlays appear
 	# progressively as the camera approaches the surface.
-	var show_boundaries := _zoom_distance <= 5.15
+	var show_boundaries := _zoom_distance <= 5.55
 	if show_boundaries and not _country_geography_loaded:
 		_build_country_geography()
 	if is_instance_valid(country_boundaries):
 		country_boundaries.visible = show_boundaries
 
 	var max_label_rank := -1
-	if _zoom_distance <= 5.15:
+	if _zoom_distance <= 5.55:
 		max_label_rank = 2
-	if _zoom_distance <= 4.65:
+	if _zoom_distance <= 4.7:
 		max_label_rank = 4
-	if _zoom_distance <= 4.1:
+	if _zoom_distance <= 3.65:
 		max_label_rank = 7
 	for label in country_labels:
 		if is_instance_valid(label):
