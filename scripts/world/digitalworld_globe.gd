@@ -727,6 +727,23 @@ func _get_nearest_country_continent() -> String:
 	return best_continent
 
 
+func _attach_state_mesh_chunk(chunk_mesh: ImmediateMesh) -> void:
+	if chunk_mesh == null or chunk_mesh.get_surface_count() == 0:
+		return
+	var chunk_instance := MeshInstance3D.new()
+	chunk_instance.mesh = chunk_mesh
+	chunk_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	chunk_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	if not is_instance_valid(state_boundaries):
+		chunk_instance.name = "State_Province_Boundaries"
+		state_boundaries = chunk_instance
+		state_boundaries.visible = _zoom_distance <= 3.2
+		earth_pivot.add_child(state_boundaries)
+	else:
+		chunk_instance.name = "State_Province_Boundary_Chunk"
+		state_boundaries.add_child(chunk_instance)
+
+
 func _build_state_geography() -> void:
 	if _state_building:
 		return
@@ -762,10 +779,17 @@ func _build_state_geography() -> void:
 	state_material.no_depth_test = false
 	state_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	var state_mesh := ImmediateMesh.new()
-	state_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
+	_debug_load_stage = "Building state boundary mesh (" + continent + ")"
+	_debug_state_features = 0
+	_debug_state_segments = 0
 	var feature_count := 0
 	var segment_count := 0
+	var chunk_segment_count := 0
+	var chunk_mesh := ImmediateMesh.new()
+	chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
+	# Admin-1 geometry is substantially denser than the country overview.
+	# Publish bounded chunks so mobile devices can render completed sections
+	# while the remaining state boundaries are still being generated.
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -785,7 +809,7 @@ func _build_state_geography() -> void:
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
 				_append_geographic_segment(
-					state_mesh,
+					chunk_mesh,
 					float(point_a[1]),
 					float(point_a[0]),
 					float(point_b[1]),
@@ -793,29 +817,42 @@ func _build_state_geography() -> void:
 					EARTH_RADIUS * 1.0009
 				)
 				segment_count += 1
+				chunk_segment_count += 1
 				if segment_count % 1500 == 0:
+					_debug_state_features = feature_count
+					_debug_state_segments = segment_count
+					_debug_load_stage = "Building %s state mesh: %d segments" % [continent, segment_count]
 					await get_tree().process_frame
 					if not is_inside_tree() or _zoom_distance > 3.2 or _get_nearest_country_continent() != continent:
-						state_mesh.surface_end()
+						chunk_mesh.surface_end()
+						if is_instance_valid(state_boundaries):
+							earth_pivot.remove_child(state_boundaries)
+							state_boundaries.queue_free()
+							state_boundaries = null
+						_state_geography_loaded = false
+						_state_geography_continent = ""
 						_state_building = false
+						_debug_load_stage = "State build cancelled"
 						return
-	state_mesh.surface_end()
+				if chunk_segment_count >= 6000:
+					chunk_mesh.surface_end()
+					_attach_state_mesh_chunk(chunk_mesh)
+					chunk_mesh = ImmediateMesh.new()
+					chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
+					chunk_segment_count = 0
+	if chunk_segment_count > 0:
+		chunk_mesh.surface_end()
+		_attach_state_mesh_chunk(chunk_mesh)
+	else:
+		chunk_mesh.surface_end()
 
 	if is_instance_valid(state_boundaries):
-		earth_pivot.remove_child(state_boundaries)
-		state_boundaries.queue_free()
-	state_boundaries = MeshInstance3D.new()
-	state_boundaries.name = "State_Province_Boundaries"
-	state_boundaries.mesh = state_mesh
-	state_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	state_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	state_boundaries.visible = _zoom_distance <= 3.2
-	earth_pivot.add_child(state_boundaries)
-	state_boundaries.set_meta("state_feature_count", feature_count)
-	state_boundaries.set_meta("geographic_segment_count", segment_count)
-	state_boundaries.set_meta("geographic_resolution", "10m_admin1")
-	state_boundaries.set_meta("continent", continent)
-	_state_geography_loaded = feature_count > 0 and segment_count > 0
+		state_boundaries.visible = _zoom_distance <= 3.2
+		state_boundaries.set_meta("state_feature_count", feature_count)
+		state_boundaries.set_meta("geographic_segment_count", segment_count)
+		state_boundaries.set_meta("geographic_resolution", "10m_admin1")
+		state_boundaries.set_meta("continent", continent)
+	_state_geography_loaded = feature_count > 0 and segment_count > 0 and is_instance_valid(state_boundaries)
 	_debug_state_features = feature_count
 	_debug_state_segments = segment_count
 	_debug_load_stage = "STATES READY: " + continent if _state_geography_loaded else "STATE GEOMETRY EMPTY: " + continent
