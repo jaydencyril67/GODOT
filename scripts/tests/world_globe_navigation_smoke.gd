@@ -47,6 +47,9 @@ func _run_test() -> void:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
 	globe.call("zoom_globe", -0.6)
+	if not await _wait_for_zoom_settled(globe, 4.3, 5.0):
+		_fail("The eased globe camera did not settle at country zoom.")
+		return
 	country_layer_ready = await _wait_for_country_layer(globe, "50m", 15.0)
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
@@ -65,6 +68,9 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
+	if not await _wait_for_zoom_settled(globe, 3.4, 5.0):
+		_fail("The eased globe camera did not settle at close country zoom.")
+		return
 	var detailed_country_layer_ready := await _wait_for_country_layer(globe, "50m", 15.0)
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
@@ -194,6 +200,17 @@ func _wait_for_country_layer(globe: Node3D, expected_tier: String, timeout_secon
 				return true
 	return false
 
+
+func _wait_for_zoom_settled(globe: Node3D, expected_distance: float, timeout_seconds: float) -> bool:
+	var elapsed := 0.0
+	while elapsed < timeout_seconds:
+		await create_timer(0.05).timeout
+		elapsed += 0.05
+		var current_distance := float(globe.call("get_zoom_distance"))
+		var target_distance := float(globe.get("_zoom_target_distance"))
+		if absf(current_distance - expected_distance) < 0.002 and absf(current_distance - target_distance) < 0.002:
+			return true
+	return false
 
 func _wait_for_state_layer(globe: Node3D, timeout_seconds: float) -> bool:
 	var elapsed := 0.0
