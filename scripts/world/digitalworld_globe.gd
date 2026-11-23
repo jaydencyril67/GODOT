@@ -512,7 +512,10 @@ func _build_country_geography() -> void:
 	country_boundaries.mesh = border_mesh
 	country_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	country_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	country_boundaries.visible = false
+	# The async build can finish after the camera's easing callbacks have
+	# stopped. Set visibility from the current zoom at commit time so the
+	# newly-created layer is not left hidden until the next user gesture.
+	country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
 	earth_pivot.add_child(country_boundaries)
 	country_boundaries.set_meta("country_feature_count", feature_count)
 	country_boundaries.set_meta("geographic_segment_count", segment_count)
@@ -545,6 +548,8 @@ func _build_country_geography() -> void:
 	_country_geography_loaded = feature_count > 0
 	_country_geography_tier = tier
 	_country_building = false
+	# Labels are created asynchronously too; apply the settled zoom tier now.
+	_update_country_label_visibility()
 	if feature_count == 0:
 		push_warning("Natural Earth country data contained no country features.")
 
