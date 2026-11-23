@@ -606,16 +606,8 @@ func _build_country_geography() -> void:
 	var chunk_segment_count := 0
 	var chunk_mesh := ImmediateMesh.new()
 	chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
-	# Keep each GPU mesh small and publish completed chunks immediately. A
-	# single 50m ImmediateMesh held over half a million vertices before it
-	# became visible, which made Android appear frozen with no geography.
-	if is_instance_valid(country_boundaries):
-		country_boundaries.set_meta("country_feature_count", feature_count)
-		country_boundaries.set_meta("geographic_segment_count", segment_count)
-		country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
-		country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0_" + tier)
-		country_boundaries.set_meta("geographic_resolution", tier)
-
+	# Publish small mesh chunks progressively instead of holding the entire
+	# 50m dataset in one ImmediateMesh until the very end.
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -635,7 +627,7 @@ func _build_country_geography() -> void:
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
 				_append_geographic_segment(
-					border_mesh,
+					chunk_mesh,
 					float(point_a[1]),
 					float(point_a[0]),
 					float(point_b[1]),
@@ -643,32 +635,36 @@ func _build_country_geography() -> void:
 					EARTH_RADIUS * 1.0007
 				)
 				segment_count += 1
-				# Yield regularly so dense country geometry cannot monopolize the
-				# Android render thread during a zoom transition.
+				chunk_segment_count += 1
 				if segment_count % 1500 == 0:
 					_debug_rendered_segments = segment_count
+					_debug_load_stage = "Building country mesh (%s): %d segments" % [tier, segment_count]
 					await get_tree().process_frame
 					if not is_inside_tree() or _resolve_country_data_path() != requested_data_path:
-						border_mesh.surface_end()
+						chunk_mesh.surface_end()
+						if is_instance_valid(country_boundaries):
+							country_boundaries.queue_free()
+							country_boundaries = null
 						_country_building = false
 						return
-	border_mesh.surface_end()
-
-	country_boundaries = MeshInstance3D.new()
-	country_boundaries.name = "Country_Boundaries"
-	country_boundaries.mesh = border_mesh
-	country_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	country_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	# The async build can finish after the camera's easing callbacks have
-	# stopped. Set visibility from the current zoom at commit time so the
-	# newly-created layer is not left hidden until the next user gesture.
-	country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
-	earth_pivot.add_child(country_boundaries)
-	country_boundaries.set_meta("country_feature_count", feature_count)
-	country_boundaries.set_meta("geographic_segment_count", segment_count)
-	country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
-	country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0_" + tier)
-	country_boundaries.set_meta("geographic_resolution", tier)
+				if chunk_segment_count >= 6000:
+					chunk_mesh.surface_end()
+					_attach_country_mesh_chunk(chunk_mesh)
+					chunk_mesh = ImmediateMesh.new()
+					chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, border_material)
+					chunk_segment_count = 0
+	if chunk_segment_count > 0:
+		chunk_mesh.surface_end()
+		_attach_country_mesh_chunk(chunk_mesh)
+	else:
+		chunk_mesh.surface_end()
+	if is_instance_valid(country_boundaries):
+		country_boundaries.visible = _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
+		country_boundaries.set_meta("country_feature_count", feature_count)
+		country_boundaries.set_meta("geographic_segment_count", segment_count)
+		country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
+		country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0_" + tier)
+		country_boundaries.set_meta("geographic_resolution", tier)
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
