@@ -7,7 +7,6 @@ const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
 const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json"
 const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json"
-const STATE_DATA_10M_PATH := "res://assets/globe/natural_earth_states_10m.json"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 2.25
@@ -374,18 +373,16 @@ func _read_geography_data(path: String, compressed: bool = false) -> Variant:
 	if file == null:
 		push_warning("Geographic data could not be opened: " + path)
 		return null
-	var source_text := file.get_as_text()
+	var source_text := ""
 	if compressed:
-		var compressed_file := FileAccess.open(path, FileAccess.READ)
-		if compressed_file == null:
-			push_warning("Compressed geographic data could not be opened: " + path)
-			return null
-		var compressed_bytes := compressed_file.get_buffer(compressed_file.get_length())
+		var compressed_bytes := file.get_buffer(file.get_length())
 		var decompressed_bytes := compressed_bytes.decompress_dynamic(128 * 1024 * 1024, FileAccess.COMPRESSION_GZIP)
 		if decompressed_bytes.is_empty():
 			push_warning("Compressed geographic data could not be decompressed: " + path)
 			return null
 		source_text = decompressed_bytes.get_string_from_utf8()
+	else:
+		source_text = file.get_as_text()
 	var parsed: Variant = JSON.parse_string(source_text)
 	if not parsed is Dictionary or not parsed.has("features"):
 		push_warning("Geographic data is malformed: " + path)
@@ -689,7 +686,7 @@ func _update_country_label_visibility() -> void:
 			label.visible = max_label_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
 
 	var show_states := _zoom_distance <= 3.2
-	if show_states and not _state_geography_loaded and FileAccess.file_exists(STATE_DATA_10M_PATH):
+	if show_states and not _state_geography_loaded:
 		_build_state_geography()
 	if is_instance_valid(state_boundaries):
 		state_boundaries.visible = show_states
