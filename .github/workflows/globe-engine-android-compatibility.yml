@@ -34,6 +34,23 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Enable Android libc qsort_r declaration for bundled Zstandard
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="vendor/godot-3dtiles/extern/third_party/CMakeLists.txt"
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("vendor/godot-3dtiles/extern/third_party/CMakeLists.txt")
+          text = path.read_text()
+          marker = 'target_sources( tiles3d_basisu PRIVATE "${TILES3D_BASISU_DIR}/zstd/zstd.c" )'
+          if marker not in text:
+              raise SystemExit("Could not locate Basis Universal target source declaration")
+          addition = marker + '\\ntarget_compile_definitions( tiles3d_basisu PRIVATE _GNU_SOURCE )'
+          if "target_compile_definitions( tiles3d_basisu PRIVATE _GNU_SOURCE )" not in text:
+              path.write_text(text.replace(marker, addition, 1))
+          PY
+
       - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
