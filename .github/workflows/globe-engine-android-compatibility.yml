@@ -34,7 +34,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Select portable qsort fallback for bundled Zstandard on Android
+      - name: Preserve Android's built-in portable qsort fallback for bundled Zstandard on Android
         shell: bash
         run: |
           set -euo pipefail
@@ -45,9 +45,9 @@ jobs:
           marker = 'target_sources( tiles3d_basisu PRIVATE "${TILES3D_BASISU_DIR}/zstd/zstd.c" )'
           if marker not in text:
               raise SystemExit("Could not locate Basis Universal target source declaration")
-          addition = marker + '\ntarget_compile_definitions( tiles3d_basisu PRIVATE ZDICT_QSORT=0 )'
-          if "target_compile_definitions( tiles3d_basisu PRIVATE ZDICT_QSORT=0 )" not in text:
-              path.write_text(text.replace(marker, addition, 1))
+          # The upstream amalgamation already excludes qsort_r on Android.
+          # Do not define _GNU_SOURCE: that forces the unavailable GNU qsort_r path.
+          path.write_text(text)
           PY
 
       - name: Set up Android SDK and NDK
