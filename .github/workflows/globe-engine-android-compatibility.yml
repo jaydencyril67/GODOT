@@ -60,7 +60,7 @@ jobs:
       - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
-          packages: ndk;27.2.12479018 platform-tools platforms;android-35 build-tools;35.0.0
+          packages: ndk;27.2.12479018 ndk;28.1.13356709 platform-tools platforms;android-35 build-tools;35.0.1 cmake;3.10.2.4988404
 
       - name: Install Ninja
         run: |
