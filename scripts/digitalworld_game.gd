@@ -11,6 +11,7 @@ const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/proce
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
+const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
@@ -36,6 +37,7 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
+var globe_world: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
@@ -316,6 +318,9 @@ func _clear_world() -> void:
 	if is_instance_valid(landing_world):
 		landing_world.queue_free()
 	landing_world = null
+	if is_instance_valid(globe_world):
+		globe_world.queue_free()
+	globe_world = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -450,9 +455,11 @@ func _show_menu() -> void:
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
+	var explore_world := _add_action_button(menu, "EXPLORE WORLD", false, _show_globe_scene)
+	explore_world.name = "Landing_Explore_World_Button"
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, explore_world, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -467,6 +474,24 @@ func _show_menu() -> void:
 	menu.add_child(footer)
 
 	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, command_area, command_panel, landing_buttons))
+
+
+func _show_globe_scene() -> void:
+	current_screen = "globe"
+	_clear_world()
+	# The globe scene owns its own camera and HUD. Remove the landing menu overlay
+	# without touching the separate creation UI layer used by other game screens.
+	if is_instance_valid(ui_layer):
+		ui_layer.hide()
+		if ui_layer != create_ui_layer:
+			ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+
+	globe_world = WorldGlobeScene.instantiate() as Node3D
+	globe_world.name = "Global_World_Globe"
+	globe_world.connect("back_requested", Callable(self, "_show_menu"))
+	add_child(globe_world)
 
 
 func _animate_landing_menu(root: Control, welcome: Control, command_area: Control, command_panel: Control, buttons: Array[Button]) -> void:
