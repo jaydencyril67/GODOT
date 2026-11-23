@@ -38,8 +38,6 @@ var _country_geography_loaded := false
 var _country_geography_tier := ""
 var _country_building := false
 
-var _debug_panel_label: Label
-var _debug_panel: PanelContainer
 var _debug_load_stage := "Waiting for globe startup"
 var _debug_last_error := "None"
 var _debug_dataset_path := "Not selected"
@@ -264,79 +262,7 @@ func _build_interface() -> void:
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	root.add_child(back_button)
 
-	var debug_button := Button.new()
-	debug_button.name = "Globe_Debug_Toggle"
-	debug_button.text = "DEBUG"
-	debug_button.position = Vector2(-112.0, 18.0)
-	debug_button.anchor_left = 1.0
-	debug_button.anchor_right = 1.0
-	debug_button.custom_minimum_size = Vector2(94.0, 48.0)
-	debug_button.focus_mode = Control.FOCUS_NONE
-	debug_button.add_theme_font_size_override("font_size", 13)
-	debug_button.add_theme_color_override("font_color", Color("#dcecff"))
-	debug_button.add_theme_stylebox_override("normal", back_style)
-	debug_button.add_theme_stylebox_override("hover", back_style)
-	debug_button.add_theme_stylebox_override("pressed", back_style)
-	root.add_child(debug_button)
-
-	_debug_panel = PanelContainer.new()
-	_debug_panel.name = "Globe_Debug_Panel"
-	_debug_panel.anchor_left = 1.0
-	_debug_panel.anchor_right = 1.0
-	_debug_panel.position = Vector2(-minf(350.0, get_viewport().get_visible_rect().size.x - 20.0), 76.0)
-	_debug_panel.custom_minimum_size = Vector2(330.0, 280.0)
-	_debug_panel.size = Vector2(330.0, 280.0)
-	_debug_panel.visible = false
-	_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var debug_style := StyleBoxFlat.new()
-	debug_style.bg_color = Color(0.008, 0.018, 0.035, 0.94)
-	debug_style.border_color = Color("#4c789f")
-	debug_style.set_border_width_all(1)
-	debug_style.set_corner_radius_all(10)
-	debug_style.content_margin_left = 12
-	debug_style.content_margin_right = 12
-	debug_style.content_margin_top = 10
-	debug_style.content_margin_bottom = 10
-	_debug_panel.add_theme_stylebox_override("panel", debug_style)
-	root.add_child(_debug_panel)
-
-	_debug_panel_label = Label.new()
-	_debug_panel_label.name = "Globe_Debug_Readout"
-	_debug_panel_label.add_theme_font_size_override("font_size", 11)
-	_debug_panel_label.add_theme_color_override("font_color", Color("#d7e6f5"))
-	_debug_panel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var debug_content := VBoxContainer.new()
-	debug_content.add_theme_constant_override("separation", 8)
-	_debug_panel.add_child(debug_content)
-	debug_content.add_child(_debug_panel_label)
-
-	var copy_debug_button := Button.new()
-	copy_debug_button.name = "Globe_Debug_Copy_Button"
-	copy_debug_button.text = "COPY DIAGNOSTICS"
-	copy_debug_button.custom_minimum_size = Vector2(0.0, 38.0)
-	copy_debug_button.focus_mode = Control.FOCUS_NONE
-	copy_debug_button.add_theme_font_size_override("font_size", 12)
-	copy_debug_button.add_theme_color_override("font_color", Color("#dcecff"))
-	copy_debug_button.add_theme_stylebox_override("normal", back_style)
-	copy_debug_button.add_theme_stylebox_override("hover", back_style)
-	copy_debug_button.add_theme_stylebox_override("pressed", back_style)
-	copy_debug_button.pressed.connect(func() -> void:
-		_update_debug_panel()
-		DisplayServer.clipboard_set(_debug_panel_label.text)
-		copy_debug_button.text = "COPIED TO CLIPBOARD"
-	)
-	debug_content.add_child(copy_debug_button)
-
-	debug_button.pressed.connect(func() -> void:
-		_debug_panel.visible = not _debug_panel.visible
-		_update_debug_panel()
-	)
-	_update_debug_panel()
-
-
-
 func _process(delta: float) -> void:
-	_update_debug_panel()
 	# Earth, country geometry, labels and cloud shell share one quaternion
 	# orientation. This prevents independent layer drift and Euler-axis locking.
 	if is_instance_valid(earth_pivot):
@@ -837,24 +763,3 @@ func _update_country_label_visibility() -> void:
 
 func get_zoom_distance() -> float:
 	return _zoom_distance
-
-
-func _update_debug_panel() -> void:
-	if not is_instance_valid(_debug_panel_label):
-		return
-	var country_visible := is_instance_valid(country_boundaries) and country_boundaries.visible
-	var country_mesh_surfaces := 0
-	if is_instance_valid(country_boundaries) and country_boundaries.mesh != null:
-		country_mesh_surfaces = country_boundaries.mesh.get_surface_count()
-	_debug_panel_label.text = (
-		"GLOBE / GEOGRAPHY DIAGNOSTICS\n"
-		+ "Stage: " + _debug_load_stage + "\n"
-		+ "Zoom: %.2f (target %.2f)\n" % [_zoom_distance, _zoom_target_distance]
-		+ "Country busy/loaded: %s / %s\n" % [str(_country_building), str(_country_geography_loaded)]
-		+ "Dataset: " + _debug_dataset_path.get_file() + " [" + _debug_parse_format + "]\n"
-		+ "File bytes: " + str(_debug_asset_bytes) + "\n"
-		+ "Features: " + str(_debug_parsed_features) + " | Segments: " + str(_debug_rendered_segments) + "\n"
-		+ "Labels: " + str(_debug_country_labels) + " | Mesh surfaces: " + str(country_mesh_surfaces) + "\n"
-		+ "Country visible: " + str(country_visible) + "\n"
-		+ "Last error: " + _debug_last_error
-	)
