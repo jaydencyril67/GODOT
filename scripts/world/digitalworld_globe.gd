@@ -30,8 +30,10 @@ var state_boundaries: MeshInstance3D
 var _country_geography_loaded := false
 var _country_geography_tier := ""
 var _country_feature_data: Array = []
+var _country_building := false
 var _state_geography_loaded := false
 var _state_geography_continent := ""
+var _state_building := false
 var _state_refresh_elapsed := 0.0
 
 
@@ -267,11 +269,11 @@ func _process(delta: float) -> void:
 			_zoom_settle_elapsed = 0.0
 			_refresh_geography_for_zoom()
 
-	if _zoom_distance <= 3.2 and _state_geography_loaded:
+	if _zoom_distance <= 3.2:
 		_state_refresh_elapsed += delta
 		if _state_refresh_elapsed >= 0.45:
 			_state_refresh_elapsed = 0.0
-			if _get_nearest_country_continent() != _state_geography_continent:
+			if not _state_building and _get_nearest_country_continent() != _state_geography_continent:
 				_build_state_geography()
 
 
@@ -418,6 +420,9 @@ func _resolve_country_data_path() -> String:
 
 
 func _build_country_geography() -> void:
+	if _country_building:
+		return
+	_country_building = true
 	var data_path := _resolve_country_data_path()
 	var tier := "110m"
 	if data_path == COUNTRY_DATA_50M_PATH:
@@ -425,10 +430,12 @@ func _build_country_geography() -> void:
 	elif data_path == COUNTRY_DATA_10M_PATH:
 		tier = "10m"
 	if _country_geography_loaded and _country_geography_tier == tier:
+		_country_building = false
 		return
 
 	var parsed: Variant = _read_geography_data(data_path)
 	if parsed == null:
+		_country_building = false
 		return
 	_country_feature_data = parsed["features"]
 	if is_instance_valid(country_boundaries):
@@ -455,7 +462,6 @@ func _build_country_geography() -> void:
 	border_mesh.surface_begin(Mesh.PRIMITIVE_LINES, border_material)
 	var feature_count := 0
 	var segment_count := 0
-	var drawn_boundary_edges: Dictionary = {}
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -474,13 +480,6 @@ func _build_country_geography() -> void:
 					continue
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
-				var edge_key := _geographic_edge_key(
-					float(point_a[1]), float(point_a[0]),
-					float(point_b[1]), float(point_b[0])
-				)
-				if drawn_boundary_edges.has(edge_key):
-					continue
-				drawn_boundary_edges[edge_key] = true
 				_append_geographic_segment(
 					border_mesh,
 					float(point_a[1]),
@@ -490,6 +489,14 @@ func _build_country_geography() -> void:
 					EARTH_RADIUS * 1.0007
 				)
 				segment_count += 1
+				# Yield regularly so dense country geometry cannot monopolize the
+				# Android render thread during a zoom transition.
+				if segment_count % 1500 == 0:
+					await get_tree().process_frame
+					if not is_inside_tree() or _resolve_country_data_path() != data_path:
+						border_mesh.surface_end()
+						_country_building = false
+						return
 	border_mesh.surface_end()
 
 	country_boundaries = MeshInstance3D.new()
@@ -529,6 +536,7 @@ func _build_country_geography() -> void:
 
 	_country_geography_loaded = feature_count > 0
 	_country_geography_tier = tier
+	_country_building = false
 	if feature_count == 0:
 		push_warning("Natural Earth country data contained no country features.")
 
@@ -558,8 +566,12 @@ func _get_nearest_country_continent() -> String:
 
 
 func _build_state_geography() -> void:
+	if _state_building:
+		return
+	_state_building = true
 	var continent := _get_nearest_country_continent()
 	if _state_geography_loaded and _state_geography_continent == continent:
+		_state_building = false
 		return
 	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json"
 	if not FileAccess.file_exists(state_path):
@@ -569,9 +581,11 @@ func _build_state_geography() -> void:
 		state_boundaries = null
 		_state_geography_loaded = false
 		_state_geography_continent = continent
+		_state_building = false
 		return
 	var parsed: Variant = _read_geography_data(state_path)
 	if parsed == null:
+		_state_building = false
 		return
 
 	var state_material := StandardMaterial3D.new()
@@ -587,7 +601,6 @@ func _build_state_geography() -> void:
 	state_mesh.surface_begin(Mesh.PRIMITIVE_LINES, state_material)
 	var feature_count := 0
 	var segment_count := 0
-	var drawn_edges: Dictionary = {}
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
 			continue
@@ -606,13 +619,6 @@ func _build_state_geography() -> void:
 					continue
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
-				var edge_key := _geographic_edge_key(
-					float(point_a[1]), float(point_a[0]),
-					float(point_b[1]), float(point_b[0])
-				)
-				if drawn_edges.has(edge_key):
-					continue
-				drawn_edges[edge_key] = true
 				_append_geographic_segment(
 					state_mesh,
 					float(point_a[1]),
@@ -622,6 +628,12 @@ func _build_state_geography() -> void:
 					EARTH_RADIUS * 1.0009
 				)
 				segment_count += 1
+				if segment_count % 1500 == 0:
+					await get_tree().process_frame
+					if not is_inside_tree() or _zoom_distance > 3.2 or _get_nearest_country_continent() != continent:
+						state_mesh.surface_end()
+						_state_building = false
+						return
 	state_mesh.surface_end()
 
 	if is_instance_valid(state_boundaries):
@@ -640,6 +652,7 @@ func _build_state_geography() -> void:
 	state_boundaries.set_meta("continent", continent)
 	_state_geography_loaded = feature_count > 0
 	_state_geography_continent = continent
+	_state_building = false
 
 
 func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float) -> String:
@@ -658,17 +671,13 @@ func _append_geographic_segment(
 	longitude_b: float,
 	radius: float
 ) -> void:
+	# Natural Earth already supplies densely sampled boundary vertices. Adding
+	# extra spherical subdivisions here multiplied vertex count dramatically
+	# and caused severe frame stalls on mobile GPUs.
 	var direction_a := _geo_to_globe_position(latitude_a, longitude_a, 1.0).normalized()
 	var direction_b := _geo_to_globe_position(latitude_b, longitude_b, 1.0).normalized()
-	var angular_distance := rad_to_deg(direction_a.angle_to(direction_b))
-	var subdivisions := maxi(1, ceili(angular_distance / 0.5))
-	for step in range(subdivisions):
-		var start_weight := float(step) / float(subdivisions)
-		var end_weight := float(step + 1) / float(subdivisions)
-		var start_direction := direction_a.slerp(direction_b, start_weight).normalized()
-		var end_direction := direction_a.slerp(direction_b, end_weight).normalized()
-		mesh.surface_add_vertex(start_direction * radius)
-		mesh.surface_add_vertex(end_direction * radius)
+	mesh.surface_add_vertex(direction_a * radius)
+	mesh.surface_add_vertex(direction_b * radius)
 
 
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
