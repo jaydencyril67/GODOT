@@ -56,8 +56,8 @@ func _run_test() -> void:
 		return
 	globe.call("rotate_globe", Vector2(0.0, 12.0))
 	var vertical_rotation: Vector3 = pivot.rotation
-	if vertical_rotation.x <= horizontal_rotation.x:
-		_fail("Dragging down must rotate the globe in the same direction as the phone worksite.")
+	if vertical_rotation.x >= horizontal_rotation.x:
+		_fail("Dragging down must move the visible globe surface downward.")
 		return
 	globe.call("rotate_globe", Vector2(-18.0, 0.0))
 	if pivot.rotation.y >= vertical_rotation.y:
