@@ -303,7 +303,28 @@ func _build_interface() -> void:
 	_debug_panel_label.add_theme_font_size_override("font_size", 11)
 	_debug_panel_label.add_theme_color_override("font_color", Color("#d7e6f5"))
 	_debug_panel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_debug_panel.add_child(_debug_panel_label)
+	var debug_content := VBoxContainer.new()
+	debug_content.add_theme_constant_override("separation", 8)
+	_debug_panel.add_child(debug_content)
+	debug_content.add_child(_debug_panel_label)
+
+	var copy_debug_button := Button.new()
+	copy_debug_button.name = "Globe_Debug_Copy_Button"
+	copy_debug_button.text = "COPY DIAGNOSTICS"
+	copy_debug_button.custom_minimum_size = Vector2(0.0, 38.0)
+	copy_debug_button.focus_mode = Control.FOCUS_NONE
+	copy_debug_button.add_theme_font_size_override("font_size", 12)
+	copy_debug_button.add_theme_color_override("font_color", Color("#dcecff"))
+	copy_debug_button.add_theme_stylebox_override("normal", back_style)
+	copy_debug_button.add_theme_stylebox_override("hover", back_style)
+	copy_debug_button.add_theme_stylebox_override("pressed", back_style)
+	copy_debug_button.pressed.connect(func() -> void:
+		_update_debug_panel()
+		DisplayServer.clipboard_set(_debug_panel_label.text)
+		copy_debug_button.text = "COPIED TO CLIPBOARD"
+	)
+	debug_content.add_child(copy_debug_button)
+
 	debug_button.pressed.connect(func() -> void:
 		_debug_panel.visible = not _debug_panel.visible
 		_update_debug_panel()
