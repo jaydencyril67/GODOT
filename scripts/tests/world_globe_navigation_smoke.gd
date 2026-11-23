@@ -46,6 +46,7 @@ func _run_test() -> void:
 		_fail("Geographic longitude registration does not match the equirectangular Earth texture seam.")
 		return
 	globe.call("zoom_globe", -0.6)
+	await create_timer(0.45).timeout
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
 	if country_borders == null or country_borders.mesh == null or country_borders.mesh.get_surface_count() == 0 or not country_borders.visible:
@@ -63,6 +64,7 @@ func _run_test() -> void:
 		_fail("Country zoom must reveal only priority country names.")
 		return
 	globe.call("zoom_globe", -0.9)
+	await create_timer(0.45).timeout
 	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
 	country_labels = globe.get("country_labels") as Array
 	if FileAccess.file_exists("res://assets/globe/natural_earth_countries_10m.json"):
@@ -81,6 +83,7 @@ func _run_test() -> void:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
 	globe.call("zoom_globe", -0.3)
+	await create_timer(0.45).timeout
 	var export_config := FileAccess.get_file_as_string("res://export_presets.cfg")
 	if not export_config.contains("*.json"):
 		_fail("Android exports must include the compressed country and state geography assets.")
@@ -139,16 +142,16 @@ func _run_test() -> void:
 		return
 	var initial_zoom := float(globe.call("get_zoom_distance"))
 	globe.call("zoom_globe", -0.5)
-	if float(globe.call("get_zoom_distance")) >= initial_zoom:
+	if float(globe.get("_zoom_target_distance")) >= initial_zoom:
 		_fail("The globe zoom method did not move the camera closer.")
 		return
 	globe.call("zoom_globe", -100.0)
-	var closest_zoom := float(globe.call("get_zoom_distance"))
+	var closest_zoom := float(globe.get("_zoom_target_distance"))
 	if not is_equal_approx(closest_zoom, 2.25):
 		_fail("The close zoom limit must allow a detailed country-level view.")
 		return
 	globe.call("zoom_globe", 100.0)
-	var farthest_zoom := float(globe.call("get_zoom_distance"))
+	var farthest_zoom := float(globe.get("_zoom_target_distance"))
 	if not is_equal_approx(farthest_zoom, 7.2):
 		_fail("The far zoom limit must keep the Earth comfortably large on screen.")
 		return
