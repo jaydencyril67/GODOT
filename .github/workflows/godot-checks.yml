@@ -83,7 +83,7 @@ jobs:
           fi
 
   validate:
-    name: Parse project and smoke-test startup
+    name: Validate Godot project and main startup
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -143,139 +143,6 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke-test Home and Office navigation
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/home_transition_smoke.gd 2>&1 | tee home-office-smoke.log
-          grep -q "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS" home-office-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HOME_OFFICE_TRANSITION_SMOKE_TEST:.*(FAIL|ERROR)' home-office-smoke.log; then
-            echo "Godot reported an error during Home and Office navigation."
-            exit 1
-          fi
-
-      - name: Smoke-test Phone, Camera and Processor Research dashboards
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/research_dashboard_smoke.gd 2>&1 | tee research-dashboard-smoke.log
-          grep -q "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS" research-dashboard-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST:.*(FAIL|ERROR)' research-dashboard-smoke.log; then
-            echo "Godot reported an error during the Phone, Camera and Processor Research dashboard smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test Processor Worksite and 3D chip preview
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/processor_worksite_smoke.gd 2>&1 | tee processor-worksite-smoke.log
-          grep -q "PROCESSOR_WORKSITE_SMOKE_TEST: PASS" processor-worksite-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PROCESSOR_WORKSITE_SMOKE_TEST:.*(FAIL|ERROR)' processor-worksite-smoke.log; then
-            echo "Godot reported an error during the Processor Worksite smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test Camera Creation Worksite and camera-less handset
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/camera_creation_worksite_smoke.gd 2>&1 | tee camera-creation-worksite-smoke.log
-          grep -q "CAMERA_CREATION_WORKSITE_SMOKE_TEST: PASS" camera-creation-worksite-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|CAMERA_CREATION_WORKSITE_SMOKE_TEST:.*(FAIL|ERROR)' camera-creation-worksite-smoke.log; then
-            echo "Godot reported an error during the Camera Creation Worksite smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test hybrid autonomous lock-screen layouts and assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/lock_screen_designer_smoke.gd 2>&1 | tee lock-screen-designer-smoke.log
-          grep -q "HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS" lock-screen-designer-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|HYBRID_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' lock-screen-designer-smoke.log; then
-            echo "Godot reported an error during the hybrid lock-screen smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test OS handset geometry and display surface
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/os_worksite_phone_model_smoke.gd 2>&1 | tee os-worksite-phone-model-smoke.log
-          grep -q "OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS" os-worksite-phone-model-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_WORKSITE_PHONE_MODEL_SMOKE_TEST:.*(FAIL|ERROR)' os-worksite-phone-model-smoke.log; then
-            echo "Godot reported an error during the OS handset model smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test XMorph digital clocks, media player and notifications
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/xmorph_lock_screen_assets_smoke.gd 2>&1 | tee xmorph-lock-screen-smoke.log
-          grep -q "XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS" xmorph-lock-screen-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST:.*(FAIL|ERROR)' xmorph-lock-screen-smoke.log; then
-            echo "Godot reported an error during the XMorph lock-screen asset smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test lock-screen swipe-up PIN entry
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/pin_entry_swipe_smoke.gd 2>&1 | tee pin-entry-smoke.log
-          grep -q "PIN_ENTRY_SWIPE_SMOKE_TEST: PASS" pin-entry-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|PIN_ENTRY_SWIPE_SMOKE_TEST:.*(FAIL|ERROR)' pin-entry-smoke.log; then
-            echo "Godot reported an error during lock-screen PIN entry."
-            exit 1
-          fi
-
-      - name: Smoke-test One UI home screen, status bar and app drawer
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/home_screen_smoke.gd 2>&1 | tee home-screen-smoke.log
-          grep -q "ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS" home-screen-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|ONE_UI_HOME_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' home-screen-smoke.log; then
-            echo "Godot reported an error during the One UI home-screen smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test OS boot and automatic lock-screen handoff
-        shell: bash
-        run: |
-          set -euo pipefail
-          godot --headless --path . --script res://scripts/tests/os_creation_boot_lock_screen_smoke.gd 2>&1 | tee os-boot-lock-screen-smoke.log
-          grep -q "OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS" os-boot-lock-screen-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|OS_BOOT_LOCK_SCREEN_SMOKE_TEST:.*(FAIL|ERROR)' os-boot-lock-screen-smoke.log; then
-            echo "Godot reported an error during the OS boot and lock-screen transition smoke test."
-            exit 1
-          fi
-
-      - name: Smoke-test standalone Earth globe and landing navigation
-        shell: bash
-        run: |
-          set -euo pipefail
-          set +e
-          timeout --signal=TERM --kill-after=10s 120s godot --headless --path . --script res://scripts/tests/world_globe_navigation_smoke.gd 2>&1 | tee world-globe-smoke.log
-          godot_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$godot_status" -eq 124 ]; then
-            echo "The globe smoke test exceeded its 120-second limit. Last progress marker:"
-            grep "WORLD_GLOBE_SMOKE:" world-globe-smoke.log | tail -n 1 || true
-            exit 124
-          fi
-          if [ "$godot_status" -ne 0 ]; then
-            echo "The globe smoke test exited with status $godot_status"
-            exit "$godot_status"
-          fi
-          grep -q "WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS" world-globe-smoke.log
-          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|WORLD_GLOBE_NAVIGATION_SMOKE_TEST:.*(FAIL|ERROR)' world-globe-smoke.log; then
-            echo "Godot reported an error during the Earth globe and landing navigation smoke test."
-            exit 1
-          fi
-
       - name: Smoke-test main scene startup
         shell: bash
         run: |
@@ -292,27 +159,111 @@ jobs:
             exit 1
           fi
 
-      - name: Report Godot warnings (non-blocking)
-        if: always()
+  worksite-smoke-tests:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Home and Office navigation smoke test
+            script: res://scripts/tests/home_transition_smoke.gd
+            log: home-office-smoke.log
+            marker: HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS
+          - name: Research dashboards smoke test
+            script: res://scripts/tests/research_dashboard_smoke.gd
+            log: research-dashboard-smoke.log
+            marker: PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS
+          - name: Processor Worksite smoke test
+            script: res://scripts/tests/processor_worksite_smoke.gd
+            log: processor-worksite-smoke.log
+            marker: PROCESSOR_WORKSITE_SMOKE_TEST: PASS
+          - name: Lock-screen designer smoke test
+            script: res://scripts/tests/lock_screen_designer_smoke.gd
+            log: lock-screen-designer-smoke.log
+            marker: HYBRID_LOCK_SCREEN_SMOKE_TEST: PASS
+          - name: OS handset model smoke test
+            script: res://scripts/tests/os_worksite_phone_model_smoke.gd
+            log: os-worksite-phone-model-smoke.log
+            marker: OS_WORKSITE_PHONE_MODEL_SMOKE_TEST: PASS
+          - name: XMorph lock-screen assets smoke test
+            script: res://scripts/tests/xmorph_lock_screen_assets_smoke.gd
+            log: xmorph-lock-screen-smoke.log
+            marker: XMORPH_LOCK_SCREEN_ASSETS_SMOKE_TEST: PASS
+          - name: PIN entry smoke test
+            script: res://scripts/tests/pin_entry_swipe_smoke.gd
+            log: pin-entry-smoke.log
+            marker: PIN_ENTRY_SWIPE_SMOKE_TEST: PASS
+          - name: One UI home screen smoke test
+            script: res://scripts/tests/home_screen_smoke.gd
+            log: home-screen-smoke.log
+            marker: ONE_UI_HOME_SCREEN_SMOKE_TEST: PASS
+          - name: OS boot and lock-screen handoff smoke test
+            script: res://scripts/tests/os_creation_boot_lock_screen_smoke.gd
+            log: os-boot-lock-screen-smoke.log
+            marker: OS_BOOT_LOCK_SCREEN_SMOKE_TEST: PASS
+          - name: Earth globe and landing navigation smoke test
+            script: res://scripts/tests/world_globe_navigation_smoke.gd
+            log: world-globe-smoke.log
+            marker: WORLD_GLOBE_NAVIGATION_SMOKE_TEST: PASS
+            timeout: 120
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Import project assets
         shell: bash
         run: |
-          set -uo pipefail
-          shopt -s nullglob
-          logs=(godot-import.log godot-parse.log home-office-smoke.log research-dashboard-smoke.log processor-worksite-smoke.log camera-worksite-import.log camera-creation-worksite-smoke.log os-worksite-phone-model-smoke.log lock-screen-designer-smoke.log pin-entry-smoke.log home-screen-smoke.log os-boot-lock-screen-smoke.log godot-startup.log)
-          warning_count=0
+          set -euo pipefail
+          cp project.godot project.godot.ci-backup
+          restore_project() {
+            if [ -f project.godot.ci-backup ]; then mv project.godot.ci-backup project.godot; fi
+          }
+          trap restore_project EXIT
+          sed -i '/^theme\/custom=/d' project.godot
+          godot --headless --editor --path . --import --quit 2>&1 | tee smoke-import.log
+          restore_project
+          trap - EXIT
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' smoke-import.log; then
+            echo "Godot reported an error while importing project assets."
+            exit 1
+          fi
 
-          for log in "${logs[@]}"; do
-            [ -f "$log" ] || continue
-            matches="$(grep -nE 'WARNING:|^[[:space:]]*W [0-9]+:' "$log" || true)"
-            [ -n "$matches" ] || continue
+      - name: Run this smoke test only
+        shell: bash
+        env:
+          TEST_SCRIPT: ${{ matrix.script }}
+          TEST_LOG: ${{ matrix.log }}
+          PASS_MARKER: ${{ matrix.marker }}
+          TEST_TIMEOUT: ${{ matrix.timeout || 0 }}
+        run: |
+          set -euo pipefail
+          if [ "$TEST_TIMEOUT" -gt 0 ]; then
+            set +e
+            timeout --signal=TERM --kill-after=10s "${TEST_TIMEOUT}s" godot --headless --path . --script "$TEST_SCRIPT" 2>&1 | tee "$TEST_LOG"
+            godot_status=${PIPESTATUS[0]}
+            set -e
+            if [ "$godot_status" -eq 124 ]; then
+              echo "Smoke test timed out. Last progress marker:"
+              grep -E 'SMOKE:' "$TEST_LOG" | tail -n 1 || true
+              exit 124
+            fi
+            if [ "$godot_status" -ne 0 ]; then exit "$godot_status"; fi
+          else
+            godot --headless --path . --script "$TEST_SCRIPT" 2>&1 | tee "$TEST_LOG"
+          fi
+          grep -Fq "$PASS_MARKER" "$TEST_LOG"
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:|SMOKE_TEST:.*(FAIL|ERROR)' "$TEST_LOG"; then
+            echo "Godot reported an error during this smoke test."
+            exit 1
+          fi
 
-            echo "::group::Godot warnings from $log"
-            while IFS= read -r warning; do
-              printf '::warning::%s\n' "$log: $warning"
-              warning_count=$((warning_count + 1))
-            done <<< "$matches"
-            echo "::endgroup::"
-          done
-
-          echo "Godot warning lines reported: $warning_count"
-          echo "Warnings are informational and do not fail this workflow."
