@@ -9,8 +9,8 @@ const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.j
 const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.00075
-const ROTATION_SMOOTHING := 8.5
-const ROTATION_INPUT_LIMIT := 60.0
+const ROTATION_SMOOTHING := 12.0
+const TRACKBALL_RADIUS_FACTOR := 0.72
 const ZOOM_SMOOTHING := 4.2
 const PINCH_ZOOM_SENSITIVITY := 0.0035
 const ZOOM_MIN := 1.9
@@ -27,7 +27,10 @@ var _geography_refresh_pending := false
 var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
-var _rotation_target := Vector2.ZERO
+var _rotation_drag_active := false
+var _rotation_pointer_position := Vector2.ZERO
+var _rotation_current := Quaternion.IDENTITY
+var _rotation_target := Quaternion.IDENTITY
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
@@ -51,7 +54,8 @@ func _ready() -> void:
 	_build_environment()
 	_build_starfield()
 	_build_earth()
-	_rotation_target = Vector2(earth_pivot.rotation.y, earth_pivot.rotation.x)
+	_rotation_current = earth_pivot.quaternion
+	_rotation_target = _rotation_current
 	_build_camera()
 	_update_country_label_visibility()
 	_build_interface()
@@ -333,16 +337,12 @@ func _build_interface() -> void:
 
 func _process(delta: float) -> void:
 	_update_debug_panel()
-	if is_instance_valid(cloud_layer):
-		cloud_layer.rotation.y += delta * 0.0008
-
-	# Smooth globe orientation independently from touch input sampling.
-	# This filters small finger-direction changes and keeps movement consistent
-	# across the full zoom range.
+	# Earth, country geometry, labels and cloud shell share one quaternion
+	# orientation. This prevents independent layer drift and Euler-axis locking.
 	if is_instance_valid(earth_pivot):
 		var rotation_blend := 1.0 - exp(-delta * ROTATION_SMOOTHING)
-		earth_pivot.rotation.y = lerp_angle(earth_pivot.rotation.y, _rotation_target.x, rotation_blend)
-		earth_pivot.rotation.x = lerpf(earth_pivot.rotation.x, _rotation_target.y, rotation_blend)
+		_rotation_current = _rotation_current.slerp(_rotation_target, rotation_blend).normalized()
+		earth_pivot.quaternion = _rotation_current
 
 
 	# Ease the camera toward the pinch-selected distance. This is a damped,
@@ -369,11 +369,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
 			_touch_points[touch.index] = touch.position
-			if _touch_points.size() == 2:
+			if _touch_points.size() == 1:
+				_rotation_pointer_position = touch.position
+				_rotation_drag_active = true
+			elif _touch_points.size() == 2:
+				_rotation_drag_active = false
 				_previous_pinch_distance = _get_pinch_distance()
 		else:
 			_touch_points.erase(touch.index)
 			_previous_pinch_distance = 0.0
+			if _touch_points.size() == 1:
+				var remaining_key = _touch_points.keys()[0]
+				_rotation_pointer_position = _touch_points[remaining_key]
+				_rotation_drag_active = true
+			else:
+				_rotation_drag_active = false
 		get_viewport().set_input_as_handled()
 		return
 
@@ -386,8 +396,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _previous_pinch_distance > 0.0:
 				zoom_globe((_previous_pinch_distance - pinch_distance) * PINCH_ZOOM_SENSITIVITY)
 			_previous_pinch_distance = pinch_distance
-		else:
-			rotate_globe(drag.relative)
+		elif _rotation_drag_active:
+			_rotate_globe_from_points(_rotation_pointer_position, drag.position)
+			_rotation_pointer_position = drag.position
 		get_viewport().set_input_as_handled()
 		return
 
@@ -395,6 +406,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
 			_mouse_dragging = mouse_button.pressed
+			_rotation_pointer_position = mouse_button.position
 			get_viewport().set_input_as_handled()
 		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
 			zoom_globe(-0.12)
@@ -405,7 +417,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseMotion and _mouse_dragging:
-		rotate_globe((event as InputEventMouseMotion).relative)
+		var mouse_motion := event as InputEventMouseMotion
+		_rotate_globe_from_points(_rotation_pointer_position, mouse_motion.position)
+		_rotation_pointer_position = mouse_motion.position
 		get_viewport().set_input_as_handled()
 
 
@@ -418,17 +432,51 @@ func _get_pinch_distance() -> float:
 	return first_position.distance_to(second_position)
 
 
-func rotate_globe(pointer_delta: Vector2) -> void:
-	if not is_instance_valid(earth_pivot):
+func _trackball_vector(screen_position: Vector2) -> Vector3:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var radius := maxf(1.0, minf(viewport_size.x, viewport_size.y) * TRACKBALL_RADIUS_FACTOR)
+	var centered := screen_position - viewport_size * 0.5
+	var x := centered.x / radius
+	var y := -centered.y / radius
+	var distance_squared := x * x + y * y
+	var z := 0.0
+	if distance_squared <= 0.5:
+		z = sqrt(1.0 - distance_squared)
+	else:
+		z = 0.5 / sqrt(distance_squared)
+	return Vector3(x, y, z).normalized()
+
+
+func _apply_trackball_rotation(previous_position: Vector2, current_position: Vector2) -> void:
+	if not is_instance_valid(earth_pivot) or not is_instance_valid(globe_camera):
 		return
-	# Limit sudden input spikes, then accumulate into a target orientation.
-	# The target is smoothed in _process(), avoiding jitter from event-by-event
-	# axis switching while preserving precise horizontal and vertical control.
-	var stable_delta := pointer_delta.limit_length(ROTATION_INPUT_LIMIT)
+	if previous_position.distance_squared_to(current_position) < 0.0001:
+		return
+	var previous_vector := _trackball_vector(previous_position)
+	var current_vector := _trackball_vector(current_position)
+	var camera_rotation := Quaternion(previous_vector, current_vector)
+	var camera_basis := globe_camera.global_basis.orthonormalized()
+	var world_rotation := Quaternion(camera_basis) * camera_rotation * Quaternion(camera_basis.inverse())
+	_rotation_target = (world_rotation * _rotation_target).normalized()
+
+
+func _rotate_globe_from_points(previous_position: Vector2, current_position: Vector2) -> void:
+	_apply_trackball_rotation(previous_position, current_position)
+
+
+func rotate_globe(pointer_delta: Vector2) -> void:
+	# Compatibility entry point for scripted controls and smoke tests. Real
+	# pointer input uses the full position-based virtual trackball above.
+	if not is_instance_valid(earth_pivot) or pointer_delta.length_squared() < 0.0001:
+		return
 	var zoom_factor := clampf(_zoom_distance / 4.9, 0.58, 1.0)
-	var rotation_step := stable_delta * DRAG_SENSITIVITY * zoom_factor
-	_rotation_target.x = wrapf(_rotation_target.x + rotation_step.x, -PI, PI)
-	_rotation_target.y = clampf(_rotation_target.y - rotation_step.y, -1.25, 1.25)
+	var angle := pointer_delta.length() * DRAG_SENSITIVITY * zoom_factor
+	var camera_axis := Vector3(pointer_delta.y, pointer_delta.x, 0.0).normalized()
+	var camera_basis := globe_camera.global_basis.orthonormalized()
+	var world_axis := (camera_basis * camera_axis).normalized()
+	var world_rotation := Quaternion(world_axis, angle)
+	_rotation_target = (world_rotation * _rotation_target).normalized()
+
 
 func zoom_globe(distance_delta: float) -> void:
 	# Accumulate finger movement into a bounded target, then ease toward it.
