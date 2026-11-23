@@ -11,7 +11,7 @@ const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 2.25
 const ZOOM_MAX := 7.2
-const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 4.5
+const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
 const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.2]
 
 var earth_pivot: Node3D
@@ -44,6 +44,9 @@ func _ready() -> void:
 	_build_camera()
 	_update_country_label_visibility()
 	_build_interface()
+	# Load the compact country layer on entry so the globe never opens as an
+	# unlabelled satellite sphere while waiting for the first pinch gesture.
+	call_deferred("_build_country_geography")
 
 
 func _build_environment() -> void:
@@ -423,18 +426,41 @@ func _build_country_geography() -> void:
 	if _country_building:
 		return
 	_country_building = true
-	var data_path := _resolve_country_data_path()
+	var requested_data_path := _resolve_country_data_path()
+	var candidate_paths: Array[String] = []
+	if requested_data_path == COUNTRY_DATA_10M_PATH:
+		candidate_paths = [COUNTRY_DATA_10M_PATH, COUNTRY_DATA_50M_PATH, COUNTRY_DATA_PATH]
+	elif requested_data_path == COUNTRY_DATA_50M_PATH:
+		candidate_paths = [COUNTRY_DATA_50M_PATH, COUNTRY_DATA_PATH]
+	else:
+		candidate_paths = [COUNTRY_DATA_PATH]
+
+	# Never let one missing/corrupt high-detail asset blank the entire globe.
+	# Fall back through 10m -> 50m -> 110m and use the first valid feature set.
+	var parsed: Variant = null
+	var data_path := ""
+	for candidate_path in candidate_paths:
+		if not FileAccess.file_exists(candidate_path):
+			push_warning("Globe geography asset is missing: " + candidate_path)
+			continue
+		var candidate_data: Variant = _read_geography_data(candidate_path)
+		if candidate_data is Dictionary and candidate_data.get("features", []) is Array and not candidate_data["features"].is_empty():
+			parsed = candidate_data
+			data_path = candidate_path
+			break
+		push_warning("Globe geography asset has no usable features: " + candidate_path)
+
+	if parsed == null:
+		push_warning("No usable country geography dataset could be loaded; tried: " + str(candidate_paths))
+		_country_building = false
+		return
+
 	var tier := "110m"
 	if data_path == COUNTRY_DATA_50M_PATH:
 		tier = "50m"
 	elif data_path == COUNTRY_DATA_10M_PATH:
 		tier = "10m"
 	if _country_geography_loaded and _country_geography_tier == tier:
-		_country_building = false
-		return
-
-	var parsed: Variant = _read_geography_data(data_path)
-	if parsed == null:
 		_country_building = false
 		return
 	_country_feature_data.clear()
@@ -501,7 +527,7 @@ func _build_country_geography() -> void:
 				# Android render thread during a zoom transition.
 				if segment_count % 1500 == 0:
 					await get_tree().process_frame
-					if not is_inside_tree() or _resolve_country_data_path() != data_path:
+					if not is_inside_tree() or _resolve_country_data_path() != requested_data_path:
 						border_mesh.surface_end()
 						_country_building = false
 						return
