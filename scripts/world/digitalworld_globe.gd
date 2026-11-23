@@ -2,7 +2,8 @@ extends Node3D
 
 signal back_requested
 
-const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_continents.svg")
+const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_blue_marble.jpg")
+const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const EARTH_RADIUS := 1.6
 const ZOOM_MIN := 3.7
 const ZOOM_MAX := 9.0
@@ -13,6 +14,7 @@ var _zoom_distance := 5.6
 var _touch_points: Dictionary = {}
 var _previous_pinch_distance := 0.0
 var _mouse_dragging := false
+var cloud_layer: MeshInstance3D
 
 
 func _ready() -> void:
@@ -97,14 +99,14 @@ func _build_earth() -> void:
 	var earth_mesh := SphereMesh.new()
 	earth_mesh.radius = EARTH_RADIUS
 	earth_mesh.height = EARTH_RADIUS * 2.0
-	earth_mesh.radial_segments = 128
-	earth_mesh.rings = 64
+	earth_mesh.radial_segments = 256
+	earth_mesh.rings = 128
 
 	var earth_material := StandardMaterial3D.new()
 	earth_material.albedo_texture = EARTH_TEXTURE
 	earth_material.albedo_color = Color.WHITE
-	earth_material.roughness = 0.92
-	earth_material.metallic = 0.025
+	earth_material.roughness = 0.96
+	earth_material.metallic = 0.0
 	earth_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	earth_material.cull_mode = BaseMaterial3D.CULL_BACK
 
@@ -116,9 +118,43 @@ func _build_earth() -> void:
 	earth_surface.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	earth_pivot.add_child(earth_surface)
 
+	# NASA Blue Marble cloud coverage is rendered on its own slightly elevated shell.
+	var cloud_mesh := SphereMesh.new()
+	cloud_mesh.radius = EARTH_RADIUS * 1.009
+	cloud_mesh.height = EARTH_RADIUS * 2.018
+	cloud_mesh.radial_segments = 192
+	cloud_mesh.rings = 96
+
+	var cloud_shader := Shader.new()
+	cloud_shader.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_back;
+
+uniform sampler2D cloud_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+
+void fragment() {
+	float coverage = texture(cloud_texture, UV).r;
+	float cloud_alpha = smoothstep(0.16, 0.58, coverage) * 0.72;
+	ALBEDO = vec3(0.91, 0.94, 1.0);
+	ROUGHNESS = 1.0;
+	ALPHA = cloud_alpha;
+}
+"""
+	var cloud_material := ShaderMaterial.new()
+	cloud_material.shader = cloud_shader
+	cloud_material.set_shader_parameter("cloud_texture", CLOUD_TEXTURE)
+
+	cloud_layer = MeshInstance3D.new()
+	cloud_layer.name = "Earth_Cloud_Layer"
+	cloud_layer.mesh = cloud_mesh
+	cloud_layer.material_override = cloud_material
+	cloud_layer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cloud_layer.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	earth_pivot.add_child(cloud_layer)
+
 	var atmosphere_mesh := SphereMesh.new()
-	atmosphere_mesh.radius = EARTH_RADIUS * 1.025
-	atmosphere_mesh.height = EARTH_RADIUS * 2.05
+	atmosphere_mesh.radius = EARTH_RADIUS * 1.035
+	atmosphere_mesh.height = EARTH_RADIUS * 2.07
 	atmosphere_mesh.radial_segments = 96
 	atmosphere_mesh.rings = 48
 
@@ -221,6 +257,11 @@ func _build_interface() -> void:
 	controls_hint.add_theme_font_size_override("font_size", 10)
 	controls_hint.add_theme_color_override("font_color", Color("#9aafc7"))
 	root.add_child(controls_hint)
+
+
+func _process(delta: float) -> void:
+	if is_instance_valid(cloud_layer):
+		cloud_layer.rotation.y += delta * 0.0008
 
 
 func _unhandled_input(event: InputEvent) -> void:
