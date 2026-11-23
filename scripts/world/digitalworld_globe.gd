@@ -244,7 +244,7 @@ func _build_interface() -> void:
 
 	var subtitle := Label.new()
 	subtitle.name = "Globe_Subtitle"
-	subtitle.text = "COUNTRIES  •  BORDERS  •  NAMES"
+	subtitle.text = "SATELLITE EARTH  •  ZOOM TO EXPLORE"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	subtitle.offset_top = 62.0
