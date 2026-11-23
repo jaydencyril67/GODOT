@@ -45,8 +45,12 @@ jobs:
           marker = 'target_sources( tiles3d_basisu PRIVATE "${TILES3D_BASISU_DIR}/zstd/zstd.c" )'
           if marker not in text:
               raise SystemExit("Could not locate Basis Universal target source declaration")
-          # The upstream amalgamation already excludes qsort_r on Android.
-          # Do not define _GNU_SOURCE: that forces the unavailable GNU qsort_r path.
+          # Android's NDK toolchain exposes _GNU_SOURCE, selecting Zstandard's
+          # GNU qsort_r branch even though bionic does not declare qsort_r.
+          # Undefine it only for Basis Universal so its portable qsort fallback is used.
+          patch = 'target_compile_options( tiles3d_basisu PRIVATE -U_GNU_SOURCE )'
+          if patch not in text:
+              text = text.replace(marker, marker + "\n" + patch, 1)
           path.write_text(text)
           PY
 
