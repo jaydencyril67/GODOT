@@ -63,6 +63,8 @@ var cloud_shell: MeshInstance3D
 var camera: Camera3D
 var target_distance := START_DISTANCE
 var dragging := false
+var touch_points: Dictionary = {}
+var last_pinch_distance := 0.0
 var country_catalog_loaded := false
 var country_catalog_loading := false
 var selection_generation := 0
@@ -109,11 +111,35 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and dragging:
 		_drag_planet(event.relative)
 	elif event is InputEventScreenTouch:
-		dragging = event.pressed
+		if event.pressed:
+			touch_points[event.index] = event.position
+			dragging = true
+			last_pinch_distance = _get_pinch_distance()
+		else:
+			touch_points.erase(event.index)
+			dragging = not touch_points.is_empty()
+			last_pinch_distance = _get_pinch_distance()
 	elif event is InputEventScreenDrag:
-		_drag_planet(event.relative)
+		if touch_points.has(event.index):
+			touch_points[event.index] = event.position
+			if touch_points.size() >= 2:
+				var next_distance := _get_pinch_distance()
+				if last_pinch_distance > 0.0 and next_distance > 0.0:
+					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.008)
+				last_pinch_distance = next_distance
+			else:
+				_drag_planet(event.relative)
 	elif event is InputEventMagnifyGesture:
 		_set_zoom(target_distance / maxf(event.factor, 0.1))
+
+
+func _get_pinch_distance() -> float:
+	if touch_points.size() < 2:
+		return 0.0
+	var touch_ids := touch_points.keys()
+	var first_point: Vector2 = touch_points[touch_ids[0]]
+	var second_point: Vector2 = touch_points[touch_ids[1]]
+	return first_point.distance_to(second_point)
 
 
 func _drag_planet(relative: Vector2) -> void:
@@ -300,6 +326,7 @@ func _build_interface() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_theme_constant_override("margin_left", 16)
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_top", 14)
@@ -307,10 +334,12 @@ func _build_interface() -> void:
 	layer.add_child(margin)
 
 	var layout := VBoxContainer.new()
+	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_theme_constant_override("separation", 10)
 	margin.add_child(layout)
 
 	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_theme_constant_override("separation", 10)
 	layout.add_child(header)
 
@@ -323,6 +352,7 @@ func _build_interface() -> void:
 
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heading.add_theme_constant_override("separation", 1)
 	header.add_child(heading)
 
@@ -330,12 +360,14 @@ func _build_interface() -> void:
 	title.text = "EARTH  /  LIVE ATLAS"
 	title.add_theme_font_size_override("font_size", 16)
 	title.add_theme_color_override("font_color", Color("#F0F4FB"))
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heading.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "A planet-sized view of our world"
 	subtitle.add_theme_font_size_override("font_size", 10)
 	subtitle.add_theme_color_override("font_color", Color("#8E9EB8"))
+	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heading.add_child(subtitle)
 
 	var zoom_out := Button.new()
@@ -403,6 +435,7 @@ func _build_interface() -> void:
 
 	var footer_spacer := Control.new()
 	footer_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	footer_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(footer_spacer)
 
 	status_label = Label.new()
@@ -410,6 +443,7 @@ func _build_interface() -> void:
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.add_theme_font_size_override("font_size", 10)
 	status_label.add_theme_color_override("font_color", Color("#B8C9DF"))
+	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(status_label)
 
 	var attribution := Label.new()
@@ -417,6 +451,7 @@ func _build_interface() -> void:
 	attribution.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	attribution.add_theme_font_size_override("font_size", 9)
 	attribution.add_theme_color_override("font_color", Color("#72839D"))
+	attribution.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(attribution)
 
 
