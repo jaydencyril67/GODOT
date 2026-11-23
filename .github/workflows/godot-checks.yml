@@ -91,7 +91,7 @@ jobs:
                       selected[name] = True
                       matched = True
               if not matched:
-                  full = True
+                  pass
 
           # Shared project configuration and workflow changes require broad regression.
           if any(path in ("project.godot", "export_presets.cfg") or path.startswith((".github/", "addons/", "scripts/tests/")) and not any(path == p for p in [
