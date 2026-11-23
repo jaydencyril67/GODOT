@@ -8,14 +8,14 @@ const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
 const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json"
 const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json"
 const EARTH_RADIUS := 1.6
-const DRAG_SENSITIVITY := 0.00125
+const DRAG_SENSITIVITY := 0.00075
 const ROTATION_SMOOTHING := 8.5
-const ROTATION_INPUT_LIMIT := 80.0
+const ROTATION_INPUT_LIMIT := 60.0
 const ZOOM_SMOOTHING := 7.5
-const ZOOM_MIN := 1.8
+const ZOOM_MIN := 1.72
 const ZOOM_MAX := 7.2
 const COUNTRY_BOUNDARY_ZOOM_THRESHOLD := 5.1
-const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.2]
+const COUNTRY_LABEL_ZOOM_THRESHOLDS := [4.5, 3.8, 3.0]
 
 var earth_pivot: Node3D
 var globe_camera: Camera3D
@@ -226,8 +226,8 @@ void fragment() {
 func _build_camera() -> void:
 	globe_camera = Camera3D.new()
 	globe_camera.name = "Globe_Camera"
-	globe_camera.fov = 42.0
-	globe_camera.near = 0.1
+	globe_camera.fov = 38.0
+	globe_camera.near = 0.03
 	globe_camera.far = 80.0
 	add_child(globe_camera)
 	globe_camera.current = true
@@ -351,14 +351,6 @@ func _process(delta: float) -> void:
 		earth_pivot.rotation.y = lerp_angle(earth_pivot.rotation.y, _rotation_target.x, rotation_blend)
 		earth_pivot.rotation.x = lerpf(earth_pivot.rotation.x, _rotation_target.y, rotation_blend)
 
-	# Smooth camera movement independently from touch input sampling.
-	if absf(_zoom_distance - _zoom_target_distance) > 0.001:
-		var zoom_blend := 1.0 - exp(-delta * ZOOM_SMOOTHING)
-		_zoom_distance = lerpf(_zoom_distance, _zoom_target_distance, zoom_blend)
-		_update_camera_position()
-		_update_country_label_visibility()
-	else:
-		_zoom_distance = _zoom_target_distance
 
 	# Wait until pinch input settles before parsing data or constructing meshes.
 	if _geography_refresh_pending:
@@ -367,13 +359,6 @@ func _process(delta: float) -> void:
 			_geography_refresh_pending = false
 			_zoom_settle_elapsed = 0.0
 			_refresh_geography_for_zoom()
-
-	if _zoom_distance <= 3.2 and _country_geography_loaded and not _country_building:
-		_state_refresh_elapsed += delta
-		if _state_refresh_elapsed >= 0.45:
-			_state_refresh_elapsed = 0.0
-			if not _state_building and _get_nearest_country_continent() != _state_geography_continent:
-				_build_state_geography()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -396,7 +381,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touch_points.size() >= 2:
 			var pinch_distance := _get_pinch_distance()
 			if _previous_pinch_distance > 0.0:
-				zoom_globe((_previous_pinch_distance - pinch_distance) * 0.012)
+				zoom_globe((_previous_pinch_distance - pinch_distance) * 0.01)
 			_previous_pinch_distance = pinch_distance
 		else:
 			rotate_globe(drag.relative)
@@ -443,7 +428,11 @@ func rotate_globe(pointer_delta: Vector2) -> void:
 	_rotation_target.y = clampf(_rotation_target.y - rotation_step.y, -1.25, 1.25)
 
 func zoom_globe(distance_delta: float) -> void:
-	_zoom_target_distance = clampf(_zoom_target_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
+	# Pinch movement directly controls the camera; there is no glide after release.
+	_zoom_distance = clampf(_zoom_distance + distance_delta, ZOOM_MIN, ZOOM_MAX)
+	_zoom_target_distance = _zoom_distance
+	_update_camera_position()
+	_update_country_label_visibility()
 	_zoom_settle_elapsed = 0.0
 	_geography_refresh_pending = true
 
@@ -471,11 +460,6 @@ func _refresh_geography_for_zoom() -> void:
 	if _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD:
 		if not _country_geography_loaded or _country_geography_tier != desired_tier:
 			_build_country_geography()
-	if _zoom_distance <= 3.2 and _country_geography_loaded and not _country_building:
-		_build_state_geography()
-	elif _zoom_distance > 3.2 and is_instance_valid(state_boundaries):
-		state_boundaries.visible = false
-
 
 func _read_geography_data(path: String, compressed: bool = false) -> Variant:
 	_debug_load_stage = "Opening " + path.get_file()
@@ -579,16 +563,7 @@ func _build_country_geography() -> void:
 	if _country_geography_loaded and _country_geography_tier == tier:
 		_country_building = false
 		return
-	_country_feature_data.clear()
-	for feature_variant in parsed["features"]:
-		if feature_variant is Dictionary:
-			var feature_summary: Dictionary = feature_variant
-			_country_feature_data.append({
-				"x": float(feature_summary.get("x", 0.0)),
-				"y": float(feature_summary.get("y", 0.0)),
-				"continent": str(feature_summary.get("continent", "other"))
-			})
-	if is_instance_valid(country_boundaries):
+	_country_feature_data.clear()	if is_instance_valid(country_boundaries):
 		earth_pivot.remove_child(country_boundaries)
 		country_boundaries.queue_free()
 	for old_label in country_labels:
@@ -713,165 +688,6 @@ func _build_country_geography() -> void:
 		push_warning("Natural Earth country data contained no country features.")
 
 
-func _get_nearest_country_continent() -> String:
-	if _country_feature_data.is_empty():
-		return "other"
-	var camera_direction := earth_pivot.to_local(globe_camera.global_position).normalized()
-	var best_dot := -2.0
-	var best_continent := "other"
-	for feature_variant in _country_feature_data:
-		if not feature_variant is Dictionary:
-			continue
-		var feature: Dictionary = feature_variant
-		var direction := _geo_to_globe_position(
-			float(feature.get("y", 0.0)),
-			float(feature.get("x", 0.0)),
-			1.0
-		).normalized()
-		var facing_score := camera_direction.dot(direction)
-		if facing_score > best_dot:
-			best_dot = facing_score
-			best_continent = str(feature.get("continent", "other")).to_lower().replace(" ", "_")
-	if best_continent not in ["africa", "asia", "europe", "north_america", "south_america", "oceania", "antarctica"]:
-		best_continent = "other"
-	return best_continent
-
-
-func _attach_state_mesh_chunk(chunk_mesh: ImmediateMesh) -> void:
-	if chunk_mesh == null or chunk_mesh.get_surface_count() == 0:
-		return
-	var chunk_instance := MeshInstance3D.new()
-	chunk_instance.mesh = chunk_mesh
-	chunk_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	chunk_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	if not is_instance_valid(state_boundaries):
-		chunk_instance.name = "State_Province_Boundaries"
-		state_boundaries = chunk_instance
-		state_boundaries.visible = _zoom_distance <= 3.2
-		earth_pivot.add_child(state_boundaries)
-	else:
-		chunk_instance.name = "State_Province_Boundary_Chunk"
-		state_boundaries.add_child(chunk_instance)
-
-
-func _build_state_geography() -> void:
-	if _state_building:
-		return
-	_state_building = true
-	var continent := _get_nearest_country_continent()
-	if _state_geography_loaded and _state_geography_continent == continent:
-		_state_building = false
-		return
-	var state_path := "res://assets/globe/natural_earth_states_10m_" + continent + ".json"
-	if not FileAccess.file_exists(state_path):
-		if is_instance_valid(state_boundaries):
-			earth_pivot.remove_child(state_boundaries)
-			state_boundaries.queue_free()
-		state_boundaries = null
-		_state_geography_loaded = false
-		_state_geography_continent = continent
-		_state_building = false
-		return
-	var parsed: Variant = _read_geography_data(state_path)
-	if parsed == null:
-		_debug_load_stage = "STATE DATA LOAD FAILED"
-		if _debug_last_error == "None":
-			_debug_last_error = "Could not parse " + state_path.get_file()
-		_state_building = false
-		return
-
-	var state_material := StandardMaterial3D.new()
-	state_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	state_material.albedo_color = Color(0.42, 0.52, 0.64, 0.72)
-	state_material.roughness = 1.0
-	state_material.metallic = 0.0
-	state_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	state_material.no_depth_test = false
-	state_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
-	_debug_load_stage = "Building state boundary mesh (" + continent + ")"
-	_debug_state_features = 0
-	_debug_state_segments = 0
-	var feature_count := 0
-	var segment_count := 0
-	var chunk_segment_count := 0
-	var chunk_mesh := ImmediateMesh.new()
-	chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
-	# Admin-1 geometry is substantially denser than the country overview.
-	# Publish bounded chunks so mobile devices can render completed sections
-	# while the remaining state boundaries are still being generated.
-	for feature_variant in parsed["features"]:
-		if not feature_variant is Dictionary:
-			continue
-		var feature: Dictionary = feature_variant
-		feature_count += 1
-		for ring_variant in feature.get("r", []):
-			if not ring_variant is Array:
-				continue
-			var ring: Array = ring_variant
-			if ring.size() < 2:
-				continue
-			for point_index in range(ring.size()):
-				var point_a: Array = ring[point_index]
-				var point_b: Array = ring[(point_index + 1) % ring.size()]
-				if point_a.size() < 2 or point_b.size() < 2:
-					continue
-				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
-					continue
-				_append_geographic_segment(
-					chunk_mesh,
-					float(point_a[1]),
-					float(point_a[0]),
-					float(point_b[1]),
-					float(point_b[0]),
-					EARTH_RADIUS * 1.0009
-				)
-				segment_count += 1
-				chunk_segment_count += 1
-				if segment_count % 1500 == 0:
-					_debug_state_features = feature_count
-					_debug_state_segments = segment_count
-					_debug_load_stage = "Building %s state mesh: %d segments" % [continent, segment_count]
-					await get_tree().process_frame
-					if not is_inside_tree() or _zoom_distance > 3.2 or _get_nearest_country_continent() != continent:
-						chunk_mesh.surface_end()
-						if is_instance_valid(state_boundaries):
-							earth_pivot.remove_child(state_boundaries)
-							state_boundaries.queue_free()
-							state_boundaries = null
-						_state_geography_loaded = false
-						_state_geography_continent = ""
-						_state_building = false
-						_debug_load_stage = "State build cancelled"
-						return
-				if chunk_segment_count >= 6000:
-					chunk_mesh.surface_end()
-					_attach_state_mesh_chunk(chunk_mesh)
-					chunk_mesh = ImmediateMesh.new()
-					chunk_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, state_material)
-					chunk_segment_count = 0
-	if chunk_segment_count > 0:
-		chunk_mesh.surface_end()
-		_attach_state_mesh_chunk(chunk_mesh)
-	else:
-		chunk_mesh.surface_end()
-
-	if is_instance_valid(state_boundaries):
-		state_boundaries.visible = _zoom_distance <= 3.2
-		state_boundaries.set_meta("state_feature_count", feature_count)
-		state_boundaries.set_meta("geographic_segment_count", segment_count)
-		state_boundaries.set_meta("geographic_resolution", "10m_admin1")
-		state_boundaries.set_meta("continent", continent)
-	_state_geography_loaded = feature_count > 0 and segment_count > 0 and is_instance_valid(state_boundaries)
-	_debug_state_features = feature_count
-	_debug_state_segments = segment_count
-	_debug_load_stage = "STATES READY: " + continent if _state_geography_loaded else "STATE GEOMETRY EMPTY: " + continent
-	if segment_count == 0:
-		_debug_last_error = "State features parsed, but 0 boundary segments were generated"
-	_state_geography_continent = continent
-	_state_building = false
-
-
 func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float) -> String:
 	var point_a := "%.3f,%.3f" % [latitude_a, longitude_a]
 	var point_b := "%.3f,%.3f" % [latitude_b, longitude_b]
@@ -968,10 +784,6 @@ func _update_country_label_visibility() -> void:
 		if is_instance_valid(label):
 			label.visible = max_label_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
 
-	var show_states := _zoom_distance <= 3.2
-	if is_instance_valid(state_boundaries):
-		state_boundaries.visible = show_states
-
 
 
 func get_zoom_distance() -> float:
@@ -982,13 +794,9 @@ func _update_debug_panel() -> void:
 	if not is_instance_valid(_debug_panel_label):
 		return
 	var country_visible := is_instance_valid(country_boundaries) and country_boundaries.visible
-	var state_visible := is_instance_valid(state_boundaries) and state_boundaries.visible
 	var country_mesh_surfaces := 0
 	if is_instance_valid(country_boundaries) and country_boundaries.mesh != null:
 		country_mesh_surfaces = country_boundaries.mesh.get_surface_count()
-	var state_mesh_surfaces := 0
-	if is_instance_valid(state_boundaries) and state_boundaries.mesh != null:
-		state_mesh_surfaces = state_boundaries.mesh.get_surface_count()
 	_debug_panel_label.text = (
 		"GLOBE / GEOGRAPHY DIAGNOSTICS\n"
 		+ "Stage: " + _debug_load_stage + "\n"
@@ -999,9 +807,5 @@ func _update_debug_panel() -> void:
 		+ "Features: " + str(_debug_parsed_features) + " | Segments: " + str(_debug_rendered_segments) + "\n"
 		+ "Labels: " + str(_debug_country_labels) + " | Mesh surfaces: " + str(country_mesh_surfaces) + "\n"
 		+ "Country visible: " + str(country_visible) + "\n"
-		+ "State busy/loaded: %s / %s\n" % [str(_state_building), str(_state_geography_loaded)]
-		+ "State continent: " + _state_geography_continent + "\n"
-		+ "State features/segments: %d / %d\n" % [_debug_state_features, _debug_state_segments]
-		+ "State visible/surfaces: %s / %d\n" % [str(state_visible), state_mesh_surfaces]
 		+ "Last error: " + _debug_last_error
 	)
