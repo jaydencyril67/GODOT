@@ -71,6 +71,17 @@ func _run_test() -> void:
 	if close_visible_count <= country_zoom_visible_count:
 		_fail("Zooming closer must progressively reveal more country names.")
 		return
+	globe.call("zoom_globe", -0.3)
+	var state_layer := globe.find_child("State_Province_Boundaries", true, false) as MeshInstance3D
+	if FileAccess.file_exists("res://assets/globe/natural_earth_states_10m.json.gz"):
+		if state_layer == null or state_layer.mesh == null or not state_layer.visible:
+			_fail("State/province boundaries must load only at the close geographic zoom level.")
+			return
+		if int(state_layer.get_meta("state_feature_count", 0)) < 4000:
+			_fail("The Admin-1 dataset did not load the expected global state/province feature set.")
+			return
+	country_borders = globe.find_child("Country_Boundaries", true, false) as MeshInstance3D
+	country_labels = globe.get("country_labels") as Array
 	var clouds := globe.find_child("Earth_Cloud_Layer", true, false) as MeshInstance3D
 	if clouds == null or clouds.material_override == null:
 		_fail("The separate NASA cloud layer was not created.")
@@ -124,7 +135,7 @@ func _run_test() -> void:
 	if absf(border_material.albedo_color.r - border_material.albedo_color.g) > 0.08 or border_material.albedo_color.b < border_material.albedo_color.g:
 		_fail("Country boundaries must use the restrained cool-grey Google Earth inspired palette.")
 		return
-	if country_borders.get_meta("cartographic_style") != "subtle_google_earth_inspired_admin0":
+	if not str(country_borders.get_meta("cartographic_style")).begins_with("subtle_google_earth_inspired_admin0"):
 		_fail("The country boundary layer is missing its intended cartographic style metadata.")
 		return
 	if float(country_borders.get_meta("surface_radius")) > 1.603:

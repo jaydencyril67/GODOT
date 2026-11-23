@@ -5,6 +5,9 @@ signal back_requested
 const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_blue_marble.jpg")
 const CLOUD_TEXTURE: Texture2D = preload("res://assets/globe/earth_clouds.jpg")
 const COUNTRY_DATA_PATH := "res://assets/globe/natural_earth_countries.json"
+const COUNTRY_DATA_50M_PATH := "res://assets/globe/natural_earth_countries_50m.json.gz"
+const COUNTRY_DATA_10M_PATH := "res://assets/globe/natural_earth_countries_10m.json.gz"
+const STATE_DATA_10M_PATH := "res://assets/globe/natural_earth_states_10m.json.gz"
 const EARTH_RADIUS := 1.6
 const DRAG_SENSITIVITY := 0.0024
 const ZOOM_MIN := 2.25
@@ -21,7 +24,10 @@ var _mouse_dragging := false
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
+var state_boundaries: MeshInstance3D
 var _country_geography_loaded := false
+var _country_geography_tier := ""
+var _state_geography_loaded := false
 
 
 func _ready() -> void:
@@ -354,21 +360,53 @@ func _update_camera_zoom() -> void:
 	_update_country_label_visibility()
 
 
-func _build_country_geography() -> void:
-	var file := FileAccess.open(COUNTRY_DATA_PATH, FileAccess.READ)
+func _read_geography_data(path: String) -> Variant:
+	var file: FileAccess
+	if path.ends_with(".gz"):
+		file = FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_GZIP)
+	else:
+		file = FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		push_warning("Natural Earth country data could not be opened: " + COUNTRY_DATA_PATH)
-		return
+		push_warning("Geographic data could not be opened: " + path)
+		return null
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if not parsed is Dictionary or not parsed.has("features"):
-		push_warning("Natural Earth country data is malformed.")
+		push_warning("Geographic data is malformed: " + path)
+		return null
+	return parsed
+
+
+func _resolve_country_data_path() -> String:
+	if _zoom_distance <= 3.8 and FileAccess.file_exists(COUNTRY_DATA_10M_PATH):
+		return COUNTRY_DATA_10M_PATH
+	if FileAccess.file_exists(COUNTRY_DATA_50M_PATH):
+		return COUNTRY_DATA_50M_PATH
+	return COUNTRY_DATA_PATH
+
+
+func _build_country_geography() -> void:
+	var data_path := _resolve_country_data_path()
+	var tier := "110m"
+	if data_path == COUNTRY_DATA_50M_PATH:
+		tier = "50m"
+	elif data_path == COUNTRY_DATA_10M_PATH:
+		tier = "10m"
+	if _country_geography_loaded and _country_geography_tier == tier:
 		return
-	_country_geography_loaded = true
+
+	var parsed: Variant = _read_geography_data(data_path)
+	if parsed == null:
+		return
+	if is_instance_valid(country_boundaries):
+		country_boundaries.queue_free()
+	for old_label in country_labels:
+		if is_instance_valid(old_label):
+			old_label.queue_free()
+	country_labels.clear()
+	_country_geography_loaded = false
 
 	# Google-Earth-inspired cartographic styling: quiet cool-grey boundaries,
-	# shaded by the globe lighting and depth-tested against the terrain.
-	# The lines sit almost flush with the satellite surface rather than
-	# appearing as bright, detached outlines.
+	# shaded by globe lighting and depth-tested against the satellite terrain.
 	var border_material := StandardMaterial3D.new()
 	border_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	border_material.albedo_color = Color(0.62, 0.66, 0.70, 0.68)
@@ -399,13 +437,8 @@ func _build_country_geography() -> void:
 				var point_b: Array = ring[(point_index + 1) % ring.size()]
 				if point_a.size() < 2 or point_b.size() < 2:
 					continue
-				# GeoJSON rings can cross the antimeridian. Drawing that edge as
-				# one segment creates a false line across an entire hemisphere.
 				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
 					continue
-				# Adjacent country polygons often contain the same shared edge in
-				# opposite directions. Draw it once so shared borders stay crisp
-				# and do not become artificially brighter or thicker.
 				var edge_key := _geographic_edge_key(
 					float(point_a[1]), float(point_a[0]),
 					float(point_b[1]), float(point_b[0])
@@ -434,7 +467,8 @@ func _build_country_geography() -> void:
 	country_boundaries.set_meta("country_feature_count", feature_count)
 	country_boundaries.set_meta("geographic_segment_count", segment_count)
 	country_boundaries.set_meta("surface_radius", EARTH_RADIUS * 1.0007)
-	country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0")
+	country_boundaries.set_meta("cartographic_style", "subtle_google_earth_inspired_admin0_" + tier)
+	country_boundaries.set_meta("geographic_resolution", tier)
 
 	for feature_variant in parsed["features"]:
 		if not feature_variant is Dictionary:
@@ -458,8 +492,80 @@ func _build_country_geography() -> void:
 		earth_pivot.add_child(label)
 		country_labels.append(label)
 
+	_country_geography_loaded = feature_count > 0
+	_country_geography_tier = tier
 	if feature_count == 0:
 		push_warning("Natural Earth country data contained no country features.")
+
+
+func _build_state_geography() -> void:
+	if _state_geography_loaded:
+		return
+	var parsed: Variant = _read_geography_data(STATE_DATA_10M_PATH)
+	if parsed == null:
+		return
+
+	var state_material := StandardMaterial3D.new()
+	state_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	state_material.albedo_color = Color(0.48, 0.55, 0.62, 0.48)
+	state_material.roughness = 1.0
+	state_material.metallic = 0.0
+	state_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	state_material.no_depth_test = false
+	state_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var state_mesh := ImmediateMesh.new()
+	state_mesh.surface_begin(Mesh.PRIMITIVE_LINES, state_material)
+	var feature_count := 0
+	var segment_count := 0
+	var drawn_edges: Dictionary = {}
+	for feature_variant in parsed["features"]:
+		if not feature_variant is Dictionary:
+			continue
+		var feature: Dictionary = feature_variant
+		feature_count += 1
+		for ring_variant in feature.get("r", []):
+			if not ring_variant is Array:
+				continue
+			var ring: Array = ring_variant
+			if ring.size() < 2:
+				continue
+			for point_index in range(ring.size()):
+				var point_a: Array = ring[point_index]
+				var point_b: Array = ring[(point_index + 1) % ring.size()]
+				if point_a.size() < 2 or point_b.size() < 2:
+					continue
+				if absf(float(point_b[0]) - float(point_a[0])) > 180.0:
+					continue
+				var edge_key := _geographic_edge_key(
+					float(point_a[1]), float(point_a[0]),
+					float(point_b[1]), float(point_b[0])
+				)
+				if drawn_edges.has(edge_key):
+					continue
+				drawn_edges[edge_key] = true
+				_append_geographic_segment(
+					state_mesh,
+					float(point_a[1]),
+					float(point_a[0]),
+					float(point_b[1]),
+					float(point_b[0]),
+					EARTH_RADIUS * 1.0009
+				)
+				segment_count += 1
+	state_mesh.surface_end()
+
+	state_boundaries = MeshInstance3D.new()
+	state_boundaries.name = "State_Province_Boundaries"
+	state_boundaries.mesh = state_mesh
+	state_boundaries.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	state_boundaries.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	state_boundaries.visible = false
+	earth_pivot.add_child(state_boundaries)
+	state_boundaries.set_meta("state_feature_count", feature_count)
+	state_boundaries.set_meta("geographic_segment_count", segment_count)
+	state_boundaries.set_meta("geographic_resolution", "10m_admin1")
+	_state_geography_loaded = feature_count > 0
 
 
 func _geographic_edge_key(latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float) -> String:
@@ -506,10 +612,9 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 
 
 func _update_country_label_visibility() -> void:
-	# Keep the globe clean at the world scale. Geographic overlays appear
-	# progressively as the camera approaches the surface.
+	# Load only the geographic level justified by the current camera zoom.
 	var show_boundaries := _zoom_distance <= COUNTRY_BOUNDARY_ZOOM_THRESHOLD
-	if show_boundaries and not _country_geography_loaded:
+	if show_boundaries:
 		_build_country_geography()
 	if is_instance_valid(country_boundaries):
 		country_boundaries.visible = show_boundaries
@@ -524,6 +629,12 @@ func _update_country_label_visibility() -> void:
 	for label in country_labels:
 		if is_instance_valid(label):
 			label.visible = max_label_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_label_rank
+
+	var show_states := _zoom_distance <= 3.2
+	if show_states and not _state_geography_loaded and FileAccess.file_exists(STATE_DATA_10M_PATH):
+		_build_state_geography()
+	if is_instance_valid(state_boundaries):
+		state_boundaries.visible = show_states
 
 
 

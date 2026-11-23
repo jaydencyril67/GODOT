@@ -1,0 +1,43 @@
+name: Build Globe Geography Data
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/build_globe_geography.py"
+      - ".github/workflows/globe-geography-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-geography:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install shapefile reader
+        run: python -m pip install pyshp==2.3.1
+      - name: Download and convert Natural Earth country and state data
+        run: python tools/build_globe_geography.py --output assets/globe
+      - name: Commit generated geography assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/globe/natural_earth_countries_50m.json.gz assets/globe/natural_earth_countries_10m.json.gz assets/globe/natural_earth_states_10m.json.gz
+          if git diff --cached --quiet; then
+            echo "Geography assets are already current."
+          else
+            git commit -m "Add progressive Natural Earth country and state geography"
+            git push origin HEAD:main
+          fi

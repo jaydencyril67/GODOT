@@ -32,3 +32,11 @@ NASA imagery is credited as a courtesy; no NASA endorsement is implied. NASA med
 - Country geometry remains sourced from Natural Earth. The current bundled layer is Admin 0 at 1:110m scale and is suitable only for global overview use.
 - The current style pass uses shaded cool-grey boundary lines, removes duplicate shared polygon edges where coordinates match, keeps boundaries close to the globe surface, and reduces country-label prominence.
 - Higher-resolution Admin 0, Admin 1, and Admin 2 geography is a separate future data integration; it is not represented as available in this build.
+
+
+## Progressive country and state geography
+- Country overview remains available from the existing Natural Earth 1:110m Admin-0 dataset.
+- Higher-detail country tiers are generated from Natural Earth 1:50m and 1:10m Admin-0 Countries, version 5.1.1.
+- First-level internal administrative divisions are generated from Natural Earth 1:10m Admin-1 States and Provinces, version 5.1.1. No Admin-2 counties, cities, or deeper location layers are included.
+- The generated compact files are gzip-compressed JSON and are loaded only after the corresponding zoom threshold is reached.
+- Natural Earth data is public domain. Source catalogue: https://www.naturalearthdata.com/downloads/10m-cultural-vectors/ and https://www.naturalearthdata.com/downloads/50m-cultural-vectors/
