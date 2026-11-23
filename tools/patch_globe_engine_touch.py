@@ -85,8 +85,14 @@ body = r'''    void GlobeCameraController::_unhandled_input( const Ref<InputEven
             }
             else if ( index == touch_index_b_ )
             {
-                const double previous = touch_pinch_distance_;
                 touch_position_b_ = position;
+            }
+
+            // Either finger may move during a pinch; always measure the pair after
+            // updating the moved pointer, rather than only when finger B moves.
+            if ( touch_index_a_ >= 0 && touch_index_b_ >= 0 )
+            {
+                const double previous = touch_pinch_distance_;
                 const double current =
                     static_cast<double>( ( touch_position_b_ - touch_position_a_ ).length() );
                 touch_pinch_distance_ = current;
