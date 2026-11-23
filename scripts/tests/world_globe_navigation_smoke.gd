@@ -107,8 +107,9 @@ func _run_test() -> void:
 	if rotation_target_after.y >= rotation_target_before.y:
 		_fail("Dragging down must lower the globe's vertical rotation target.")
 		return
-	if not is_equal_approx(rotation_target_after.x - rotation_target_before.x, 18.0 * 0.00075):
-		_fail("Globe drag sensitivity must match the reduced, controlled rotation setting.")
+	var expected_zoom_factor := clampf(float(globe.get("_zoom_distance")) / 4.9, 0.58, 1.0)
+	if not is_equal_approx(rotation_target_after.x - rotation_target_before.x, 18.0 * 0.00075 * expected_zoom_factor):
+		_fail("Globe drag sensitivity must match the reduced, zoom-adjusted rotation setting.")
 		return
 	globe.call("rotate_globe", Vector2(-18.0, 0.0))
 	var reversed_rotation_target: Vector2 = globe.get("_rotation_target")
