@@ -2,7 +2,7 @@ extends Node3D
 
 signal back_requested
 
-const EARTH_TEXTURE_PATH := "res://assets/globe/earth_continents.svg"
+const EARTH_TEXTURE: Texture2D = preload("res://assets/globe/earth_continents.svg")
 const EARTH_RADIUS := 1.6
 const ZOOM_MIN := 3.7
 const ZOOM_MAX := 9.0
@@ -101,7 +101,8 @@ func _build_earth() -> void:
 	earth_mesh.rings = 64
 
 	var earth_material := StandardMaterial3D.new()
-	earth_material.albedo_texture = load(EARTH_TEXTURE_PATH) as Texture2D
+	earth_material.albedo_texture = EARTH_TEXTURE
+	earth_material.albedo_color = Color.WHITE
 	earth_material.roughness = 0.92
 	earth_material.metallic = 0.025
 	earth_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
