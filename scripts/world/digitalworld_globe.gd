@@ -151,6 +151,7 @@ func _build_camera() -> void:
 	globe_camera.near = 0.1
 	globe_camera.far = 80.0
 	add_child(globe_camera)
+	globe_camera.current = true
 	_update_camera_zoom()
 
 
@@ -270,7 +271,9 @@ func _get_pinch_distance() -> float:
 	if _touch_points.size() < 2:
 		return 0.0
 	var keys := _touch_points.keys()
-	return (_touch_points[keys[0]] as Vector2).distance_to(_touch_points[keys[1]] as Vector2)
+	var first_position: Vector2 = _touch_points[keys[0]]
+	var second_position: Vector2 = _touch_points[keys[1]]
+	return first_position.distance_to(second_position)
 
 
 func rotate_globe(pointer_delta: Vector2) -> void:
