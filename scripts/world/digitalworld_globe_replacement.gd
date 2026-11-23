@@ -170,7 +170,7 @@ func _tap_is_on_globe(position: Vector2) -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_instance_valid(_country_subdivision_overlay):
+	if not _native_globe_ready or is_instance_valid(_country_subdivision_overlay):
 		super._unhandled_input(event)
 
 
@@ -201,6 +201,8 @@ func _screen_to_globe_coordinates(screen_position: Vector2) -> Vector2:
 
 
 func _geo_to_globe_position(latitude: float, longitude: float, radius: float) -> Vector3:
+	if not _native_globe_ready:
+		return super._geo_to_globe_position(latitude, longitude, radius)
 	var lat := deg_to_rad(clampf(latitude, -90.0, 90.0))
 	var lon := deg_to_rad(wrapf(longitude, -180.0, 180.0))
 	var scale_factor := radius / EARTH_RADIUS
@@ -209,6 +211,9 @@ func _geo_to_globe_position(latitude: float, longitude: float, radius: float) ->
 
 
 func _append_geographic_segment(mesh: ImmediateMesh, latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float, radius: float) -> void:
+	if not _native_globe_ready:
+		super._append_geographic_segment(mesh, latitude_a, longitude_a, latitude_b, longitude_b, radius)
+		return
 	var a := _geo_to_globe_position(latitude_a, longitude_a, radius)
 	var b := _geo_to_globe_position(latitude_b, longitude_b, radius)
 	var normal_a := Vector3(a.x / pow(WGS84_EQUATORIAL_RADIUS, 2.0), a.y / pow(WGS84_POLAR_RADIUS, 2.0), a.z / pow(WGS84_EQUATORIAL_RADIUS, 2.0)).normalized()
