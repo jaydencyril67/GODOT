@@ -96,6 +96,7 @@ func _process(delta: float) -> void:
 		return
 	if is_instance_valid(_native_camera):
 		var height := float(_native_camera.call("camera_height_above_ellipsoid"))
+		_zoom_distance = clampf(float(_native_camera.call("get_distance")) / WGS84_EQUATORIAL_RADIUS, ZOOM_MIN, ZOOM_MAX)
 		for label in country_labels:
 			if is_instance_valid(label):
 				var label_scale := clampf(height / 280.0, 9000.0, 42000.0)
@@ -223,3 +224,20 @@ func _update_country_label_visibility() -> void:
 	for label in country_labels:
 		if is_instance_valid(label):
 			label.visible = max_rank >= 0 and int(label.get_meta("natural_earth_label_rank", 5)) <= max_rank
+
+
+func zoom_globe(distance_delta: float) -> void:
+	if not _native_globe_ready or not is_instance_valid(_native_camera):
+		super.zoom_globe(distance_delta)
+		return
+	var current_distance := float(_native_camera.call("get_distance"))
+	var next_distance := current_distance * exp(distance_delta * 0.42)
+	_native_camera.call("set_distance", next_distance)
+	_zoom_distance = clampf(next_distance / WGS84_EQUATORIAL_RADIUS, ZOOM_MIN, ZOOM_MAX)
+	_update_country_label_visibility()
+
+
+func get_zoom_distance() -> float:
+	if _native_globe_ready and is_instance_valid(_native_camera):
+		return clampf(float(_native_camera.call("get_distance")) / WGS84_EQUATORIAL_RADIUS, ZOOM_MIN, ZOOM_MAX)
+	return super.get_zoom_distance()
