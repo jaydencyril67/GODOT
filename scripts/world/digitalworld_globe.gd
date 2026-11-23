@@ -370,15 +370,23 @@ func _update_camera_zoom() -> void:
 
 
 func _read_geography_data(path: String, compressed: bool = false) -> Variant:
-	var file: FileAccess
-	if compressed:
-		file = FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_GZIP)
-	else:
-		file = FileAccess.open(path, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		push_warning("Geographic data could not be opened: " + path)
 		return null
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	var source_text := file.get_as_text()
+	if compressed:
+		var compressed_file := FileAccess.open(path, FileAccess.READ)
+		if compressed_file == null:
+			push_warning("Compressed geographic data could not be opened: " + path)
+			return null
+		var compressed_bytes := compressed_file.get_buffer(compressed_file.get_length())
+		var decompressed_bytes := compressed_bytes.decompress_dynamic(128 * 1024 * 1024, FileAccess.COMPRESSION_GZIP)
+		if decompressed_bytes.is_empty():
+			push_warning("Compressed geographic data could not be decompressed: " + path)
+			return null
+		source_text = decompressed_bytes.get_string_from_utf8()
+	var parsed: Variant = JSON.parse_string(source_text)
 	if not parsed is Dictionary or not parsed.has("features"):
 		push_warning("Geographic data is malformed: " + path)
 		return null
