@@ -29,15 +29,9 @@ var _rotation_target := Vector2.ZERO
 var cloud_layer: MeshInstance3D
 var country_boundaries: MeshInstance3D
 var country_labels: Array[Label3D] = []
-var state_boundaries: MeshInstance3D
 var _country_geography_loaded := false
 var _country_geography_tier := ""
-var _country_feature_data: Array = []
 var _country_building := false
-var _state_geography_loaded := false
-var _state_geography_continent := ""
-var _state_building := false
-var _state_refresh_elapsed := 0.0
 
 var _debug_panel_label: Label
 var _debug_panel: PanelContainer
@@ -48,8 +42,6 @@ var _debug_asset_bytes := 0
 var _debug_parsed_features := 0
 var _debug_rendered_segments := 0
 var _debug_country_labels := 0
-var _debug_state_features := 0
-var _debug_state_segments := 0
 var _debug_parse_format := "Unknown"
 
 
