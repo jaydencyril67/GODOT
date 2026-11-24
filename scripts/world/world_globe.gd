@@ -17,7 +17,7 @@ const MAGNIFY_ZOOM_SENSITIVITY := 0.75
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
 const COUNTRY_BOUNDARIES_URL := "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
-const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=default&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=2048&height=1024&time=default"
+const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=default&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=4096&height=2048&time=default"
 const CACHE_ROOT := "user://digitalworld/globe"
 
 const CLOUD_SHADER := """
@@ -31,7 +31,7 @@ void fragment() {
 	float density = broad * 0.84 + detail * 0.16;
 	float cloud = smoothstep(0.56, 0.74, density);
 	ALBEDO = vec3(0.91, 0.95, 1.0);
-	ALPHA = cloud * 0.13;
+	ALPHA = cloud * 0.09;
 }
 """
 
@@ -576,7 +576,7 @@ func _load_overview_map() -> void:
 		elif cached_image == null or cached_image.is_empty():
 			_debug_event("Cached Earth imagery could not be decoded; requesting a fresh image.", true)
 	_debug_event("NASA Blue Marble imagery request started.")
-	_request_bytes(OVERVIEW_URL, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
+	_request_bytes(OVERVIEW_URL, cache_path, 32 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 			_debug_event("NASA WMS request failed (result %d, HTTP %d); keeping the lit fallback globe." % [result, response_code], true)
 			if overview_texture == null:
@@ -892,7 +892,7 @@ func _create_province_labels(features: Array) -> void:
 		var label_point := _administrative_label_point(properties, geometry)
 		if label_point.x < -180.0 or label_point.x > 180.0 or label_point.y < -90.0 or label_point.y > 90.0:
 			continue
-		var label := _make_globe_label(region_name, label_point.x, label_point.y, 1.024, 17, 0.0009)
+		var label := _make_globe_label(region_name, label_point.x, label_point.y, 1.022, 11, 0.00055)
 		label.name = "ProvinceName_" + str(province_label_nodes.size() + 1)
 		province_label_nodes.append(label)
 
@@ -975,7 +975,7 @@ func _make_globe_label(label_text: String, longitude: float, latitude: float, ra
 	label.text = label_text
 	label.font_size = font_size
 	label.pixel_size = pixel_size
-	label.outline_size = 3
+	label.outline_size = 2 if font_size <= 11 else 3
 	label.outline_modulate = Color("#07111F")
 	label.modulate = Color("#F1F7FF")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
