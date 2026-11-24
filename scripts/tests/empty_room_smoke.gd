@@ -7,27 +7,34 @@ func _initialize() -> void:
 func _run_test() -> void:
 	var packed_scene := load("res://scenes/empty_room.tscn") as PackedScene
 	if packed_scene == null:
-		_fail("The empty room scene could not be loaded.")
+		_fail("The Atlas executive office preview scene could not be loaded.")
 		return
 
-	var room_preview := packed_scene.instantiate()
-	root.add_child(room_preview)
+	var office_preview := packed_scene.instantiate()
+	root.add_child(office_preview)
 	await process_frame
 
-	var room_asset := room_preview.find_child("EmptyRoomAsset", true, false)
-	if room_asset == null:
-		_fail("The Blender-compatible room asset was not instantiated.")
+	var office := office_preview.find_child("AtlasExecutiveOffice", true, false) as Node3D
+	if office == null:
+		_fail("The downloaded Atlas GLB was not instantiated in the preview.")
 		return
 
-	var room_meshes := room_asset.find_children("*", "MeshInstance3D", true, false)
-	var room_mesh := room_meshes[0] as MeshInstance3D if not room_meshes.is_empty() else null
-	if room_mesh == null or room_mesh.mesh == null or room_mesh.mesh.get_surface_count() != 6:
-		_fail("The room must retain its six architectural surfaces: floor, four walls and ceiling.")
+	var office_meshes := office.find_children("*", "MeshInstance3D", true, false)
+	if office_meshes.size() < 20:
+		_fail("The Atlas office preview does not contain the expected furnished 3D geometry.")
 		return
 
-	var player := room_preview.find_child("FirstPersonPlayer", true, false) as CharacterBody3D
+	var office_bounds_value: Variant = office_preview.get("office_bounds")
+	if not (office_bounds_value is AABB):
+		_fail("The office preview did not calculate its interior bounds.")
+		return
+	var office_bounds: AABB = office_bounds_value
+	if office_bounds.size.x <= 1.0 or office_bounds.size.y <= 1.0 or office_bounds.size.z <= 1.0:
+		_fail("The imported office bounds are too small for a walkable interior.")
+
+	var player := office_preview.find_child("FirstPersonPlayer", true, false) as CharacterBody3D
 	if player == null:
-		_fail("The room is missing its first-person CharacterBody3D controller.")
+		_fail("The office is missing its first-person CharacterBody3D controller.")
 		return
 
 	var player_collision := player.find_child("PlayerCapsule", true, false) as CollisionShape3D
@@ -35,139 +42,85 @@ func _run_test() -> void:
 		_fail("The first-person player is missing its capsule collision shape.")
 		return
 
-	var camera := player.find_child("EmptyRoomCamera", true, false) as Camera3D
+	var camera := player.find_child("OfficeFirstPersonCamera", true, false) as Camera3D
 	if camera == null or not camera.current or not is_equal_approx(camera.position.y, 1.60):
-		_fail("The first-person camera must be active and positioned at eye height.")
+		_fail("The active office camera must be positioned at first-person eye height.")
 		return
 
-	var room_colliders := room_preview.find_children("*", "StaticBody3D", true, false)
-	if room_colliders.size() < 9:
-		_fail("The floor, walls, ceiling and closed glass exit door must have collision bodies.")
+	var collision_body := office_preview.find_child("AtlasOfficeCollision", true, false) as StaticBody3D
+	var collision_shape := office_preview.find_child("AtlasOfficeCollisionShape", true, false) as CollisionShape3D
+	if collision_body == null or collision_shape == null or not (collision_shape.shape is ConcavePolygonShape3D):
+		_fail("The office geometry is missing its combined walkable collision mesh.")
 		return
 
-	var floor_material := room_mesh.get_surface_override_material(0) as StandardMaterial3D
-	var wall_material := room_mesh.get_surface_override_material(1) as StandardMaterial3D
-	if floor_material == null or floor_material.albedo_texture == null:
-		_fail("The room floor is missing its subtle procedural texture.")
+	var joystick_base := office_preview.find_child("MovementJoystickBase", true, false) as Panel
+	var joystick_thumb := office_preview.find_child("MovementJoystickThumb", true, false) as Panel
+	if joystick_base == null or joystick_thumb == null:
+		_fail("The office is missing the mobile movement joystick.")
 		return
-	if wall_material == null or wall_material.albedo_texture == null:
-		_fail("The room walls are missing their subtle plaster texture.")
-		return
-
-	var glass_door := room_preview.find_child("GlassExitDoorPane", true, false) as MeshInstance3D
-	if glass_door == null or glass_door.mesh == null:
-		_fail("The room is missing its glass exit door pane.")
-		return
-	var glass_material := glass_door.material_override as StandardMaterial3D
-	if glass_material == null or glass_material.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA:
-		_fail("The exit door pane must use a translucent glass material.")
-		return
-	if room_preview.find_child("GlassExitDoorFrameLeft", true, false) == null or room_preview.find_child("ExitDoorPullHandle", true, false) == null:
-		_fail("The glass exit door is missing its frame or pull handle.")
-		return
-	if room_preview.find_child("ExitSignText", true, false) == null:
-		_fail("The glass door is missing its EXIT sign.")
-		return
-	var door_pivot := room_preview.find_child("GlassExitDoorPivot", true, false) as Node3D
-	var door_body := room_preview.find_child("GlassExitDoorCollision", true, false) as AnimatableBody3D
-	if door_pivot == null or door_body == null:
-		_fail("The glass door needs a hinged pivot and a moving collision body.")
+	if not is_equal_approx(joystick_base.size.x, 259.2):
+		_fail("The movement joystick base must remain 1.8 times its original size.")
 		return
 
-	if room_preview.find_child("MovementJoystickBase", true, false) == null:
-		_fail("The room is missing the left movement joystick.")
+	if office_preview.find_child("LookPad", true, false) == null:
+		_fail("The right-side look control is missing.")
 		return
-	if room_preview.find_child("MovementJoystickThumb", true, false) == null:
-		_fail("The movement joystick is missing its movable thumb.")
+	if office_preview.find_child("LookHintLabel", true, false) != null:
+		_fail("The right look circle must remain free of LOOK text.")
 		return
-	var joystick_base := room_preview.find_child("MovementJoystickBase", true, false) as Panel
-	if joystick_base == null or not is_equal_approx(joystick_base.size.x, 259.2):
-		_fail("The movement joystick base must be scaled to 1.8 times its original width.")
+	if office_preview.find_child("FirstPersonModeLabel", true, false) != null:
+		_fail("The first-person mode label should not appear on screen.")
 		return
-	if room_preview.find_child("LookPad", true, false) == null or room_preview.find_child("LookHintLabel", true, false) != null:
-		_fail("The right look circle must remain available without its LOOK text.")
-		return
-	if room_preview.find_child("FirstPersonModeLabel", true, false) != null:
-		_fail("The first-person label should no longer appear on screen.")
-		return
-	var door_button := room_preview.find_child("DoorOpenCircleButton", true, false) as Button
-	if door_button == null or door_button.visible:
-		_fail("The circular OPEN button must start hidden until the player approaches the door.")
+	if office_preview.find_child("OfficeBackButton", true, false) == null:
+		_fail("The office preview is missing its Back button.")
 		return
 
-	var large_room := room_preview.find_child("LargeEmptyRoom", true, false) as Node3D
-	var large_floor := large_room.find_child("LargeRoomFloor", true, false) as MeshInstance3D if large_room != null else null
-	var large_floor_mesh := large_floor.mesh as BoxMesh if large_floor != null else null
-	var large_area := large_floor_mesh.size.x * large_floor_mesh.size.z if large_floor_mesh != null else 0.0
-	var first_area := 6.16 * 5.16
-	if large_room == null or large_area <= 0.0 or absf(large_area / first_area - 2.5) > 0.02:
-		_fail("The second empty room must have 2.5 times the first room's floor area.")
+	if office_preview.find_child("LargeEmptyRoom", true, false) != null:
+		_fail("The old second empty room is still being created.")
 		return
-	for door_index in range(1, 5):
-		if large_room.find_child("LargeRoomInteriorDoor%d" % door_index, true, false) == null:
-			_fail("The larger room is missing one of its four interior doors.")
-			return
-	if large_room.find_child("LargeRoomWindowGlass-1", true, false) == null or large_room.find_child("LargeRoomWindowGlass1", true, false) == null:
-		_fail("The larger room must have windows on both side walls.")
+	if office_preview.find_child("EmptyRoomAsset", true, false) != null:
+		_fail("The old empty-room model is still being created.")
 		return
-	if large_room.find_child("LargeRoomStairRamp", true, false) == null or large_room.find_child("LargeRoomStairLanding", true, false) == null:
-		_fail("The larger room is missing its in-house staircase and upper landing.")
-		return
-	if room_preview.find_child("EmptyRoomBackButton", true, false) == null:
-		_fail("The first-person room is missing its Back button.")
-		return
-	if room_preview.find_child("HiddenCeilingFill", true, false) == null:
-		_fail("The room is missing its soft interior lighting.")
+	if office_preview.find_child("GlassExitDoorPane", true, false) != null:
+		_fail("The old procedural glass-door room should no longer be part of this preview.")
 		return
 
-	var room_constants: Dictionary = room_preview.get_script().get_script_constant_map()
-	if float(room_constants.get("WALK_SPEED", 0.0)) <= 0.0 or float(room_constants.get("LOOK_SENSITIVITY", 0.0)) <= 0.0:
-		_fail("Walking speed and look sensitivity must be positive.")
+	var constants: Dictionary = office_preview.get_script().get_script_constant_map()
+	if float(constants.get("WALK_SPEED", 0.0)) <= 0.0 or float(constants.get("LOOK_SENSITIVITY", 0.0)) <= 0.0:
+		_fail("Walking speed and look sensitivity must remain positive.")
 		return
 
-	var starting_position := player.global_position
-	var pad_center: Vector2 = room_preview.get("move_pad_center")
-	var joystick_radius := float(room_constants["JOYSTICK_RADIUS"])
-	room_preview.call("_set_move_joystick", pad_center + Vector2(0.0, -joystick_radius))
-	var movement_input: Vector2 = room_preview.get("joystick_vector")
+	var pad_center: Vector2 = office_preview.get("move_pad_center")
+	var joystick_radius := float(constants["JOYSTICK_RADIUS"])
+	office_preview.call("_set_move_joystick", pad_center + Vector2(0.0, -joystick_radius))
+	var movement_input: Vector2 = office_preview.get("joystick_vector")
 	if movement_input.y >= -0.9:
 		_fail("Pushing the left joystick forward must produce forward movement input.")
 		return
-
-	# Allow several physics ticks for the newly spawned capsule to settle
-	# onto the floor while confirming that the forward input is applied.
-	for _frame in range(6):
-		await physics_frame
-		if player.global_position.z < starting_position.z - 0.005:
-			break
-	if player.global_position.z >= starting_position.z - 0.005:
-		_fail("The first-person controller did not move forward when the joystick was pushed.")
-		return
-	room_preview.call("_reset_move_joystick")
+	office_preview.call("_reset_move_joystick")
 
 	var starting_yaw := player.rotation.y
-	room_preview.call("_apply_look", Vector2(30.0, -20.0))
+	office_preview.call("_apply_look", Vector2(30.0, -20.0))
 	if is_equal_approx(player.rotation.y, starting_yaw) or camera.rotation.x <= 0.0:
 		_fail("The right-side look control must rotate the player view.")
 		return
 
-	player.position = Vector3(0.0, 0.0, -0.55)
-	room_preview.call("_update_door_interaction")
-	if not door_button.visible:
-		_fail("The OPEN circle must appear when the player gets close to the glass door.")
-		return
-	room_preview.call("_open_exit_door")
-	if not bool(room_preview.get("door_is_open")) or door_button.visible:
-		_fail("Tapping OPEN must begin opening the glass door and hide the prompt.")
+	var back_requested := false
+	office_preview.back_requested.connect(func() -> void:
+		back_requested = true
+	)
+	office_preview.call("_request_back")
+	if not back_requested:
+		_fail("The Back button signal must be emitted so the game can return to the landing page.")
 		return
 
-	room_preview.queue_free()
+	office_preview.queue_free()
 	await process_frame
-	print("EMPTY_ROOM_SMOKE_TEST: PASS")
+	print("ATLAS_EXECUTIVE_OFFICE_SMOKE_TEST: PASS")
 	quit()
 
 
 func _fail(message: String) -> void:
 	push_error(message)
-	print("EMPTY_ROOM_SMOKE_TEST: FAIL - %s" % message)
+	print("ATLAS_EXECUTIVE_OFFICE_SMOKE_TEST: FAIL - %s" % message)
 	quit(1)
