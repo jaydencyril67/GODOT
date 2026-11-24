@@ -197,14 +197,14 @@ func _find_spawn_transform() -> Dictionary:
 			continue
 		walkable_floor_found = true
 		return {
-			"position": Vector3(point.x, maxf(floor_position.y, 0.0) + 0.12, point.y),
+			"position": Vector3(point.x, maxf(floor_position.y, 0.0) + 0.80, point.y),
 			"forward": Vector3(0.0, 0.0, -1.0)
 		}
 
 	# The guaranteed base floor is centered at the normalized room origin.
 	# Use it directly if no clean point on the imported mesh was found.
 	return {
-		"position": Vector3(0.0, 0.12, 0.0),
+		"position": Vector3(0.0, 0.80, 0.0),
 		"forward": Vector3(0.0, 0.0, -1.0)
 	}
 
@@ -255,10 +255,12 @@ func _build_fallback_floor_collision() -> void:
 		maxf(office_bounds.size.z + 4.0, 6.0)
 	)
 	floor_shape_node.shape = floor_shape
+	floor_shape_node.disabled = false
 	floor_shape_node.position = Vector3(0.0, -0.1, 0.0)
 	floor_body.add_child(floor_shape_node)
 	floor_body.collision_layer = 1
 	floor_body.collision_mask = 1
+	floor_body.set_meta("atlas_safety_floor_top", 0.0)
 	floor_body.position = Vector3.ZERO
 	add_child(floor_body)
 
@@ -302,8 +304,13 @@ func _build_first_person_player() -> void:
 	var spawn_forward: Vector3 = spawn.get("forward", Vector3(0.0, 0.0, -1.0))
 	player.position = spawn_position
 	player.rotation.y = atan2(-spawn_forward.x, -spawn_forward.z)
-	player.floor_snap_length = 0.22
-	player.safe_margin = 0.002
+	player.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
+	player.up_direction = Vector3.UP
+	player.collision_layer = 1
+	player.collision_mask = 1
+	player.floor_snap_length = 0.35
+	player.floor_max_angle = deg_to_rad(50.0)
+	player.safe_margin = 0.01
 	add_child(player)
 
 	var player_collision := CollisionShape3D.new()
