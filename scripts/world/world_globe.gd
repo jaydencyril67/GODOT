@@ -8,11 +8,11 @@ const MIN_DISTANCE := 1.08
 const MAX_DISTANCE := START_DISTANCE
 const COUNTRY_ZOOM_DISTANCE := 3.25
 const PROVINCE_ZOOM_DISTANCE := 1.82
-const DRAG_ROTATION_SENSITIVITY := 0.001875
-const WHEEL_ZOOM_STEP := 0.231
-const BUTTON_ZOOM_STEP := 0.252
-const PINCH_ZOOM_SENSITIVITY := 0.00525
-const MAGNIFY_ZOOM_SENSITIVITY := 0.75
+const DRAG_ROTATION_SENSITIVITY := 0.00159375
+const WHEEL_ZOOM_STEP := 0.19635
+const BUTTON_ZOOM_STEP := 0.2142
+const PINCH_ZOOM_SENSITIVITY := 0.0044625
+const MAGNIFY_ZOOM_SENSITIVITY := 0.6375
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
 const COUNTRY_BOUNDARIES_URL := "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
@@ -156,6 +156,9 @@ func _drag_planet(relative: Vector2) -> void:
 
 func _set_zoom(distance: float) -> void:
 	target_distance = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
+	# Apply zoom immediately so touch-pinch movement is reflected while fingers are still moving.
+	if is_instance_valid(camera):
+		camera.position.z = target_distance
 	if is_instance_valid(country_boundary_node):
 		country_boundary_node.visible = _is_country_zoom_active()
 	var show_provinces := _is_province_zoom_active()
