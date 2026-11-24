@@ -99,9 +99,9 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			_set_zoom(target_distance - 0.44)
+			_set_zoom(target_distance - 0.308)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			_set_zoom(target_distance + 0.44)
+			_set_zoom(target_distance + 0.308)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			dragging = event.pressed
 	elif event is InputEventMouseMotion and dragging:
@@ -121,7 +121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if touch_points.size() >= 2:
 				var next_distance := _get_pinch_distance()
 				if last_pinch_distance > 0.0 and next_distance > 0.0:
-					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.010)
+					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.007)
 				last_pinch_distance = next_distance
 			else:
 				_drag_planet(event.relative)
@@ -375,14 +375,14 @@ func _build_interface() -> void:
 	var zoom_out := Button.new()
 	zoom_out.text = "−"
 	zoom_out.custom_minimum_size = Vector2(42, 44)
-	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + 0.48))
+	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + 0.336))
 	_style_button(zoom_out, false)
 	header.add_child(zoom_out)
 
 	var zoom_in := Button.new()
 	zoom_in.text = "+"
 	zoom_in.custom_minimum_size = Vector2(42, 44)
-	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - 0.48))
+	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - 0.336))
 	_style_button(zoom_in, true)
 	header.add_child(zoom_in)
 
