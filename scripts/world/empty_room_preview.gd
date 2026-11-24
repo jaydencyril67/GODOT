@@ -362,7 +362,7 @@ func _make_round_panel(node_name: String, panel_size: Vector2, fill: Color, bord
 func _layout_touch_controls() -> void:
 	if not is_instance_valid(ui_root):
 		return
-	var screen_size := get_viewport_rect().size
+	var screen_size := get_viewport().get_visible_rect().size
 	move_pad_center = Vector2(maxf(78.0, screen_size.x * 0.17), screen_size.y - 112.0)
 	look_pad_center = Vector2(screen_size.x - maxf(78.0, screen_size.x * 0.17), screen_size.y - 112.0)
 	move_pad_base.position = move_pad_center - JOYSTICK_BASE_SIZE * 0.5
@@ -402,7 +402,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _begin_touch(index: int, position: Vector2) -> void:
-	var screen_size := get_viewport_rect().size
+	var screen_size := get_viewport().get_visible_rect().size
 	if _is_move_zone(position) and move_touch_index == -1:
 		touch_roles[index] = "move"
 		move_touch_index = index
@@ -422,7 +422,7 @@ func _end_touch(index: int) -> void:
 
 
 func _is_move_zone(position: Vector2) -> bool:
-	var screen_size := get_viewport_rect().size
+	var screen_size := get_viewport().get_visible_rect().size
 	return position.x < screen_size.x * 0.5 and position.y > screen_size.y * 0.52
 
 
