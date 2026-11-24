@@ -229,8 +229,10 @@ func _build_first_person_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "FirstPersonPlayer"
 	var spawn: Dictionary = _find_spawn_transform()
-	player.position = spawn["position"]
-	player.rotation.y = atan2(-spawn["forward"].x, -spawn["forward"].z)
+	var spawn_position: Vector3 = spawn.get("position", Vector3(0.0, 0.035, 1.0))
+	var spawn_forward: Vector3 = spawn.get("forward", Vector3(0.0, 0.0, -1.0))
+	player.position = spawn_position
+	player.rotation.y = atan2(-spawn_forward.x, -spawn_forward.z)
 	player.floor_snap_length = 0.22
 	player.safe_margin = 0.002
 	add_child(player)
