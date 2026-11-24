@@ -6,25 +6,19 @@ const RADIUS := 1.0
 const START_DISTANCE := 3.65
 const MIN_DISTANCE := 1.08
 const MAX_DISTANCE := START_DISTANCE
-const PROVINCE_ZOOM_DISTANCE := 2.78
+const COUNTRY_ZOOM_DISTANCE := 3.25
+const PROVINCE_ZOOM_DISTANCE := 1.82
+const IDLE_ROTATION_SPEED := 0.009
+const DRAG_ROTATION_SENSITIVITY := 0.001875
+const WHEEL_ZOOM_STEP := 0.231
+const BUTTON_ZOOM_STEP := 0.252
+const PINCH_ZOOM_SENSITIVITY := 0.00525
+const MAGNIFY_ZOOM_SENSITIVITY := 0.75
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
 const COUNTRY_BOUNDARIES_URL := "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
 const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=default&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=2048&height=1024&time=default"
 const CACHE_ROOT := "user://digitalworld/globe"
-
-const EARTH_SHADER := """
-shader_type spatial;
-render_mode cull_back;
-uniform sampler2D earth_map : source_color, filter_linear_mipmap, repeat_enable;
-void fragment() {
-	vec3 surface = texture(earth_map, UV).rgb;
-	ALBEDO = surface;
-	ROUGHNESS = 0.88;
-	SPECULAR = 0.12;
-	EMISSION = surface * 0.035;
-}
-"""
 
 const CLOUD_SHADER := """
 shader_type spatial;
@@ -54,7 +48,7 @@ void fragment() {
 
 var planet_root: Node3D
 var earth_instance: MeshInstance3D
-var earth_material: ShaderMaterial
+var earth_material: StandardMaterial3D
 var cloud_shell: MeshInstance3D
 var camera: Camera3D
 var target_distance := START_DISTANCE
@@ -74,12 +68,20 @@ var region_request_generation := 0
 var region_check_elapsed := 0.0
 var status_label: Label
 var overview_texture: Texture2D
+var debug_toggle: Button
+var debug_panel: PanelContainer
+var debug_text: Label
+var debug_messages: Array[String] = []
+var debug_failure_count := 0
+var country_cache_retry_used := false
+var last_debug_country_state := ""
 
 
 func _ready() -> void:
 	_build_space_environment()
 	_build_planet()
 	_build_interface()
+	_debug_event("Globe scene initialized; online assets are being checked.")
 	_load_overview_map()
 	_load_country_boundaries()
 	set_process(true)
@@ -87,7 +89,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not dragging:
-		planet_root.rotate_y(delta * 0.012)
+		planet_root.rotate_y(delta * IDLE_ROTATION_SPEED)
 	camera.position.z = lerpf(camera.position.z, target_distance, minf(delta * 5.0, 1.0))
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	region_check_elapsed += delta
@@ -99,9 +101,9 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			_set_zoom(target_distance - 0.308)
+			_set_zoom(target_distance - WHEEL_ZOOM_STEP)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			_set_zoom(target_distance + 0.308)
+			_set_zoom(target_distance + WHEEL_ZOOM_STEP)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			dragging = event.pressed
 	elif event is InputEventMouseMotion and dragging:
@@ -121,12 +123,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			if touch_points.size() >= 2:
 				var next_distance := _get_pinch_distance()
 				if last_pinch_distance > 0.0 and next_distance > 0.0:
-					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.007)
+					_set_zoom(target_distance + (last_pinch_distance - next_distance) * PINCH_ZOOM_SENSITIVITY)
 				last_pinch_distance = next_distance
 			else:
 				_drag_planet(event.relative)
 	elif event is InputEventMagnifyGesture:
-		_set_zoom(target_distance / maxf(event.factor, 0.1))
+		var adjusted_factor := 1.0 + (event.factor - 1.0) * MAGNIFY_ZOOM_SENSITIVITY
+		_set_zoom(target_distance / maxf(adjusted_factor, 0.1))
 
 
 func _get_pinch_distance() -> float:
@@ -139,21 +142,24 @@ func _get_pinch_distance() -> float:
 
 
 func _drag_planet(relative: Vector2) -> void:
-	planet_root.rotate_y(relative.x * 0.0025)
-	planet_root.rotate_x(relative.y * 0.0025)
+	planet_root.rotate_y(relative.x * DRAG_ROTATION_SENSITIVITY)
+	planet_root.rotate_x(relative.y * DRAG_ROTATION_SENSITIVITY)
 	planet_root.rotation.x = clampf(planet_root.rotation.x, -1.48, 1.48)
 
 
 func _set_zoom(distance: float) -> void:
 	target_distance = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
-	if not _is_province_zoom_active():
-		for node in province_boundary_nodes:
-			if is_instance_valid(node):
-				node.visible = false
-		for label in province_label_nodes:
-			if is_instance_valid(label):
-				label.visible = false
+	if is_instance_valid(country_boundary_node):
+		country_boundary_node.visible = _is_country_zoom_active()
+	var show_provinces := _is_province_zoom_active()
+	for node in province_boundary_nodes:
+		if is_instance_valid(node):
+			node.visible = show_provinces
+	for label in province_label_nodes:
+		if is_instance_valid(label):
+			label.visible = show_provinces
 	_refresh_globe_label_visibility()
+	_refresh_debug_panel()
 
 
 func _build_space_environment() -> void:
@@ -225,13 +231,16 @@ func _build_planet() -> void:
 	earth_instance = MeshInstance3D.new()
 	earth_instance.name = "EarthSurface"
 	earth_instance.mesh = _build_sphere_mesh(RADIUS, 160, 80)
-	earth_material = ShaderMaterial.new()
-	var earth_shader := Shader.new()
-	earth_shader.code = EARTH_SHADER
-	earth_material.shader = earth_shader
+	earth_material = StandardMaterial3D.new()
+	earth_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	earth_material.albedo_color = Color.WHITE
+	earth_material.roughness = 0.92
+	earth_material.metallic = 0.0
+	earth_material.specular = 0.18
+	earth_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	var fallback_ocean := Image.create(2, 2, false, Image.FORMAT_RGB8)
 	fallback_ocean.fill(Color("#0B3556"))
-	earth_material.set_shader_parameter("earth_map", ImageTexture.create_from_image(fallback_ocean))
+	earth_material.albedo_texture = ImageTexture.create_from_image(fallback_ocean)
 	earth_instance.material_override = earth_material
 	earth_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(earth_instance)
@@ -279,6 +288,7 @@ func _build_planet() -> void:
 	atmosphere.material_override = atmosphere_material
 	atmosphere.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(atmosphere)
+	_debug_event("3D geometry ready: lit Earth sphere, cloud shell, and atmosphere.")
 
 
 func _build_sphere_mesh(radius: float, longitude_segments: int, latitude_segments: int) -> ArrayMesh:
@@ -372,17 +382,24 @@ func _build_interface() -> void:
 	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heading.add_child(subtitle)
 
+	debug_toggle = Button.new()
+	debug_toggle.text = "DEBUG"
+	debug_toggle.custom_minimum_size = Vector2(58, 44)
+	debug_toggle.pressed.connect(_toggle_debug_panel)
+	_style_button(debug_toggle, false)
+	header.add_child(debug_toggle)
+
 	var zoom_out := Button.new()
 	zoom_out.text = "−"
 	zoom_out.custom_minimum_size = Vector2(42, 44)
-	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + 0.336))
+	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + BUTTON_ZOOM_STEP))
 	_style_button(zoom_out, false)
 	header.add_child(zoom_out)
 
 	var zoom_in := Button.new()
 	zoom_in.text = "+"
 	zoom_in.custom_minimum_size = Vector2(42, 44)
-	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - 0.336))
+	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - BUTTON_ZOOM_STEP))
 	_style_button(zoom_in, true)
 	header.add_child(zoom_in)
 
@@ -406,6 +423,101 @@ func _build_interface() -> void:
 	attribution.add_theme_color_override("font_color", Color("#72839D"))
 	attribution.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layout.add_child(attribution)
+	_build_debug_panel(layer)
+
+
+func _build_debug_panel(layer: CanvasLayer) -> void:
+	var overlay := Control.new()
+	overlay.name = "GlobeDiagnosticsOverlay"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(overlay)
+
+	debug_panel = PanelContainer.new()
+	debug_panel.name = "GlobeDiagnosticsPanel"
+	debug_panel.anchor_left = 1.0
+	debug_panel.anchor_right = 1.0
+	debug_panel.anchor_top = 0.0
+	debug_panel.anchor_bottom = 0.0
+	debug_panel.offset_left = -306.0
+	debug_panel.offset_top = 62.0
+	debug_panel.offset_right = -12.0
+	debug_panel.offset_bottom = 292.0
+	debug_panel.visible = false
+	debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(debug_panel)
+
+	var panel_layout := VBoxContainer.new()
+	panel_layout.add_theme_constant_override("separation", 6)
+	debug_panel.add_child(panel_layout)
+
+	var panel_title := Label.new()
+	panel_title.text = "LIVE GLOBE DIAGNOSTICS"
+	panel_title.add_theme_font_size_override("font_size", 12)
+	panel_layout.add_child(panel_title)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(270, 184)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel_layout.add_child(scroll)
+
+	debug_text = Label.new()
+	debug_text.custom_minimum_size = Vector2(266, 0)
+	debug_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	debug_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	scroll.add_child(debug_text)
+	_refresh_debug_panel()
+
+
+func _toggle_debug_panel() -> void:
+	if not is_instance_valid(debug_panel):
+		return
+	debug_panel.visible = not debug_panel.visible
+	debug_toggle.text = "CLOSE" if debug_panel.visible else "DEBUG"
+	_refresh_debug_panel()
+
+
+func _debug_event(message: String, failed: bool = false) -> void:
+	var entry := ("[FAIL] " if failed else "[INFO] ") + message
+	debug_messages.append(entry)
+	if failed:
+		debug_failure_count += 1
+	while debug_messages.size() > 12:
+		debug_messages.pop_front()
+	print("GLOBE_DIAGNOSTICS: " + entry)
+	_refresh_debug_panel()
+
+
+func _refresh_debug_panel() -> void:
+	if not is_instance_valid(debug_text):
+		return
+	var earth_ready := is_instance_valid(earth_instance) and earth_instance.mesh != null and earth_instance.mesh.get_surface_count() > 0
+	var cloud_ready := is_instance_valid(cloud_shell) and cloud_shell.mesh != null
+	var atmosphere_ready := is_instance_valid(planet_root) and is_instance_valid(planet_root.get_node_or_null("BlueAtmosphericRim"))
+	var map_state := "LOADED" if overview_texture != null else "FALLBACK / WAITING"
+	var country_state := "LOADED (%d features)" % country_features.size() if country_boundaries_loaded else ("LOADING" if country_boundaries_loading else "NOT LOADED")
+	var country_layer_state := "VISIBLE" if is_instance_valid(country_boundary_node) and country_boundary_node.visible else "HIDDEN"
+	var province_ready := not province_boundary_nodes.is_empty()
+	var province_layer_state := "VISIBLE" if province_ready and province_boundary_nodes[0].visible else ("LOADED / HIDDEN" if province_ready else "NOT LOADED")
+	var lines := PackedStringArray([
+		"3D Earth mesh: %s" % ("READY" if earth_ready else "FAILED"),
+		"Lit material: %s" % ("STANDARD PBR" if earth_material is StandardMaterial3D else "FAILED"),
+		"Cloud shell: %s" % ("READY" if cloud_ready else "FAILED"),
+		"Atmosphere: %s" % ("READY" if atmosphere_ready else "FAILED"),
+		"NASA imagery: " + map_state,
+		"Country dataset: " + country_state,
+		"Country borders: " + country_layer_state,
+		"State/province layer: " + province_layer_state,
+		"Zoom target: %.2f (country <= %.2f / regions <= %.2f)" % [target_distance, COUNTRY_ZOOM_DISTANCE, PROVINCE_ZOOM_DISTANCE],
+		"Rotation: drag %.6f / idle %.3f" % [DRAG_ROTATION_SENSITIVITY, IDLE_ROTATION_SPEED],
+		"Zoom input: wheel %.3f / buttons %.3f / pinch %.5f / magnify %.2f" % [WHEEL_ZOOM_STEP, BUTTON_ZOOM_STEP, PINCH_ZOOM_SENSITIVITY, MAGNIFY_ZOOM_SENSITIVITY],
+		"Failures recorded: %d" % debug_failure_count,
+		"",
+		"RECENT EVENTS:"
+	])
+	for entry in debug_messages:
+		lines.append(entry)
+	debug_text.text = "\n".join(lines)
 
 
 func _style_button(button: Button, primary: bool) -> void:
@@ -432,20 +544,28 @@ func _load_overview_map() -> void:
 		var cached_image := Image.load_from_file(cache_path)
 		if cached_image != null and not cached_image.is_empty() and _apply_overview_image(cached_image):
 			status_label.text = "CACHED EARTH IMAGERY  ·  CHECKING FOR AN UPDATE"
+			_debug_event("Cached Earth imagery restored.")
+		elif cached_image == null or cached_image.is_empty():
+			_debug_event("Cached Earth imagery could not be decoded; requesting a fresh image.", true)
+	_debug_event("NASA Blue Marble imagery request started.")
 	_request_bytes(OVERVIEW_URL, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+			_debug_event("NASA WMS request failed (result %d, HTTP %d); keeping the lit fallback globe." % [result, response_code], true)
 			if overview_texture == null:
 				status_label.text = "NASA MAP UNAVAILABLE  ·  CHECK YOUR CONNECTION"
 			return
 		var image := Image.new()
 		if image.load_jpg_from_buffer(body) != OK or image.get_width() < 512 or image.get_height() < 256:
+			_debug_event("NASA WMS response was not a usable 512x256+ JPEG image.", true)
 			if overview_texture == null:
 				status_label.text = "NASA MAP RESPONSE IS INVALID  ·  CHECK YOUR CONNECTION"
 			return
 		if not _apply_overview_image(image):
+			_debug_event("Decoded NASA imagery could not be applied to the Earth material.", true)
 			if overview_texture == null:
 				status_label.text = "NASA MAP COULD NOT BE APPLIED"
 			return
+		_debug_event("NASA Blue Marble texture loaded (%d x %d)." % [image.get_width(), image.get_height()])
 		status_label.text = "NASA BLUE MARBLE  ·  DRAG TO ROTATE  ·  PINCH TO ZOOM"
 	, true)
 
@@ -456,12 +576,15 @@ func _apply_overview_image(image: Image) -> bool:
 	var prepared_image := image.duplicate()
 	prepared_image.generate_mipmaps()
 	overview_texture = ImageTexture.create_from_image(prepared_image)
-	earth_material.set_shader_parameter("earth_map", overview_texture)
+	if not is_instance_valid(earth_material):
+		return false
+	earth_material.albedo_texture = overview_texture
 	return true
 
 
 func _load_country_boundaries() -> void:
 	country_boundaries_loading = true
+	_debug_event("Loading Natural Earth country boundaries.")
 	status_label.text = "LOADING WORLD COUNTRY BOUNDARIES…"
 	var cache_path := CACHE_ROOT + "/natural_earth_admin0.geojson"
 	_request_bytes(COUNTRY_BOUNDARIES_URL, cache_path, 12 * 1024 * 1024, _on_country_boundaries_loaded)
@@ -470,12 +593,20 @@ func _load_country_boundaries() -> void:
 func _on_country_boundaries_loaded(result: int, response_code: int, body: PackedByteArray) -> void:
 	country_boundaries_loading = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		_debug_event("Country dataset request failed (result %d, HTTP %d)." % [result, response_code], true)
 		status_label.text = "COUNTRY OUTLINES UNAVAILABLE  ·  CHECK YOUR CONNECTION"
 		return
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not parsed is Dictionary or not _apply_country_boundaries(parsed):
+		if not country_cache_retry_used:
+			country_cache_retry_used = true
+			_debug_event("Cached country dataset is invalid; retrying from the online source.", true)
+			_request_bytes(COUNTRY_BOUNDARIES_URL, CACHE_ROOT + "/natural_earth_admin0.geojson", 12 * 1024 * 1024, _on_country_boundaries_loaded, true)
+			return
+		_debug_event("Country dataset JSON could not be parsed or had no usable features.", true)
 		status_label.text = "COUNTRY OUTLINE DATA COULD NOT BE READ"
 		return
+	_debug_event("Country dataset loaded: %d features." % country_features.size())
 	status_label.text = "%d COUNTRY OUTLINES  ·  ZOOM IN FOR STATES / PROVINCES" % country_features.size()
 
 
@@ -483,17 +614,23 @@ func _apply_country_boundaries(geojson: Dictionary) -> bool:
 	var features: Variant = geojson.get("features", [])
 	if not features is Array or features.is_empty():
 		return false
-	var next_node := _add_boundary_mesh(geojson, Color("#D2E8FF"), 1.020, "WorldCountryBoundaries")
+	var next_node := _add_boundary_mesh(geojson, Color("#AFCFEA"), 1.012, "WorldCountryBoundaries")
 	if next_node == null:
 		return false
 	if is_instance_valid(country_boundary_node):
 		country_boundary_node.queue_free()
 	country_boundary_node = next_node
+	country_boundary_node.visible = _is_country_zoom_active()
 	country_features = features
 	country_boundaries_loaded = true
 	_create_country_labels(features)
 	_refresh_globe_label_visibility()
+	_debug_event("Country overlays prepared; hidden until the country zoom threshold.")
 	return true
+
+
+func _is_country_zoom_active() -> bool:
+	return target_distance <= COUNTRY_ZOOM_DISTANCE
 
 
 func _is_province_zoom_active() -> bool:
@@ -502,6 +639,9 @@ func _is_province_zoom_active() -> bool:
 
 func _update_administrative_layers() -> void:
 	_refresh_globe_label_visibility()
+	var show_countries := _is_country_zoom_active()
+	if is_instance_valid(country_boundary_node):
+		country_boundary_node.visible = show_countries
 	var show_provinces := _is_province_zoom_active()
 	for node in province_boundary_nodes:
 		if is_instance_valid(node):
@@ -511,6 +651,15 @@ func _update_administrative_layers() -> void:
 
 	var feature := _find_country_at_front()
 	if feature.is_empty():
+		for node in province_boundary_nodes:
+			if is_instance_valid(node):
+				node.visible = false
+		for label in province_label_nodes:
+			if is_instance_valid(label):
+				label.visible = false
+		if last_debug_country_state != "NO COUNTRY":
+			_debug_event("Deep zoom has no country centered beneath the camera; regional layer is waiting.")
+			last_debug_country_state = "NO COUNTRY"
 		status_label.text = "ZOOM ONTO A COUNTRY TO LOAD ITS REGIONS"
 		return
 	var properties: Dictionary = feature.get("properties", {})
@@ -526,6 +675,8 @@ func _update_administrative_layers() -> void:
 
 	focused_country_iso = iso
 	focused_country_name = str(properties.get("ADMIN", properties.get("NAME", "Selected country")))
+	last_debug_country_state = iso
+	_debug_event("Deep zoom target: %s (%s); requesting ADM1 regions." % [focused_country_name, iso])
 	region_request_generation += 1
 	var generation := region_request_generation
 	_clear_province_boundaries()
@@ -607,14 +758,17 @@ func _request_country_provinces(iso: String, generation: int) -> void:
 		if generation != region_request_generation or not _is_province_zoom_active():
 			return
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+			_debug_event("%s ADM1 metadata request failed (result %d, HTTP %d)." % [focused_country_name, result, response_code], true)
 			status_label.text = "%s REGIONAL DATA IS UNAVAILABLE" % focused_country_name.to_upper()
 			return
 		var metadata: Variant = JSON.parse_string(body.get_string_from_utf8())
 		if not metadata is Dictionary:
+			_debug_event("%s ADM1 metadata response was not valid JSON." % focused_country_name, true)
 			status_label.text = "%s REGIONAL DATA COULD NOT BE READ" % focused_country_name.to_upper()
 			return
 		var geojson_url := str(metadata.get("simplifiedGeometryGeoJSON", metadata.get("gjDownloadURL", "")))
 		if geojson_url.is_empty():
+			_debug_event("%s has no ADM1 download URL in geoBoundaries metadata." % focused_country_name, true)
 			status_label.text = "%s HAS NO PUBLISHED ADM1 DATASET" % focused_country_name.to_upper()
 			return
 		var geometry_cache := CACHE_ROOT + "/automatic_adm1_" + iso + "_geometry.json"
@@ -622,10 +776,12 @@ func _request_country_provinces(iso: String, generation: int) -> void:
 			if generation != region_request_generation or not _is_province_zoom_active():
 				return
 			if geo_result != HTTPRequest.RESULT_SUCCESS or geo_code != 200:
+				_debug_event("%s ADM1 geometry download failed (result %d, HTTP %d)." % [focused_country_name, geo_result, geo_code], true)
 				status_label.text = "%s REGIONAL BOUNDARIES COULD NOT BE DOWNLOADED" % focused_country_name.to_upper()
 				return
 			var geojson: Variant = JSON.parse_string(geo_body.get_string_from_utf8())
 			if not geojson is Dictionary:
+				_debug_event("%s ADM1 geometry response was not valid GeoJSON." % focused_country_name, true)
 				status_label.text = "%s REGIONAL DATA FORMAT IS INVALID" % focused_country_name.to_upper()
 				return
 			_apply_province_boundaries(geojson)
@@ -638,7 +794,7 @@ func _apply_province_boundaries(geojson: Dictionary) -> bool:
 	if not features is Array or features.is_empty():
 		status_label.text = "%s HAS NO STATE / PROVINCE FEATURES" % focused_country_name.to_upper()
 		return false
-	var node := _add_boundary_mesh(geojson, Color("#63C2FF"), 1.027, "AutomaticStateProvinceBoundaries")
+	var node := _add_boundary_mesh(geojson, Color("#55B5E9"), 1.019, "AutomaticStateProvinceBoundaries")
 	if node == null:
 		status_label.text = "%s REGIONAL OUTLINES COULD NOT BE DRAWN" % focused_country_name.to_upper()
 		return false
@@ -646,6 +802,7 @@ func _apply_province_boundaries(geojson: Dictionary) -> bool:
 	province_boundary_nodes.append(node)
 	_create_province_labels(features)
 	_refresh_globe_label_visibility()
+	_debug_event("%s ADM1 layer ready: %d state/province features." % [focused_country_name, features.size()])
 	status_label.text = "%s  ·  %d STATES / PROVINCES" % [focused_country_name.to_upper(), features.size()]
 	return true
 
@@ -678,7 +835,7 @@ func _create_country_labels(features: Array) -> void:
 			continue
 		var longitude := float(properties.get("LABEL_X", 0.0))
 		var latitude := float(properties.get("LABEL_Y", 0.0))
-		var label := _make_globe_label(country_name, longitude, latitude, 1.025, 34, 0.00155)
+		var label := _make_globe_label(country_name, longitude, latitude, 1.016, 18, 0.00085)
 		label.set_meta("natural_earth_label_rank", int(properties.get("LABELRANK", 7)))
 		label.name = "CountryName_" + str(properties.get("ADM0_A3", country_name)).replace(" ", "_")
 		country_label_nodes.append(label)
@@ -701,7 +858,7 @@ func _create_province_labels(features: Array) -> void:
 		var label_point := _administrative_label_point(properties, geometry)
 		if label_point.x < -180.0 or label_point.x > 180.0 or label_point.y < -90.0 or label_point.y > 90.0:
 			continue
-		var label := _make_globe_label(region_name, label_point.x, label_point.y, 1.033, 28, 0.00145)
+		var label := _make_globe_label(region_name, label_point.x, label_point.y, 1.024, 17, 0.0009)
 		label.name = "ProvinceName_" + str(province_label_nodes.size() + 1)
 		province_label_nodes.append(label)
 
@@ -784,7 +941,7 @@ func _make_globe_label(label_text: String, longitude: float, latitude: float, ra
 	label.text = label_text
 	label.font_size = font_size
 	label.pixel_size = pixel_size
-	label.outline_size = 7
+	label.outline_size = 3
 	label.outline_modulate = Color("#07111F")
 	label.modulate = Color("#F1F7FF")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -800,22 +957,23 @@ func _refresh_globe_label_visibility() -> void:
 	if not is_instance_valid(camera) or not is_instance_valid(planet_root):
 		return
 	var camera_direction := planet_root.to_local(camera.global_position).normalized()
-	var country_rank_limit := 5
-	if target_distance <= 2.85:
-		country_rank_limit = 7
-	if target_distance <= 2.15:
-		country_rank_limit = 10
+	var show_countries := _is_country_zoom_active()
+	var country_rank_limit := 6
+	if target_distance <= 2.75:
+		country_rank_limit = 8
+	if target_distance <= 2.20:
+		country_rank_limit = 11
 	for label in country_label_nodes:
 		if not is_instance_valid(label):
 			continue
 		var rank := int(label.get_meta("natural_earth_label_rank", 7))
-		var on_front := label.position.normalized().dot(camera_direction) > 0.06
-		label.visible = on_front and rank <= country_rank_limit
+		var on_front := label.position.normalized().dot(camera_direction) > 0.08
+		label.visible = show_countries and on_front and rank <= country_rank_limit
 	var show_provinces := _is_province_zoom_active()
 	for label in province_label_nodes:
 		if not is_instance_valid(label):
 			continue
-		label.visible = show_provinces and label.position.normalized().dot(camera_direction) > 0.035
+		label.visible = show_provinces and label.position.normalized().dot(camera_direction) > 0.05
 
 
 func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_name: String) -> MeshInstance3D:
@@ -826,7 +984,7 @@ func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_n
 	line_material.albedo_color = color
 	line_material.emission_enabled = true
 	line_material.emission = color
-	line_material.emission_energy_multiplier = 0.65
+	line_material.emission_energy_multiplier = 0.28
 	lines.set_material(line_material)
 	var features: Array = geojson.get("features", [])
 	for feature in features:
