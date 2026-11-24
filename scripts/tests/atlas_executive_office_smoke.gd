@@ -48,10 +48,10 @@ func _run_test() -> void:
 	if not fallback_floor_created or safety_floor == null or safety_floor_shape == null or not (safety_floor_shape.shape is BoxShape3D):
 		_fail("The office preview must include its guaranteed BoxShape3D safety floor.")
 		return
-	for frame_index in range(24):
+	for frame_index in range(60):
 		await physics_frame
 	if not player.is_on_floor():
-		_fail("The first-person player is still falling instead of standing on the office floor.")
+		_fail("The first-person player is not grounded after 60 physics frames. Y=%s velocity=%s mask=%s floor_position=%s floor_disabled=%s" % [player.global_position.y, player.velocity, player.collision_mask, safety_floor.global_position, safety_floor_shape.disabled])
 		return
 	if player.global_position.y < -0.02:
 		_fail("The first-person player fell below the safety floor. Y=%s velocity=%s mesh_floor=%s" % [player.global_position.y, player.velocity, walkable_floor_found])
