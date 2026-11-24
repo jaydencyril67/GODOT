@@ -29,6 +29,7 @@ var touch_roles: Dictionary = {}
 var move_touch_index := -1
 var mouse_move_active := false
 var mouse_look_active := false
+var room_wall_material: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -87,7 +88,8 @@ func _apply_room_finish() -> void:
 		push_warning("Empty room model does not contain the expected six surfaces.")
 		return
 
-	var wall_material := _make_room_material("Soft textured warm wall plaster", Color("#D2D0C8"), 0.94, 0.018, 41, false)
+	room_wall_material = _make_room_material("Soft textured warm wall plaster", Color("#D2D0C8"), 0.94, 0.018, 41, false)
+	var wall_material := room_wall_material
 	var floor_material := _make_room_material("Subtle tiled mineral floor", Color("#858A8B"), 0.88, 0.025, 73, true)
 	var ceiling_material := _make_room_material("Light matte ceiling", Color("#E5E2DB"), 0.97, 0.008, 19, false)
 	room_mesh.set_surface_override_material(0, floor_material)
@@ -133,9 +135,11 @@ func _make_room_material(material_name: String, base_color: Color, roughness_val
 
 
 func _build_glass_exit_door() -> void:
-	var wall_material := StandardMaterial3D.new()
-	wall_material.albedo_color = Color("#D2D0C8")
-	wall_material.roughness = 0.94
+	var wall_material: Material = room_wall_material
+	if wall_material == null:
+		wall_material = StandardMaterial3D.new()
+		(wall_material as StandardMaterial3D).albedo_color = Color("#D2D0C8")
+		(wall_material as StandardMaterial3D).roughness = 0.94
 
 	# Rebuild the far wall around a 1.44 m wide, 2.20 m high doorway.
 	_add_visual_box("ExitDoorWallLeft", Vector3(-1.90, 1.50, -2.58), Vector3(2.36, 3.16, 0.16), wall_material)
