@@ -53,19 +53,20 @@ func _run_test() -> void:
 		_fail("The globe must not show a manual country or province selector panel.")
 		return
 
-	if not is_equal_approx(float(globe.get("DRAG_ROTATION_SENSITIVITY")), 0.00159375):
+	var globe_constants: Dictionary = globe.get_script().get_script_constant_map()
+	if not is_equal_approx(float(globe_constants.get("DRAG_ROTATION_SENSITIVITY", -1.0)), 0.00159375):
 		_fail("Manual rotation sensitivity must be reduced by 15 percent.")
 		return
-	if not is_equal_approx(float(globe.get("WHEEL_ZOOM_STEP")), 0.19635):
+	if not is_equal_approx(float(globe_constants.get("WHEEL_ZOOM_STEP", -1.0)), 0.19635):
 		_fail("Mouse-wheel zoom sensitivity must be reduced by 15 percent.")
 		return
-	if not is_equal_approx(float(globe.get("BUTTON_ZOOM_STEP")), 0.2142):
+	if not is_equal_approx(float(globe_constants.get("BUTTON_ZOOM_STEP", -1.0)), 0.2142):
 		_fail("Button zoom sensitivity must be reduced by 15 percent.")
 		return
-	if not is_equal_approx(float(globe.get("PINCH_ZOOM_SENSITIVITY")), 0.0044625):
+	if not is_equal_approx(float(globe_constants.get("PINCH_ZOOM_SENSITIVITY", -1.0)), 0.0044625):
 		_fail("Pinch zoom sensitivity must be reduced by 15 percent.")
 		return
-	if not is_equal_approx(float(globe.get("MAGNIFY_ZOOM_SENSITIVITY")), 0.6375):
+	if not is_equal_approx(float(globe_constants.get("MAGNIFY_ZOOM_SENSITIVITY", -1.0)), 0.6375):
 		_fail("Magnify gesture sensitivity must be reduced by 15 percent.")
 		return
 
