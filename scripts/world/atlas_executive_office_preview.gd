@@ -300,7 +300,7 @@ func _build_first_person_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "FirstPersonPlayer"
 	var spawn: Dictionary = _find_spawn_transform()
-	var spawn_position: Vector3 = spawn.get("position", Vector3(0.0, 0.035, 1.0))
+	var spawn_position: Vector3 = spawn.get("position", Vector3(0.0, 1.0, 1.0))
 	var spawn_forward: Vector3 = spawn.get("forward", Vector3(0.0, 0.0, -1.0))
 	player.position = spawn_position
 	player.rotation.y = atan2(-spawn_forward.x, -spawn_forward.z)
@@ -311,14 +311,16 @@ func _build_first_person_player() -> void:
 	player.floor_snap_length = 0.35
 	player.floor_max_angle = deg_to_rad(50.0)
 	player.safe_margin = 0.01
-	add_child(player)
 
+	# Build and configure the complete collision hierarchy before the body
+	# enters the active scene tree, so PhysicsServer registers it atomically.
 	var player_collision := CollisionShape3D.new()
 	player_collision.name = "PlayerCapsule"
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = PLAYER_CAPSULE_RADIUS
 	capsule.height = PLAYER_CAPSULE_HEIGHT
 	player_collision.shape = capsule
+	player_collision.disabled = false
 	player_collision.position.y = PLAYER_CAPSULE_HEIGHT * 0.5
 	player.add_child(player_collision)
 
@@ -329,8 +331,9 @@ func _build_first_person_player() -> void:
 	player_camera.near = 0.05
 	player_camera.far = maxf(office_bounds.size.length(), 40.0)
 	player.add_child(player_camera)
-	player_camera.current = true
 
+	add_child(player)
+	player_camera.current = true
 
 func _build_touch_controls() -> void:
 	var ui_layer := CanvasLayer.new()
