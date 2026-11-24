@@ -108,8 +108,8 @@ const BLUEPRINTS := [
 		"date_rect": Rect2(0.12, 0.385, 0.76, 0.035),
 		"date_alignments": ["center", "right"],
 		"content_slots": [
-			{"type": "notification", "rect": Rect2(0.075, 0.435, 0.85, 0.075)},
-			{"type": "media", "rect": Rect2(0.075, 0.565, 0.85, 0.155)}
+			{"type": "notification", "rect": Rect2(0.075, 0.455, 0.85, 0.075)},
+			{"type": "media", "rect": Rect2(0.075, 0.585, 0.85, 0.155)}
 		],
 		"fingerprint": true
 	},
