@@ -15,6 +15,10 @@ on:
       log_name:
         required: true
         type: string
+      include_gaussian_asset:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,12 +27,18 @@ jobs:
   smoke-test:
     name: ${{ inputs.test_name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: ${{ inputs.include_gaussian_asset }}
+      - name: Exclude Gaussian PLY for unrelated tests
+        if: ${{ !inputs.include_gaussian_asset }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply /tmp/digitalworld-gaussian-office.ply
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
