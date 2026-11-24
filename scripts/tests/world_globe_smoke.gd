@@ -95,14 +95,24 @@ func _run_test() -> void:
 		_fail("The globe must remain stationary when it is not being dragged.")
 		return
 	globe.call("_set_zoom", 3.65)
+	var sensitivity_at_overview := float(globe.call("_get_drag_rotation_sensitivity"))
 	globe.call("_drag_planet", Vector2(100.0, 0.0))
 	var rotation_at_overview := planet_root.rotation.y
 	planet_root.rotation = Vector3.ZERO
+	globe.call("_set_zoom", 1.82)
+	var sensitivity_at_province_zoom := float(globe.call("_get_drag_rotation_sensitivity"))
+	globe.call("_drag_planet", Vector2(100.0, 0.0))
+	var rotation_at_province_zoom := planet_root.rotation.y
+	planet_root.rotation = Vector3.ZERO
 	globe.call("_set_zoom", 1.08)
+	var sensitivity_at_close_zoom := float(globe.call("_get_drag_rotation_sensitivity"))
 	globe.call("_drag_planet", Vector2(100.0, 0.0))
 	var rotation_at_close_zoom := planet_root.rotation.y
-	if not is_equal_approx(rotation_at_overview, rotation_at_close_zoom):
-		_fail("Drag rotation sensitivity must remain identical at every zoom level.")
+	if not (sensitivity_at_overview > sensitivity_at_province_zoom and sensitivity_at_province_zoom > sensitivity_at_close_zoom):
+		_fail("Drag rotation sensitivity must decrease progressively as the globe zooms in.")
+		return
+	if not (absf(rotation_at_overview) > absf(rotation_at_province_zoom) and absf(rotation_at_province_zoom) > absf(rotation_at_close_zoom)):
+		_fail("The same drag must rotate the globe less at closer zoom levels.")
 		return
 	planet_root.rotation = Vector3.ZERO
 	globe.call("_set_zoom", 3.2)
