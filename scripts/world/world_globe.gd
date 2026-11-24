@@ -567,7 +567,7 @@ func _style_button(button: Button, primary: bool) -> void:
 
 
 func _load_overview_map() -> void:
-	var cache_path := CACHE_ROOT + "/earth_overview.jpg"
+	var cache_path := CACHE_ROOT + "/earth_overview_4k.jpg"
 	if FileAccess.file_exists(cache_path):
 		var cached_image := Image.load_from_file(cache_path)
 		if cached_image != null and not cached_image.is_empty() and _apply_overview_image(cached_image):
