@@ -28,6 +28,10 @@ jobs:
         with:
           lfs: true
 
+      - name: Install GDGS Gaussian Splat addon
+        shell: bash
+        run: bash .github/scripts/install-gdgs-addon.sh
+
       - name: Calculate next DigitalWorld HQ release version
         id: version
         env:
