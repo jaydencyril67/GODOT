@@ -44,9 +44,9 @@ func _ready() -> void:
 	_build_environment()
 	if not _load_office_asset():
 		return
-	_build_office_collision()
-	# Always add a simple, reliable walkable base beneath the imported model.
-	# The Atlas mesh collision can be incomplete or contain only furniture.
+	# Keep imported Atlas meshes visual-only: their all-mesh concave collision
+	# traps the player against furniture and decorative geometry. Walking uses
+	# the dedicated safety floor instead.
 	_build_fallback_floor_collision()
 	fallback_floor_created = true
 	# Let the physics server register both collision bodies before spawning.
@@ -109,66 +109,6 @@ func _is_exterior_mesh(mesh_instance: MeshInstance3D) -> bool:
 				return true
 		current = current.get_parent()
 	return false
-
-
-func _build_office_collision() -> void:
-	var faces := PackedVector3Array()
-	var mesh_nodes := office_instance.find_children("*", "MeshInstance3D", true, false)
-	var preview_from_world := global_transform.affine_inverse()
-
-	for candidate in mesh_nodes:
-		var mesh_instance := candidate as MeshInstance3D
-		if mesh_instance == null or mesh_instance.mesh == null or _is_exterior_mesh(mesh_instance):
-			continue
-		if not mesh_instance.visible:
-			continue
-
-		var mesh_to_preview := preview_from_world * mesh_instance.global_transform
-		for surface_index in range(mesh_instance.mesh.get_surface_count()):
-			var surface_arrays: Array = mesh_instance.mesh.surface_get_arrays(surface_index)
-			if surface_arrays.is_empty():
-				continue
-			var vertices_value: Variant = surface_arrays[Mesh.ARRAY_VERTEX]
-			if not (vertices_value is PackedVector3Array):
-				continue
-			var vertices: PackedVector3Array = vertices_value
-			if vertices.size() < 3:
-				continue
-
-			var indices := PackedInt32Array()
-			var indices_value: Variant = surface_arrays[Mesh.ARRAY_INDEX]
-			if indices_value is PackedInt32Array:
-				indices = indices_value
-
-			if indices.is_empty():
-				for index in range(0, vertices.size() - 2, 3):
-					faces.push_back(mesh_to_preview * vertices[index])
-					faces.push_back(mesh_to_preview * vertices[index + 1])
-					faces.push_back(mesh_to_preview * vertices[index + 2])
-			else:
-				for index in range(0, indices.size() - 2, 3):
-					var a := int(indices[index])
-					var b := int(indices[index + 1])
-					var c := int(indices[index + 2])
-					if a < vertices.size() and b < vertices.size() and c < vertices.size():
-						faces.push_back(mesh_to_preview * vertices[a])
-						faces.push_back(mesh_to_preview * vertices[b])
-						faces.push_back(mesh_to_preview * vertices[c])
-
-	if faces.size() < 3:
-		push_warning("No office triangle geometry was available for collision.")
-		return
-
-	var collision_body := StaticBody3D.new()
-	collision_body.name = "AtlasOfficeCollision"
-	var collision_shape := CollisionShape3D.new()
-	collision_shape.name = "AtlasOfficeCollisionShape"
-	var concave_shape := ConcavePolygonShape3D.new()
-	concave_shape.backface_collision = true
-	concave_shape.set_faces(faces)
-	collision_shape.shape = concave_shape
-	collision_body.add_child(collision_shape)
-	add_child(collision_body)
 
 
 func _find_spawn_transform() -> Dictionary:

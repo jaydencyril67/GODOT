@@ -79,10 +79,8 @@ func _run_test() -> void:
 		_fail("The active office camera must be positioned at first-person eye height.")
 		return
 
-	var collision_body := office_preview.find_child("AtlasOfficeCollision", true, false) as StaticBody3D
-	var collision_shape := office_preview.find_child("AtlasOfficeCollisionShape", true, false) as CollisionShape3D
-	if collision_body == null or collision_shape == null or not (collision_shape.shape is ConcavePolygonShape3D):
-		_fail("The office geometry is missing its combined walkable collision mesh.")
+	if office_preview.find_child("AtlasOfficeCollision", true, false) != null:
+		_fail("The imported all-mesh collision body must remain disabled so furniture cannot trap the player.")
 		return
 
 	var joystick_base := office_preview.find_child("MovementJoystickBase", true, false) as Panel
