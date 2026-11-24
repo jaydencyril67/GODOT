@@ -157,14 +157,84 @@ jobs:
           test -x "$ANDROID_HOME/build-tools/35.0.0/zipalign"
           test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
 
+      - name: Configure resilient Maven repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle/init.d"
+          cat > "$HOME/.gradle/init.d/00-maven-mirrors.gradle" <<'GRADLE'
+          def centralMirror = 'https://maven.aliyun.com/repository/central'
+          def googleMirror = 'https://maven.aliyun.com/repository/google'
+          def pluginMirror = 'https://maven.aliyun.com/repository/gradle-plugin'
+
+          gradle.beforeSettings { settings ->
+              settings.pluginManagement.repositories {
+                  maven { url = uri(pluginMirror) }
+                  maven { url = uri(googleMirror) }
+                  maven { url = uri(centralMirror) }
+              }
+              settings.dependencyResolutionManagement.repositories {
+                  maven { url = uri(googleMirror) }
+                  maven { url = uri(centralMirror) }
+              }
+          }
+
+          allprojects {
+              buildscript.repositories {
+                  maven { url = uri(googleMirror) }
+                  maven { url = uri(centralMirror) }
+              }
+              repositories {
+                  maven { url = uri(googleMirror) }
+                  maven { url = uri(centralMirror) }
+              }
+          }
+          GRADLE
+          echo "Configured Google and Maven Central mirrors before default repositories."
+
       - name: Import project resources
-        run: godot --headless --editor --path . --import --quit
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/godot-import.log"
+          set +e
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$LOG"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [[ "$STATUS" -ne 0 ]]; then
+            echo "::error::Godot resource import exited with status $STATUS."
+            exit "$STATUS"
+          fi
+          if grep -Eiq '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Parse Error:|Failed to load|Failed loading|Error importing)' "$LOG"; then
+            echo "::error::Godot reported an import or script error despite returning exit code 0."
+            exit 1
+          fi
+          echo "Godot resource import completed without reported errors."
 
       - name: Export Android APK
+        timeout-minutes: 25
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p build
-          godot --headless --path . --install-android-build-template --export-debug "Android" build/DigitalWorldHQ-debug.apk
+          LOG="$RUNNER_TEMP/godot-android-export.log"
+          set +e
+          godot --headless --path . --install-android-build-template --export-debug "Android" build/DigitalWorldHQ-debug.apk 2>&1 | tee "$LOG"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [[ "$STATUS" -ne 0 ]]; then
+            echo "::error::Godot Android export exited with status $STATUS."
+            exit "$STATUS"
+          fi
+          if grep -Eiq '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Parse Error:|BUILD FAILED|Could not resolve|Could not GET)' "$LOG"; then
+            echo "::error::Godot or Gradle reported an export/build error despite returning exit code 0."
+            exit 1
+          fi
+          test -s build/DigitalWorldHQ-debug.apk || {
+            echo "::error::Godot reported success but no APK was produced."
+            exit 1
+          }
 
       - name: Validate APK integrity, signing, alignment, package and Android compatibility
         shell: bash
