@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - upload-atlas-splat
   pull_request:
     branches:
       - main
