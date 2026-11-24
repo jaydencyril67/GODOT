@@ -197,14 +197,14 @@ func _find_spawn_transform() -> Dictionary:
 			continue
 		walkable_floor_found = true
 		return {
-			"position": Vector3(point.x, maxf(floor_position.y, 0.0) + 0.80, point.y),
+			"position": Vector3(point.x, maxf(floor_position.y, 0.0) + PLAYER_CAPSULE_HEIGHT * 0.5 + 0.03, point.y),
 			"forward": Vector3(0.0, 0.0, -1.0)
 		}
 
 	# The guaranteed base floor is centered at the normalized room origin.
 	# Use it directly if no clean point on the imported mesh was found.
 	return {
-		"position": Vector3(0.0, 0.80, 0.0),
+		"position": Vector3(0.0, PLAYER_CAPSULE_HEIGHT * 0.5 + 0.03, 0.0),
 		"forward": Vector3(0.0, 0.0, -1.0)
 	}
 
@@ -248,15 +248,13 @@ func _build_fallback_floor_collision() -> void:
 	floor_body.name = "AtlasOfficeFallbackFloor"
 	var floor_shape_node := CollisionShape3D.new()
 	floor_shape_node.name = "AtlasOfficeFallbackFloorShape"
-	var floor_shape := BoxShape3D.new()
-	floor_shape.size = Vector3(
-		maxf(office_bounds.size.x + 4.0, 6.0),
-		0.2,
-		maxf(office_bounds.size.z + 4.0, 6.0)
-	)
+	# An infinite world-boundary plane avoids extent gaps in the generated
+	# box floor and guarantees a walkable surface across the whole room.
+	var floor_shape := WorldBoundaryShape3D.new()
+	floor_shape.plane = Plane(Vector3.UP, 0.0)
 	floor_shape_node.shape = floor_shape
 	floor_shape_node.disabled = false
-	floor_shape_node.position = Vector3(0.0, -0.1, 0.0)
+	floor_shape_node.position = Vector3.ZERO
 	floor_body.add_child(floor_shape_node)
 	floor_body.collision_layer = 1
 	floor_body.collision_mask = 1
@@ -321,12 +319,12 @@ func _build_first_person_player() -> void:
 	capsule.height = PLAYER_CAPSULE_HEIGHT
 	player_collision.shape = capsule
 	player_collision.disabled = false
-	player_collision.position.y = PLAYER_CAPSULE_HEIGHT * 0.5
+	player_collision.position = Vector3.ZERO
 	player.add_child(player_collision)
 
 	player_camera = Camera3D.new()
 	player_camera.name = "OfficeFirstPersonCamera"
-	player_camera.position = Vector3(0.0, CAMERA_EYE_HEIGHT, 0.0)
+	player_camera.position = Vector3(0.0, CAMERA_EYE_HEIGHT - PLAYER_CAPSULE_HEIGHT * 0.5, 0.0)
 	player_camera.fov = 78.0
 	player_camera.near = 0.05
 	player_camera.far = maxf(office_bounds.size.length(), 40.0)

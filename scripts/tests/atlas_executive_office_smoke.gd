@@ -45,8 +45,15 @@ func _run_test() -> void:
 	var fallback_floor_created := bool(office_preview.get("fallback_floor_created"))
 	var safety_floor := office_preview.find_child("AtlasOfficeFallbackFloor", true, false) as StaticBody3D
 	var safety_floor_shape := office_preview.find_child("AtlasOfficeFallbackFloorShape", true, false) as CollisionShape3D
-	if not fallback_floor_created or safety_floor == null or safety_floor_shape == null or not (safety_floor_shape.shape is BoxShape3D):
+	if not fallback_floor_created or safety_floor == null or safety_floor_shape == null or not (safety_floor_shape.shape is WorldBoundaryShape3D):
 		_fail("The office preview must include its guaranteed BoxShape3D safety floor.")
+		return
+	var floor_probe_position := Vector3(office_bounds.size.x * 0.5 + 1.0, 2.0, 0.0)
+	var floor_probe := PhysicsRayQueryParameters3D.create(floor_probe_position, Vector3(floor_probe_position.x, -1.0, floor_probe_position.z))
+	floor_probe.collision_mask = 1
+	var floor_hit: Dictionary = office_preview.get_world_3d().direct_space_state.intersect_ray(floor_probe)
+	if floor_hit.is_empty() or floor_hit.get("collider") != safety_floor:
+		_fail("The Atlas safety floor is not registered in the physics space for ray queries.")
 		return
 	for frame_index in range(60):
 		await physics_frame
@@ -63,7 +70,7 @@ func _run_test() -> void:
 		return
 
 	var camera := player.find_child("OfficeFirstPersonCamera", true, false) as Camera3D
-	if camera == null or not camera.current or not is_equal_approx(camera.position.y, 1.60):
+	if camera == null or not camera.current or not is_equal_approx(camera.position.y, 0.74):
 		_fail("The active office camera must be positioned at first-person eye height.")
 		return
 
