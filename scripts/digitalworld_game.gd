@@ -12,6 +12,7 @@ const ResearchManagerScript = preload("res://scripts/digitalworld_research_manag
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
+const EmptyRoomScene: PackedScene = preload("res://scenes/empty_room.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
@@ -38,6 +39,7 @@ var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var world_globe: Node3D
+var empty_room_preview: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
@@ -321,6 +323,9 @@ func _clear_world() -> void:
 	if is_instance_valid(world_globe):
 		world_globe.queue_free()
 	world_globe = null
+	if is_instance_valid(empty_room_preview):
+		empty_room_preview.queue_free()
+	empty_room_preview = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -454,10 +459,11 @@ func _show_menu() -> void:
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
+	var room_preview_button := _add_action_button(menu, "EMPTY ROOM", false, _show_empty_room)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, room_preview_button, continue_game, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -482,6 +488,16 @@ func _show_world_globe() -> void:
 	world_globe.name = "Standalone_Earth_Globe"
 	world_globe.connect("back_requested", Callable(self, "_show_menu"))
 	add_child(world_globe)
+
+
+func _show_empty_room() -> void:
+	current_screen = "empty_room"
+	_clear_world()
+	_new_screen()
+	empty_room_preview = EmptyRoomScene.instantiate() as Node3D
+	empty_room_preview.name = "Standalone_Empty_Room_Preview"
+	empty_room_preview.connect("back_requested", Callable(self, "_show_menu"))
+	add_child(empty_room_preview)
 
 
 func _animate_landing_menu(root: Control, welcome: Control, command_area: Control, command_panel: Control, buttons: Array[Button]) -> void:
