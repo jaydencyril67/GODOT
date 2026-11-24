@@ -225,8 +225,20 @@ func _find_spawn_transform() -> Dictionary:
 	# inside the room bounds instead of letting the character fall forever.
 	_build_fallback_floor_collision()
 	fallback_floor_created = true
+	var safe_margin_x := minf(0.5, office_bounds.size.x * 0.25)
+	var safe_margin_z := minf(0.5, office_bounds.size.z * 0.25)
+	var safe_x := clampf(
+		preferred_position.x,
+		office_bounds.position.x + safe_margin_x,
+		office_bounds.position.x + office_bounds.size.x - safe_margin_x
+	)
+	var safe_z := clampf(
+		preferred_position.z,
+		office_bounds.position.z + safe_margin_z,
+		office_bounds.position.z + office_bounds.size.z - safe_margin_z
+	)
 	return {
-		"position": Vector3(preferred_position.x, 0.05, preferred_position.z),
+		"position": Vector3(safe_x, 0.05, safe_z),
 		"forward": preferred_forward if has_entrance else Vector3(0.0, 0.0, -1.0)
 	}
 
@@ -256,7 +268,7 @@ func _has_player_clearance(space_state: PhysicsDirectSpaceState3D, point: Vector
 	query.shape = capsule
 	query.transform = Transform3D(
 		Basis(),
-		Vector3(point.x, floor_height + 0.05 + capsule.height * 0.5, point.y)
+		Vector3(point.x, floor_height + 0.12 + capsule.height * 0.5, point.y)
 	)
 	query.collision_mask = 1
 	query.collide_with_bodies = true
