@@ -53,6 +53,51 @@ func _run_test() -> void:
 		_fail("The globe must not show a manual country or province selector panel.")
 		return
 
+	if not is_equal_approx(float(globe.get("DRAG_ROTATION_SENSITIVITY")), 0.00159375):
+		_fail("Manual rotation sensitivity must be reduced by 15 percent.")
+		return
+	if not is_equal_approx(float(globe.get("WHEEL_ZOOM_STEP")), 0.19635):
+		_fail("Mouse-wheel zoom sensitivity must be reduced by 15 percent.")
+		return
+	if not is_equal_approx(float(globe.get("BUTTON_ZOOM_STEP")), 0.2142):
+		_fail("Button zoom sensitivity must be reduced by 15 percent.")
+		return
+	if not is_equal_approx(float(globe.get("PINCH_ZOOM_SENSITIVITY")), 0.0044625):
+		_fail("Pinch zoom sensitivity must be reduced by 15 percent.")
+		return
+	if not is_equal_approx(float(globe.get("MAGNIFY_ZOOM_SENSITIVITY")), 0.6375):
+		_fail("Magnify gesture sensitivity must be reduced by 15 percent.")
+		return
+
+	# Verify pinch zoom updates the camera during the drag, not after touch release.
+	var first_touch := InputEventScreenTouch.new()
+	first_touch.index = 0
+	first_touch.position = Vector2(0.0, 0.0)
+	first_touch.pressed = true
+	globe.call("_unhandled_input", first_touch)
+	var second_touch := InputEventScreenTouch.new()
+	second_touch.index = 1
+	second_touch.position = Vector2(100.0, 0.0)
+	second_touch.pressed = true
+	globe.call("_unhandled_input", second_touch)
+	var pinch_drag := InputEventScreenDrag.new()
+	pinch_drag.index = 1
+	pinch_drag.position = Vector2(200.0, 0.0)
+	globe.call("_unhandled_input", pinch_drag)
+	var pinch_target := float(globe.get("target_distance"))
+	if pinch_target >= 3.65 or not is_equal_approx(camera.position.z, pinch_target):
+		_fail("Pinch zoom must move the camera immediately while the fingers are still down.")
+		return
+	var release_first := InputEventScreenTouch.new()
+	release_first.index = 0
+	release_first.pressed = false
+	globe.call("_unhandled_input", release_first)
+	var release_second := InputEventScreenTouch.new()
+	release_second.index = 1
+	release_second.pressed = false
+	globe.call("_unhandled_input", release_second)
+	globe.call("_set_zoom", 3.65)
+
 	var sample_geojson := {
 		"type": "FeatureCollection",
 		"features": [{
