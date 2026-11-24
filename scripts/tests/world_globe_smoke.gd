@@ -28,6 +28,13 @@ func _run_test() -> void:
 	if not earth.material_override is StandardMaterial3D:
 		_fail("The Earth surface must use a lit StandardMaterial3D for reliable 3D shading.")
 		return
+	var earth_material := earth.material_override as StandardMaterial3D
+	if earth_material.texture_filter != BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS:
+		_fail("Earth imagery must retain mipmapped filtering for clear zoom transitions.")
+		return
+	if not str(globe.get("OVERVIEW_URL")).contains("width=4096&height=2048"):
+		_fail("The Earth overview imagery should use the upgraded 4K texture request.")
+		return
 	if not _has_godot_clockwise_front_faces(earth.mesh):
 		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
 		return
@@ -84,6 +91,19 @@ func _run_test() -> void:
 		_fail("The globe did not resolve the country at the center of its current view.")
 		return
 
+	var planet_root := globe.get("planet_root") as Node3D
+	planet_root.rotation = Vector3.ZERO
+	globe.call("_set_zoom", 3.65)
+	globe.call("_drag_planet", Vector2(100.0, 0.0))
+	var rotation_at_overview := planet_root.rotation.y
+	planet_root.rotation = Vector3.ZERO
+	globe.call("_set_zoom", 1.08)
+	globe.call("_drag_planet", Vector2(100.0, 0.0))
+	var rotation_at_close_zoom := planet_root.rotation.y
+	if not is_equal_approx(rotation_at_overview, rotation_at_close_zoom):
+		_fail("Drag rotation sensitivity must remain identical at every zoom level.")
+		return
+	planet_root.rotation = Vector3.ZERO
 	globe.call("_set_zoom", 3.2)
 	if not country_boundary.visible:
 		_fail("Country borders did not appear after zooming closer.")
@@ -137,6 +157,11 @@ func _run_test() -> void:
 	if globe.get("province_label_nodes").is_empty():
 		_fail("State/province name labels were not generated from the ADM1 dataset.")
 		return
+	var province_labels: Array = globe.get("province_label_nodes")
+	for province_label in province_labels:
+		if province_label.font_size > 11 or province_label.pixel_size > 0.00055:
+			_fail("State/province labels must remain compact and unobtrusive.")
+			return
 
 	globe.queue_free()
 	await process_frame
