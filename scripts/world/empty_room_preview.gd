@@ -9,11 +9,18 @@ const LOOK_SENSITIVITY := 0.0036
 const CAMERA_EYE_HEIGHT := 1.60
 const PLAYER_CAPSULE_RADIUS := 0.28
 const PLAYER_CAPSULE_HEIGHT := 1.72
-const JOYSTICK_RADIUS := 62.0
+const JOYSTICK_RADIUS := 62.0 * 1.8
 const JOYSTICK_DEADZONE := 0.12
-const JOYSTICK_BASE_SIZE := Vector2(144.0, 144.0)
-const JOYSTICK_THUMB_SIZE := Vector2(50.0, 50.0)
+const JOYSTICK_BASE_SIZE := Vector2(259.2, 259.2)
+const JOYSTICK_THUMB_SIZE := Vector2(90.0, 90.0)
 const LOOK_PAD_SIZE := Vector2(118.0, 118.0)
+
+const LARGE_ROOM_WIDTH := 9.73
+const LARGE_ROOM_DEPTH := 8.16
+const LARGE_ROOM_HEIGHT := 3.20
+const LARGE_ROOM_FRONT_Z := -2.66
+const LARGE_ROOM_CENTER_Z := LARGE_ROOM_FRONT_Z - LARGE_ROOM_DEPTH * 0.5
+const LARGE_ROOM_BACK_Z := LARGE_ROOM_FRONT_Z - LARGE_ROOM_DEPTH
 
 var player: CharacterBody3D
 var player_camera: Camera3D
@@ -30,6 +37,11 @@ var move_touch_index := -1
 var mouse_move_active := false
 var mouse_look_active := false
 var room_wall_material: StandardMaterial3D
+var door_pivot: Node3D
+var door_collision_shape: CollisionShape3D
+var door_open_button: Button
+var door_is_open := false
+var large_room_root: Node3D
 
 
 func _ready() -> void:
@@ -37,9 +49,11 @@ func _ready() -> void:
 	_apply_room_finish()
 	_build_glass_exit_door()
 	_build_room_collisions()
+	_build_large_empty_room()
 	_build_environment()
 	_build_first_person_player()
 	_build_touch_controls()
+	_build_door_interaction_ui()
 	set_process_input(true)
 	set_physics_process(true)
 
@@ -61,10 +75,13 @@ func _build_room_collisions() -> void:
 	_add_room_collision_box("BackWallTopCollision", Vector3(0.0, 2.64, -2.58), Vector3(1.44, 0.88, 0.16))
 	_add_room_collision_box("FrontWallCollision", Vector3(0.0, 1.50, 2.58), Vector3(6.16, 3.0, 0.16))
 	_add_room_collision_box("CeilingCollision", Vector3(0.0, 3.08, 0.0), Vector3(6.16, 0.16, 5.16))
-	_add_room_collision_box("GlassExitDoorCollision", Vector3(0.0, 1.10, -2.48), Vector3(1.18, 2.12, 0.08))
 
 
 func _add_room_collision_box(node_name: String, center: Vector3, dimensions: Vector3) -> void:
+	_add_collision_box_to(self, node_name, center, dimensions)
+
+
+func _add_collision_box_to(parent: Node, node_name: String, center: Vector3, dimensions: Vector3) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = node_name
 	body.position = center
@@ -73,7 +90,8 @@ func _add_room_collision_box(node_name: String, center: Vector3, dimensions: Vec
 	shape.size = dimensions
 	collision.shape = shape
 	body.add_child(collision)
-	add_child(body)
+	parent.add_child(body)
+	return body
 
 
 func _apply_room_finish() -> void:
@@ -139,9 +157,10 @@ func _make_room_material(material_name: String, base_color: Color, roughness_val
 func _build_glass_exit_door() -> void:
 	var wall_material: Material = room_wall_material
 	if wall_material == null:
-		wall_material = StandardMaterial3D.new()
-		(wall_material as StandardMaterial3D).albedo_color = Color("#D2D0C8")
-		(wall_material as StandardMaterial3D).roughness = 0.94
+		var fallback_wall := StandardMaterial3D.new()
+		fallback_wall.albedo_color = Color("#D2D0C8")
+		fallback_wall.roughness = 0.94
+		wall_material = fallback_wall
 
 	# Rebuild the far wall around a 1.44 m wide, 2.20 m high doorway.
 	_add_visual_box("ExitDoorWallLeft", Vector3(-1.90, 1.50, -2.58), Vector3(2.36, 3.16, 0.16), wall_material)
@@ -157,6 +176,13 @@ func _build_glass_exit_door() -> void:
 	_add_visual_box("GlassExitDoorFrameTop", Vector3(0.0, 2.20, -2.49), Vector3(1.44, 0.10, 0.16), frame_material)
 	_add_visual_box("GlassExitDoorThreshold", Vector3(0.0, 0.045, -2.49), Vector3(1.44, 0.09, 0.20), frame_material)
 
+	# The glass leaf and its collision share a hinge, so the door really swings
+	# into the larger room rather than disappearing when the player taps OPEN.
+	door_pivot = Node3D.new()
+	door_pivot.name = "GlassExitDoorPivot"
+	door_pivot.position = Vector3(-0.60, 0.0, -2.475)
+	add_child(door_pivot)
+
 	var glass_material := StandardMaterial3D.new()
 	glass_material.albedo_color = Color(0.44, 0.66, 0.69, 0.38)
 	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -164,13 +190,13 @@ func _build_glass_exit_door() -> void:
 	glass_material.roughness = 0.16
 	glass_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_add_visual_box("GlassExitDoorPane", Vector3(0.0, 1.10, -2.475), Vector3(1.20, 2.08, 0.035), glass_material)
+	_add_visual_box_to(door_pivot, "GlassExitDoorPane", Vector3(0.60, 1.10, 0.0), Vector3(1.20, 2.08, 0.035), glass_material)
 
 	var handle_mount_material := StandardMaterial3D.new()
 	handle_mount_material.albedo_color = Color("#24292B")
 	handle_mount_material.metallic = 0.62
 	handle_mount_material.roughness = 0.30
-	_add_visual_box("ExitDoorHandleMount", Vector3(0.48, 1.08, -2.445), Vector3(0.075, 0.22, 0.035), handle_mount_material)
+	_add_visual_box_to(door_pivot, "ExitDoorHandleMount", Vector3(1.08, 1.08, 0.045), Vector3(0.075, 0.22, 0.035), handle_mount_material)
 
 	var handle_material := StandardMaterial3D.new()
 	handle_material.albedo_color = Color("#C6C9C7")
@@ -184,9 +210,22 @@ func _build_glass_exit_door() -> void:
 	var handle := MeshInstance3D.new()
 	handle.name = "ExitDoorPullHandle"
 	handle.mesh = handle_mesh
-	handle.position = Vector3(0.48, 1.08, -2.415)
+	handle.position = Vector3(1.08, 1.08, 0.075)
 	handle.material_override = handle_material
-	add_child(handle)
+	door_pivot.add_child(handle)
+
+	var door_body := AnimatableBody3D.new()
+	door_body.name = "GlassExitDoorCollision"
+	door_body.sync_to_physics = true
+	var door_shape := CollisionShape3D.new()
+	door_shape.name = "GlassExitDoorCollisionShape"
+	var door_box := BoxShape3D.new()
+	door_box.size = Vector3(1.20, 2.12, 0.08)
+	door_shape.shape = door_box
+	door_shape.position = Vector3(0.60, 1.10, 0.0)
+	door_body.add_child(door_shape)
+	door_pivot.add_child(door_body)
+	door_collision_shape = door_shape
 
 	var sign_material := StandardMaterial3D.new()
 	sign_material.albedo_color = Color("#1E4938")
@@ -205,6 +244,10 @@ func _build_glass_exit_door() -> void:
 
 
 func _add_visual_box(node_name: String, center: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
+	return _add_visual_box_to(self, node_name, center, dimensions, material)
+
+
+func _add_visual_box_to(parent: Node, node_name: String, center: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = node_name
 	var box := BoxMesh.new()
@@ -212,7 +255,173 @@ func _add_visual_box(node_name: String, center: Vector3, dimensions: Vector3, ma
 	mesh_instance.mesh = box
 	mesh_instance.position = center
 	mesh_instance.material_override = material
-	add_child(mesh_instance)
+	parent.add_child(mesh_instance)
+	return mesh_instance
+
+
+func _build_large_empty_room() -> void:
+	large_room_root = Node3D.new()
+	large_room_root.name = "LargeEmptyRoom"
+	add_child(large_room_root)
+
+	var half_width := LARGE_ROOM_WIDTH * 0.5
+	var front_z := LARGE_ROOM_FRONT_Z
+	var back_z := LARGE_ROOM_BACK_Z
+	var center_z := LARGE_ROOM_CENTER_Z
+	var wall_material := _make_room_material("Large room plaster walls", Color("#D2D0C8"), 0.94, 0.014, 97, false)
+	var floor_material := _make_room_material("Large room mineral floor", Color("#929897"), 0.88, 0.020, 101, true)
+	var ceiling_material := _make_room_material("Large room matte ceiling", Color("#E5E2DB"), 0.97, 0.008, 109, false)
+
+	var metal_material := StandardMaterial3D.new()
+	metal_material.albedo_color = Color("#42494B")
+	metal_material.metallic = 0.46
+	metal_material.roughness = 0.38
+
+	var wood_material := StandardMaterial3D.new()
+	wood_material.albedo_color = Color("#70533D")
+	wood_material.roughness = 0.76
+
+	var wood_trim_material := StandardMaterial3D.new()
+	wood_trim_material.albedo_color = Color("#352C25")
+	wood_trim_material.roughness = 0.66
+
+	var glass_material := StandardMaterial3D.new()
+	glass_material.albedo_color = Color(0.52, 0.72, 0.78, 0.34)
+	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass_material.metallic = 0.12
+	glass_material.roughness = 0.18
+	glass_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var window_backdrop_material := StandardMaterial3D.new()
+	window_backdrop_material.albedo_color = Color("#8FA7B2")
+	window_backdrop_material.roughness = 1.0
+	window_backdrop_material.emission_enabled = true
+	window_backdrop_material.emission = Color("#425762")
+	window_backdrop_material.emission_energy_multiplier = 0.42
+
+	var stair_material := StandardMaterial3D.new()
+	stair_material.albedo_color = Color("#777C7B")
+	stair_material.roughness = 0.84
+
+	# This room has 2.5 times the floor area of the first room (about 79.4 m²).
+	_add_large_room_box("LargeRoomFloor", Vector3(0.0, -0.09, center_z), Vector3(LARGE_ROOM_WIDTH, 0.18, LARGE_ROOM_DEPTH), floor_material)
+	_add_large_room_box("LargeRoomCeiling", Vector3(0.0, LARGE_ROOM_HEIGHT + 0.08, center_z), Vector3(LARGE_ROOM_WIDTH, 0.16, LARGE_ROOM_DEPTH), ceiling_material)
+
+	# The front wall has a matching opening so the glass door connects directly
+	# into this room with no step or narrow corridor between the spaces.
+	var entry_half_width := 0.72
+	var side_wall_width := half_width - entry_half_width
+	var side_wall_center := (half_width + entry_half_width) * 0.5
+	_add_large_room_box("LargeRoomFrontWallLeft", Vector3(-side_wall_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(side_wall_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	_add_large_room_box("LargeRoomFrontWallRight", Vector3(side_wall_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(side_wall_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	_add_large_room_box("LargeRoomFrontWallLintel", Vector3(0.0, 2.70, front_z + 0.08), Vector3(1.44, 1.0, 0.16), wall_material)
+
+	# Side walls each contain a wide daylight window and one closed interior door.
+	var window_center_z := -5.90
+	var window_half_width := 1.0
+	var window_front_edge := window_center_z + window_half_width
+	var window_back_edge := window_center_z - window_half_width
+	var side_door_z := -9.55
+	var side_door_half_width := 0.55
+	var side_door_front_edge := side_door_z + side_door_half_width
+	var side_door_back_edge := side_door_z - side_door_half_width
+
+	for side in [-1.0, 1.0]:
+		var wall_x := side * (half_width - 0.08)
+		var front_segment_length := window_front_edge - front_z
+		var middle_segment_length := side_door_front_edge - window_back_edge
+		var rear_segment_length := back_z - side_door_back_edge
+		_add_large_room_box("LargeRoomSideFrontWall%d" % int(side), Vector3(wall_x, 1.60, (front_z + window_front_edge) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, front_segment_length), wall_material)
+		_add_large_room_box("LargeRoomSideMiddleWall%d" % int(side), Vector3(wall_x, 1.60, (window_back_edge + side_door_front_edge) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, middle_segment_length), wall_material)
+		_add_large_room_box("LargeRoomSideRearWall%d" % int(side), Vector3(wall_x, 1.60, (side_door_back_edge + back_z) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, rear_segment_length), wall_material)
+		_add_large_room_box("LargeRoomSideWindowSill%d" % int(side), Vector3(wall_x, 0.55, window_center_z), Vector3(0.16, 1.10, 2.0), wall_material)
+		_add_large_room_box("LargeRoomSideWindowHeader%d" % int(side), Vector3(wall_x, 2.85, window_center_z), Vector3(0.16, 0.70, 2.0), wall_material)
+
+		var outer_x := side * (half_width + 0.20)
+		_add_visual_box_to(large_room_root, "LargeRoomWindowBackdrop%d" % int(side), Vector3(outer_x, 1.80, window_center_z), Vector3(0.025, 1.30, 1.88), window_backdrop_material)
+		_add_visual_box_to(large_room_root, "LargeRoomWindowGlass%d" % int(side), Vector3(side * (half_width - 0.045), 1.80, window_center_z), Vector3(0.035, 1.36, 1.96), glass_material)
+		_add_visual_box_to(large_room_root, "LargeRoomWindowFrameTop%d" % int(side), Vector3(wall_x, 2.50, window_center_z), Vector3(0.11, 0.09, 2.14), metal_material)
+		_add_visual_box_to(large_room_root, "LargeRoomWindowFrameBottom%d" % int(side), Vector3(wall_x, 1.10, window_center_z), Vector3(0.11, 0.09, 2.14), metal_material)
+		for edge in [-1.0, 1.0]:
+			_add_visual_box_to(large_room_root, "LargeRoomWindowFrameSide%d_%d" % [int(side), int(edge)], Vector3(wall_x, 1.80, window_center_z + edge * 1.04), Vector3(0.11, 1.48, 0.09), metal_material)
+
+		_add_large_room_box("LargeRoomInteriorDoor%d" % (1 if side < 0.0 else 2), Vector3(side * (half_width - 0.045), 1.08, side_door_z), Vector3(0.05, 2.12, 1.0), wood_material)
+		for edge in [-1.0, 1.0]:
+			_add_visual_box_to(large_room_root, "LargeRoomSideDoorJamb%d_%d" % [int(side), int(edge)], Vector3(wall_x, 1.10, side_door_z + edge * 0.56), Vector3(0.10, 2.20, 0.10), wood_trim_material)
+		_add_visual_box_to(large_room_root, "LargeRoomSideDoorHeader%d" % int(side), Vector3(wall_x, 2.22, side_door_z), Vector3(0.10, 0.10, 1.18), wood_trim_material)
+		_add_visual_box_to(large_room_root, "LargeRoomSideDoorHandle%d" % int(side), Vector3(side * (half_width - 0.15), 1.08, side_door_z + 0.30), Vector3(0.06, 0.12, 0.08), metal_material)
+
+	# The far wall contains two additional doors, bringing the room to four.
+	var rear_door_centers := [-2.20, 2.20]
+	var rear_door_half_width := 0.55
+	var rear_left_edge := rear_door_centers[0] - rear_door_half_width
+	var rear_left_inner := rear_door_centers[0] + rear_door_half_width
+	var rear_right_inner := rear_door_centers[1] - rear_door_half_width
+	var rear_right_edge := rear_door_centers[1] + rear_door_half_width
+	_add_large_room_box("LargeRoomRearWallLeft", Vector3((-half_width + rear_left_edge) * 0.5, 1.60, back_z + 0.08), Vector3(rear_left_edge + half_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	_add_large_room_box("LargeRoomRearWallCenter", Vector3((rear_left_inner + rear_right_inner) * 0.5, 1.60, back_z + 0.08), Vector3(rear_right_inner - rear_left_inner, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	_add_large_room_box("LargeRoomRearWallRight", Vector3((rear_right_edge + half_width) * 0.5, 1.60, back_z + 0.08), Vector3(half_width - rear_right_edge, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	for door_index in range(rear_door_centers.size()):
+		var door_x: float = rear_door_centers[door_index]
+		_add_large_room_box("LargeRoomInteriorDoor%d" % (door_index + 3), Vector3(door_x, 1.08, back_z + 0.045), Vector3(1.0, 2.12, 0.05), wood_material)
+		for edge in [-1.0, 1.0]:
+			_add_visual_box_to(large_room_root, "LargeRoomRearDoorJamb%d_%d" % [door_index, int(edge)], Vector3(door_x + edge * 0.56, 1.10, back_z + 0.045), Vector3(0.10, 2.20, 0.10), wood_trim_material)
+		_add_visual_box_to(large_room_root, "LargeRoomRearDoorHeader%d" % door_index, Vector3(door_x, 2.22, back_z + 0.045), Vector3(1.18, 0.10, 0.10), wood_trim_material)
+		_add_visual_box_to(large_room_root, "LargeRoomRearDoorHandle%d" % door_index, Vector3(door_x + 0.30, 1.08, back_z + 0.12), Vector3(0.08, 0.12, 0.06), metal_material)
+
+	# A compact in-house staircase rises to a small upper landing.
+	var stair_angle := atan2(1.80, 3.80)
+	var stair_rotation := Vector3(-stair_angle, PI, 0.0)
+	_add_large_room_rotated_box("LargeRoomStairRamp", Vector3(2.85, 0.90, -6.30), Vector3(1.55, 0.14, 3.80), stair_material, stair_rotation, true)
+	for step_index in range(9):
+		var step_height := float(step_index + 1) * 0.20
+		var step_z := -4.50 - float(step_index) * 0.40
+		_add_large_room_box("LargeRoomStairStep%02d" % step_index, Vector3(2.85, step_height * 0.5, step_z), Vector3(1.45, 0.20, 0.46), stair_material)
+	for side in [-1.0, 1.0]:
+		_add_large_room_rotated_box("LargeRoomStairHandrail%d" % int(side), Vector3(2.85 + side * 0.82, 1.00, -6.30), Vector3(0.075, 0.075, 4.0), wood_trim_material, stair_rotation, false)
+	_add_large_room_box("LargeRoomStairLanding", Vector3(2.85, 1.85, -8.45), Vector3(1.90, 0.16, 1.15), stair_material)
+
+	var room_light := OmniLight3D.new()
+	room_light.name = "LargeRoomCeilingLight"
+	room_light.position = Vector3(0.0, 2.72, center_z)
+	room_light.light_color = Color("#FFF5E8")
+	room_light.light_energy = 1.50
+	room_light.omni_range = 13.5
+	room_light.shadow_enabled = false
+	large_room_root.add_child(room_light)
+
+	var stair_fill := OmniLight3D.new()
+	stair_fill.name = "LargeRoomStairLight"
+	stair_fill.position = Vector3(2.8, 2.45, -7.0)
+	stair_fill.light_color = Color("#F3EEE4")
+	stair_fill.light_energy = 0.82
+	stair_fill.omni_range = 6.0
+	stair_fill.shadow_enabled = false
+	large_room_root.add_child(stair_fill)
+
+
+func _add_large_room_box(node_name: String, center: Vector3, dimensions: Vector3, material: Material, collision_enabled: bool = true) -> MeshInstance3D:
+	var mesh_instance := _add_visual_box_to(large_room_root, node_name, center, dimensions, material)
+	if collision_enabled:
+		_add_collision_box_to(large_room_root, node_name + "Collision", center, dimensions)
+	return mesh_instance
+
+
+func _add_large_room_rotated_box(node_name: String, center: Vector3, dimensions: Vector3, material: Material, rotation_value: Vector3, collision_enabled: bool) -> MeshInstance3D:
+	var mesh_instance := _add_visual_box_to(large_room_root, node_name, center, dimensions, material)
+	mesh_instance.rotation = rotation_value
+	if collision_enabled:
+		var body := StaticBody3D.new()
+		body.name = node_name + "Collision"
+		body.position = center
+		body.rotation = rotation_value
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = dimensions
+		shape.shape = box
+		body.add_child(shape)
+		large_room_root.add_child(body)
 	return mesh_instance
 
 
@@ -314,17 +523,6 @@ func _build_touch_controls() -> void:
 	back_button.pressed.connect(_request_back)
 	ui_root.add_child(back_button)
 
-	var mode_label := Label.new()
-	mode_label.name = "FirstPersonModeLabel"
-	mode_label.text = "FIRST-PERSON WALK"
-	mode_label.position = Vector2(0.0, 24.0)
-	mode_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	mode_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mode_label.add_theme_font_size_override("font_size", 12)
-	mode_label.add_theme_color_override("font_color", Color(0.91, 0.88, 0.82, 0.68))
-	mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_root.add_child(mode_label)
-
 	move_pad_base = _make_round_panel("MovementJoystickBase", JOYSTICK_BASE_SIZE, Color(0.08, 0.10, 0.12, 0.48), Color(0.83, 0.78, 0.69, 0.48))
 	ui_root.add_child(move_pad_base)
 	move_pad_thumb = _make_round_panel("MovementJoystickThumb", JOYSTICK_THUMB_SIZE, Color(0.78, 0.72, 0.62, 0.82), Color(0.96, 0.91, 0.82, 0.78))
@@ -332,17 +530,6 @@ func _build_touch_controls() -> void:
 
 	look_pad_base = _make_round_panel("LookPad", LOOK_PAD_SIZE, Color(0.08, 0.10, 0.12, 0.30), Color(0.83, 0.78, 0.69, 0.38))
 	ui_root.add_child(look_pad_base)
-	var look_label := Label.new()
-	look_label.name = "LookHintLabel"
-	look_label.text = "LOOK"
-	look_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	look_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	look_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	look_label.add_theme_font_size_override("font_size", 14)
-	look_label.add_theme_color_override("font_color", Color(0.94, 0.91, 0.85, 0.84))
-	look_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	look_pad_base.add_child(look_label)
-
 	_layout_touch_controls()
 
 
@@ -364,11 +551,13 @@ func _layout_touch_controls() -> void:
 	if not is_instance_valid(ui_root):
 		return
 	var screen_size := get_viewport().get_visible_rect().size
-	move_pad_center = Vector2(maxf(78.0, screen_size.x * 0.17), screen_size.y - 112.0)
+	move_pad_center = Vector2(maxf(JOYSTICK_RADIUS + 18.0, screen_size.x * 0.19), screen_size.y - JOYSTICK_RADIUS - 24.0)
 	look_pad_center = Vector2(screen_size.x - maxf(78.0, screen_size.x * 0.17), screen_size.y - 112.0)
 	move_pad_base.position = move_pad_center - JOYSTICK_BASE_SIZE * 0.5
 	move_pad_thumb.position = move_pad_center - JOYSTICK_THUMB_SIZE * 0.5
 	look_pad_base.position = look_pad_center - LOOK_PAD_SIZE * 0.5
+	if is_instance_valid(door_open_button):
+		door_open_button.position = Vector2(screen_size.x * 0.78 - 46.0, screen_size.y * 0.64 - 46.0)
 
 
 func _input(event: InputEvent) -> void:
@@ -404,6 +593,8 @@ func _input(event: InputEvent) -> void:
 
 func _begin_touch(index: int, touch_position: Vector2) -> void:
 	var screen_size := get_viewport().get_visible_rect().size
+	if is_instance_valid(door_open_button) and door_open_button.visible and door_open_button.get_global_rect().has_point(touch_position):
+		return
 	if _is_move_zone(touch_position) and move_touch_index == -1:
 		touch_roles[index] = "move"
 		move_touch_index = index
@@ -472,6 +663,66 @@ func _physics_process(delta: float) -> void:
 		var gravity := float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 		player.velocity.y -= gravity * delta
 	player.move_and_slide()
+	_update_door_interaction()
+
+
+func _build_door_interaction_ui() -> void:
+	door_open_button = Button.new()
+	door_open_button.name = "DoorOpenCircleButton"
+	door_open_button.text = "OPEN"
+	door_open_button.size = Vector2(92.0, 92.0)
+	door_open_button.focus_mode = Control.FOCUS_NONE
+	door_open_button.visible = false
+	door_open_button.add_theme_font_size_override("font_size", 14)
+	door_open_button.add_theme_color_override("font_color", Color("#FFF4DF"))
+	door_open_button.add_theme_color_override("font_hover_color", Color.WHITE)
+	door_open_button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	door_open_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#423521")
+		if state == "hover":
+			style.bg_color = Color("#604B2B")
+		elif state == "pressed":
+			style.bg_color = Color("#302515")
+		style.border_color = Color("#D0A365")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(46)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+		style.shadow_size = 8
+		style.content_margin_left = 6
+		style.content_margin_right = 6
+		style.content_margin_top = 6
+		style.content_margin_bottom = 6
+		door_open_button.add_theme_stylebox_override(state, style)
+	door_open_button.pressed.connect(_open_exit_door)
+	ui_root.add_child(door_open_button)
+	_layout_touch_controls()
+
+
+func _update_door_interaction() -> void:
+	if not is_instance_valid(door_open_button) or not is_instance_valid(player) or door_is_open:
+		if is_instance_valid(door_open_button):
+			door_open_button.hide()
+		return
+	var horizontal_distance := Vector2(player.global_position.x, player.global_position.z).distance_to(Vector2(0.0, -2.20))
+	door_open_button.visible = horizontal_distance <= 1.85
+
+
+func _open_exit_door() -> void:
+	if door_is_open or not is_instance_valid(door_pivot):
+		return
+	door_is_open = true
+	if is_instance_valid(door_open_button):
+		door_open_button.hide()
+	var opening_tween := create_tween()
+	opening_tween.set_trans(Tween.TRANS_CUBIC)
+	opening_tween.set_ease(Tween.EASE_OUT)
+	opening_tween.tween_property(door_pivot, "rotation", Vector3(0.0, deg_to_rad(95.0), 0.0), 0.62)
+	opening_tween.tween_callback(func() -> void:
+		if is_instance_valid(door_collision_shape):
+			door_collision_shape.set_deferred("disabled", true)
+	)
 
 
 func _request_back() -> void:
