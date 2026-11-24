@@ -3,8 +3,8 @@
 Run from Blender's Scripting workspace or with:
     blender --background --python create_empty_room_in_blender.py
 
-The saved .blend keeps the procedural plaster materials and preview lighting.
-The exported .glb contains only the six architectural room surfaces.
+The saved .blend keeps the procedural plaster materials, glass exit door and preview lighting.
+The exported .glb contains the room shell and matching glass exit door.
 """
 
 import bpy
@@ -54,6 +54,13 @@ def make_plaster_material(name, color, roughness, noise_scale, bump_distance):
     bump.inputs["Strength"].default_value = 0.12
     bump.inputs["Distance"].default_value = bump_distance
     links.new(texcoord.outputs["Generated"], noise.inputs["Vector"])
+    color_ramp = nodes.new("ShaderNodeValToRGB")
+    color_ramp.color_ramp.elements[0].position = 0.0
+    color_ramp.color_ramp.elements[0].color = (*(component * 0.965 for component in color), 1.0)
+    color_ramp.color_ramp.elements[1].position = 1.0
+    color_ramp.color_ramp.elements[1].color = (*(component * 1.025 for component in color), 1.0)
+    links.new(noise.outputs["Fac"], color_ramp.inputs["Fac"])
+    links.new(color_ramp.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(noise.outputs["Fac"], bump.inputs["Height"])
     links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     return material
@@ -211,7 +218,7 @@ camera_data.clip_start = 0.05
 camera_data.clip_end = 40.0
 scene.camera = camera
 
-# Export only the six architectural surfaces to keep the Godot asset completely empty.
+# Export the room shell and the simple glazed exit door; lighting and camera remain Blender-only.
 bpy.ops.object.select_all(action="DESELECT")
 for obj in room_objects + door_objects:
     obj.select_set(True)
