@@ -228,6 +228,7 @@ jobs:
       script_path: scripts/tests/gaussian_splat_office_smoke.gd
       pass_marker: "GAUSSIAN_SPLAT_OFFICE_SMOKE_TEST: PASS"
       log_name: gaussian-splat-office-smoke.log
+      include_gaussian_asset: true
 
   main-scene-startup:
     name: Main scene startup
