@@ -328,9 +328,9 @@ func _build_large_empty_room() -> void:
 
 	for side in [-1.0, 1.0]:
 		var wall_x := side * (half_width - 0.08)
-		var front_segment_length := window_front_edge - front_z
-		var middle_segment_length := side_door_front_edge - window_back_edge
-		var rear_segment_length := back_z - side_door_back_edge
+		var front_segment_length := front_z - window_front_edge
+		var middle_segment_length := window_back_edge - side_door_front_edge
+		var rear_segment_length := side_door_back_edge - back_z
 		_add_large_room_box("LargeRoomSideFrontWall%d" % int(side), Vector3(wall_x, 1.60, (front_z + window_front_edge) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, front_segment_length), wall_material)
 		_add_large_room_box("LargeRoomSideMiddleWall%d" % int(side), Vector3(wall_x, 1.60, (window_back_edge + side_door_front_edge) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, middle_segment_length), wall_material)
 		_add_large_room_box("LargeRoomSideRearWall%d" % int(side), Vector3(wall_x, 1.60, (side_door_back_edge + back_z) * 0.5), Vector3(0.16, LARGE_ROOM_HEIGHT, rear_segment_length), wall_material)
