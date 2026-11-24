@@ -31,7 +31,7 @@ func _process(delta: float) -> void:
 	if _clock_tick >= 1.0 and is_instance_valid(_clock_time_label):
 		_clock_tick = 0.0
 		var time_str := Time.get_time_string_from_system()
-		if time_str.size() >= 5:
+		if time_str.length() >= 5:
 			_clock_time_label.text = time_str.substr(0, 5)
 		if is_instance_valid(_clock_date_label):
 			_clock_date_label.text = Time.get_date_string_from_system().to_upper()
