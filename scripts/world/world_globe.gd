@@ -71,6 +71,7 @@ var overview_texture: Texture2D
 var debug_toggle: Button
 var debug_panel: PanelContainer
 var debug_text: Label
+var debug_copy_button: Button
 var debug_messages: Array[String] = []
 var debug_failure_count := 0
 var country_cache_retry_used := false
@@ -451,10 +452,22 @@ func _build_debug_panel(layer: CanvasLayer) -> void:
 	panel_layout.add_theme_constant_override("separation", 6)
 	debug_panel.add_child(panel_layout)
 
+	var panel_header := HBoxContainer.new()
+	panel_header.add_theme_constant_override("separation", 8)
+	panel_layout.add_child(panel_header)
+
 	var panel_title := Label.new()
 	panel_title.text = "LIVE GLOBE DIAGNOSTICS"
 	panel_title.add_theme_font_size_override("font_size", 12)
-	panel_layout.add_child(panel_title)
+	panel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_header.add_child(panel_title)
+
+	debug_copy_button = Button.new()
+	debug_copy_button.text = "COPY"
+	debug_copy_button.custom_minimum_size = Vector2(62, 28)
+	debug_copy_button.pressed.connect(_copy_debug_report)
+	_style_button(debug_copy_button, false)
+	panel_header.add_child(debug_copy_button)
 
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(270, 184)
@@ -475,6 +488,13 @@ func _toggle_debug_panel() -> void:
 	debug_panel.visible = not debug_panel.visible
 	debug_toggle.text = "CLOSE" if debug_panel.visible else "DEBUG"
 	_refresh_debug_panel()
+
+
+func _copy_debug_report() -> void:
+	if not is_instance_valid(debug_text) or not is_instance_valid(debug_copy_button):
+		return
+	DisplayServer.clipboard_set(debug_text.text)
+	debug_copy_button.text = "COPIED"
 
 
 func _debug_event(message: String, failed: bool = false) -> void:
