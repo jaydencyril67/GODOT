@@ -215,6 +215,15 @@ jobs:
       pass_marker: "WORLD_GLOBE_SMOKE_TEST: PASS"
       log_name: world-globe-smoke.log
 
+  empty-room-smoke:
+    name: Blender-compatible empty room preview
+    uses: ./.github/workflows/godot-smoke-test.yml
+    with:
+      test_name: Blender-compatible empty room preview
+      script_path: scripts/tests/empty_room_smoke.gd
+      pass_marker: "EMPTY_ROOM_SMOKE_TEST: PASS"
+      log_name: empty-room-smoke.log
+
   main-scene-startup:
     name: Main scene startup
     runs-on: ubuntu-latest
