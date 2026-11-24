@@ -8,6 +8,8 @@ on:
       - ".github/workflows/build-mobile-splat-750k.yml"
       - "tools/reduce_gaussian_splat.py"
       - "assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply"
+      - "scripts/world/gaussian_splat_office_preview.gd"
+      - "scripts/tests/gaussian_splat_office_smoke.gd"
   workflow_dispatch:
 
 permissions:
