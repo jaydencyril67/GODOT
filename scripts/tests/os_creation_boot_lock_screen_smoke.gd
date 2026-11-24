@@ -50,7 +50,7 @@ func _run_test() -> void:
 		_fail("The 50-app drawer was not fully built before startup preparation completed.")
 		return
 	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
-		_fail("Some of the 200 prebuilt app drawer SVG textures did not load.")
+		_fail("Some of the 50 prebuilt app drawer SVG textures did not load.")
 
 	if not is_equal_approx(float(worksite.call("get_boot_sequence_duration_seconds")), 10.0):
 		_fail("The configured boot sequence must last exactly ten seconds.")

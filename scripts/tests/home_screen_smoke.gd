@@ -104,7 +104,7 @@ func _run_test() -> void:
 	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
 		_fail("The swipe-up app drawer did not expose all 50 Papirus apps.")
 		return
-	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != 200:
+	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
 		_fail("The app drawer did not render all 50 Papirus SVG textures.")
 		return
 	var drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
