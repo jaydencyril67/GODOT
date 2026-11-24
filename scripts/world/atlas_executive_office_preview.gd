@@ -89,6 +89,7 @@ func _load_office_asset() -> bool:
 		-raw_bounds.position.y * scale_factor,
 		-raw_center.z * scale_factor
 	)
+	office_instance.force_update_transform()
 	office_bounds = AABB(
 		Vector3(-raw_bounds.size.x * scale_factor * 0.5, 0.0, -raw_bounds.size.z * scale_factor * 0.5),
 		raw_bounds.size * scale_factor
