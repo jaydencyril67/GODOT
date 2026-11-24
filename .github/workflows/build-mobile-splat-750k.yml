@@ -1,0 +1,134 @@
+name: Build 750K Mobile Gaussian SPLAT
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-mobile-splat-750k.yml"
+      - "tools/reduce_gaussian_splat.py"
+      - "assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-splat-750k-main
+  cancel-in-progress: false
+
+jobs:
+  reduce-and-clean:
+    name: Create 750K SPLAT and clean remote branches
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out main with the original LFS asset
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: true
+          fetch-depth: 0
+
+      - name: Verify the source and generate the 750K derivative
+        id: generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply"
+          OUTPUT="assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030_750k.ply"
+          test -s "$SOURCE"
+          python3 - "$SOURCE" "$OUTPUT" <<'PY'
+          import sys
+          from pathlib import Path
+
+          def vertex_count(path):
+              with path.open("rb") as stream:
+                  for line in stream:
+                      if line.startswith(b"element vertex "):
+                          return int(line.split()[2])
+                      if line.strip() == b"end_header":
+                          break
+              raise SystemExit(f"Could not read vertex count from {path}")
+
+          source, output = map(Path, sys.argv[1:])
+          original_count = vertex_count(source)
+          if original_count != 2_000_000:
+              raise SystemExit(f"Expected the protected 2,000,000-point source, found {original_count:,}")
+          expected = 750_000
+          if output.exists() and output.stat().st_size > 0 and vertex_count(output) == expected:
+              print(f"Existing 750K derivative is valid: {output}")
+              print("created=false")
+              with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as result:
+                  result.write("created=false\n")
+          else:
+              output.unlink(missing_ok=True)
+              print("A valid 750K derivative is not present; generating it now.")
+              with open(__import__("os").environ["GITHUB_OUTPUT"], "a") as result:
+                  result.write("created=true\n")
+          PY
+          if [[ ! -s "$OUTPUT" ]]; then
+            python3 tools/reduce_gaussian_splat.py "$SOURCE" --target 750000 --seed 750000 --output "$OUTPUT"
+          fi
+
+      - name: Validate the generated PLY and exact point count
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030_750k.ply")
+          with path.open("rb") as stream:
+              header = []
+              while True:
+                  line = stream.readline()
+                  if not line:
+                      raise SystemExit("PLY header ended unexpectedly.")
+                  header.append(line)
+                  if line.strip() == b"end_header":
+                      break
+              vertex_line = next((line for line in header if line.startswith(b"element vertex ")), None)
+              if vertex_line is None or int(vertex_line.split()[2]) != 750_000:
+                  raise SystemExit("The mobile PLY does not contain exactly 750,000 vertices.")
+              if not any(line.strip() == b"format binary_little_endian 1.0" for line in header):
+                  raise SystemExit("The mobile PLY is not binary_little_endian 1.0.")
+          if path.stat().st_size <= 0:
+              raise SystemExit("The mobile PLY file is empty.")
+          print(f"Validated {path}: 750,000 points, {path.stat().st_size:,} bytes.")
+          PY
+
+      - name: Commit the mobile derivative to main using Git LFS
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030_750k.ply
+          if ! git diff --cached --quiet; then
+            git commit -m "Add 750K mobile Gaussian SPLAT asset"
+            git push origin HEAD:main
+          else
+            echo "The 750K mobile asset is already committed."
+          fi
+
+      - name: Delete every remote branch except main
+        if: steps.generate.outputs.created == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          mapfile -t remote_branches < <(git for-each-ref --format='%(refname:short)' refs/remotes/origin/)
+          for remote_ref in "${remote_branches[@]}"; do
+            branch="${remote_ref#origin/}"
+            if [[ "$branch" == "main" ]]; then
+              continue
+            fi
+            echo "Deleting remote branch: $branch"
+            git push origin --delete "$branch"
+          done
+          echo "Remote branch cleanup completed. main was retained."
