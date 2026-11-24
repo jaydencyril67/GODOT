@@ -71,7 +71,7 @@ func _build_preview_camera() -> void:
 	preview_camera = Camera3D.new()
 	preview_camera.name = "EmptyRoomCamera"
 	preview_camera.position = Vector3(0.0, 0.42, CAMERA_START_DISTANCE)
-	preview_camera.rotation.x = atan2(0.42, CAMERA_START_DISTANCE)
+	preview_camera.rotation.x = -atan2(0.42, CAMERA_START_DISTANCE)
 	preview_camera.fov = 78.0
 	preview_camera.near = 0.05
 	preview_camera.far = 30.0
