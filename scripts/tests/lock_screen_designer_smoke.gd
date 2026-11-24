@@ -365,8 +365,8 @@ func _run_test() -> void:
 	if int(designer.call("get_generation_count")) != GENERATION_COUNT:
 		_fail("The designer generation counter is inconsistent.")
 		return
-	if int(designer.call("get_available_wallpaper_count")) < 50:
-		_fail("The lock-screen wallpaper library is unexpectedly small.")
+	if int(designer.call("get_available_wallpaper_count")) != 15:
+		_fail("The lock-screen wallpaper library must contain exactly 15 curated wallpapers.")
 		return
 
 	var wallpaper_node := designer.find_child("GeneratedWallpaper", true, false) as TextureRect
