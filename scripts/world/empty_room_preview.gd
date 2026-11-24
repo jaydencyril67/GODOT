@@ -41,6 +41,7 @@ func _ready() -> void:
 	_build_first_person_player()
 	_build_touch_controls()
 	set_process_input(true)
+	set_physics_process(true)
 
 
 func _build_room() -> void:
