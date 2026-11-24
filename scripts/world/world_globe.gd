@@ -574,7 +574,7 @@ func _point_in_ring(ring: Variant, longitude: float, latitude: float) -> bool:
 	if not ring is Array or ring.size() < 4:
 		return false
 	var inside := false
-	var previous_index := ring.size() - 1
+	var previous_index: int = ring.size() - 1
 	for index in range(ring.size()):
 		var current: Array = ring[index]
 		var previous: Array = ring[previous_index]
