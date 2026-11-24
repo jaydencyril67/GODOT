@@ -15,6 +15,8 @@ func _run_test() -> void:
 	var office_preview := packed_scene.instantiate()
 	root.add_child(office_preview)
 	await process_frame
+	await physics_frame
+	await process_frame
 
 	var office := office_preview.find_child("AtlasExecutiveOffice", true, false) as Node3D
 	if office == null:
@@ -37,6 +39,20 @@ func _run_test() -> void:
 	var player := office_preview.find_child("FirstPersonPlayer", true, false) as CharacterBody3D
 	if player == null:
 		_fail("The office is missing its first-person CharacterBody3D controller.")
+		return
+
+	var walkable_floor_found := bool(office_preview.get("walkable_floor_found"))
+	var fallback_floor_created := bool(office_preview.get("fallback_floor_created"))
+	if not walkable_floor_found and not fallback_floor_created:
+		_fail("The office preview did not find or create a safe floor beneath the player.")
+		return
+	for frame_index in range(12):
+		await physics_frame
+	if not player.is_on_floor():
+		_fail("The first-person player is still falling instead of standing on the office floor.")
+		return
+	if player.global_position.y < -0.1:
+		_fail("The first-person player fell below the office floor.")
 		return
 
 	var player_collision := player.find_child("PlayerCapsule", true, false) as CollisionShape3D
