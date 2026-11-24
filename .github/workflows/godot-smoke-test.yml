@@ -1,0 +1,60 @@
+name: Reusable Godot Smoke Test
+
+on:
+  workflow_call:
+    inputs:
+      test_name:
+        required: true
+        type: string
+      script_path:
+        required: true
+        type: string
+      pass_marker:
+        required: true
+        type: string
+      log_name:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: ${{ inputs.test_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+      - name: Import project resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp project.godot project.godot.ci-backup
+          restore_project() {
+            if [ -f project.godot.ci-backup ]; then mv project.godot.ci-backup project.godot; fi
+          }
+          trap restore_project EXIT
+          sed -i '/^theme\/custom=/d' project.godot
+          godot --headless --editor --path . --import --quit 2>&1 | tee godot-import.log
+          restore_project
+          trap - EXIT
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-import.log; then exit 1; fi
+      - name: Run smoke test
+        shell: bash
+        env:
+          TEST_SCRIPT: ${{ inputs.script_path }}
+          PASS_MARKER: ${{ inputs.pass_marker }}
+          TEST_LOG: ${{ inputs.log_name }}
+        run: |
+          set -euo pipefail
+          godot --headless --path . --script "$TEST_SCRIPT" 2>&1 | tee "$TEST_LOG"
+          grep -Fq "$PASS_MARKER" "$TEST_LOG"
+          if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' "$TEST_LOG"; then exit 1; fi
