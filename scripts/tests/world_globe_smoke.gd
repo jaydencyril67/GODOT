@@ -40,6 +40,10 @@ func _run_test() -> void:
 	if globe.find_child("GlobeDiagnosticsPanel", true, false) == null:
 		_fail("The live diagnostics panel is missing.")
 		return
+	var copy_button := globe.find_child("Button", true, false) as Button
+	if copy_button == null or copy_button.text != "COPY":
+		_fail("The live diagnostics panel is missing its COPY button.")
+		return
 	var admin_panel := globe.find_child("ZoomOnlyAdministrativeData", true, false)
 	if admin_panel != null:
 		_fail("The globe must not show a manual country or province selector panel.")
