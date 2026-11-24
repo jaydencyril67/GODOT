@@ -51,15 +51,6 @@ void fragment() {
 }
 """
 
-const PATCH_SHADER := """
-shader_type spatial;
-render_mode cull_back;
-uniform sampler2D detail_map : source_color;
-void fragment() {
-	ALBEDO = texture(detail_map, UV).rgb;
-	ROUGHNESS = 0.95;
-}
-"""
 
 var planet_root: Node3D
 var earth_instance: MeshInstance3D
@@ -153,8 +144,10 @@ func _drag_planet(relative: Vector2) -> void:
 
 func _set_zoom(distance: float) -> void:
 	target_distance = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
-	if target_distance <= ADMIN_ZOOM_DISTANCE and not country_catalog_loaded and not country_catalog_loading:
-		_load_country_catalog()
+	if not _is_province_zoom_active():
+		for node in province_boundary_nodes:
+			if is_instance_valid(node):
+				node.visible = false
 
 
 func _build_space_environment() -> void:
