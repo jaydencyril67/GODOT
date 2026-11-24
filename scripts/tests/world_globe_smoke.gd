@@ -25,6 +25,9 @@ func _run_test() -> void:
 	if earth == null or earth.mesh == null or earth.mesh.get_surface_count() == 0:
 		_fail("The globe is missing its rendered Earth sphere.")
 		return
+	if not earth.material_override is StandardMaterial3D:
+		_fail("The Earth surface must use a lit StandardMaterial3D for reliable 3D shading.")
+		return
 	if not _has_godot_clockwise_front_faces(earth.mesh):
 		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
 		return
@@ -33,6 +36,9 @@ func _run_test() -> void:
 		return
 	if atmosphere == null or atmosphere.mesh == null:
 		_fail("The atmospheric rim is missing.")
+		return
+	if globe.find_child("GlobeDiagnosticsPanel", true, false) == null:
+		_fail("The live diagnostics panel is missing.")
 		return
 	var admin_panel := globe.find_child("ZoomOnlyAdministrativeData", true, false)
 	if admin_panel != null:
@@ -57,9 +63,32 @@ func _run_test() -> void:
 	if globe.get("country_label_nodes").is_empty():
 		_fail("Country name labels were not generated from the country dataset.")
 		return
+	var country_boundary := globe.get("country_boundary_node") as MeshInstance3D
+	if country_boundary == null or country_boundary.visible:
+		_fail("Country borders must be hidden at the default far-out globe view.")
+		return
+	var country_labels: Array = globe.get("country_label_nodes")
+	for country_label in country_labels:
+		if country_label.visible:
+			_fail("Country names must remain hidden at the default far-out globe view.")
+			return
+		if country_label.font_size > 18:
+			_fail("Country labels should use compact text.")
+			return
 	var detected_country: Dictionary = globe.call("_find_country_at_front")
 	if detected_country.is_empty() or str(detected_country.get("properties", {}).get("ADM0_A3", "")) != "TST":
 		_fail("The globe did not resolve the country at the center of its current view.")
+		return
+
+	globe.call("_set_zoom", 3.2)
+	if not country_boundary.visible:
+		_fail("Country borders did not appear after zooming closer.")
+		return
+	var country_label_visible := false
+	for country_label in country_labels:
+		country_label_visible = country_label_visible or country_label.visible
+	if not country_label_visible:
+		_fail("Country names did not appear at the country zoom level.")
 		return
 
 	globe.call("_set_zoom", 2.8)
@@ -77,7 +106,7 @@ func _run_test() -> void:
 	if absf(float(globe.get("target_distance")) - 1.08) > 0.001:
 		_fail("The globe cannot zoom close enough to the regional layer.")
 		return
-	globe.call("_set_zoom", 2.2)
+	globe.call("_set_zoom", 1.7)
 	if not globe.call("_is_province_zoom_active"):
 		_fail("State/province boundaries did not activate at the closer map zoom.")
 		return
