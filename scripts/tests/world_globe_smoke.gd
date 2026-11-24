@@ -90,6 +90,10 @@ func _run_test() -> void:
 
 	var planet_root := globe.get("planet_root") as Node3D
 	planet_root.rotation = Vector3.ZERO
+	globe.call("_process", 1.0)
+	if not planet_root.rotation.is_equal_approx(Vector3.ZERO):
+		_fail("The globe must remain stationary when it is not being dragged.")
+		return
 	globe.call("_set_zoom", 3.65)
 	globe.call("_drag_planet", Vector2(100.0, 0.0))
 	var rotation_at_overview := planet_root.rotation.y
