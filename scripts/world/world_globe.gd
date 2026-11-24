@@ -128,7 +128,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				_drag_planet(event.relative)
 	elif event is InputEventMagnifyGesture:
-		var adjusted_factor := 1.0 + (event.factor - 1.0) * MAGNIFY_ZOOM_SENSITIVITY
+		var adjusted_factor: float = 1.0 + (float(event.factor) - 1.0) * MAGNIFY_ZOOM_SENSITIVITY
 		_set_zoom(target_distance / maxf(adjusted_factor, 0.1))
 
 
