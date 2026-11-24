@@ -46,11 +46,12 @@ jobs:
           mv project.godot.ci-backup project.godot
           echo "Project preparation exit code: $import_status (not used to fail this warning-only workflow)."
 
-      - name: Scan every GDScript file for warnings
+      - name: Scan every GDScript file for parse errors and warnings
         shell: bash
         run: |
-          set +e
+          set -uo pipefail
           : > gdscript-warning-scan.log
+          : > gdscript-parse-errors.log
 
           mapfile -d '' scripts < <(
             find . -type f -name '*.gd' \
@@ -60,7 +61,7 @@ jobs:
           )
 
           echo "Found ${#scripts[@]} GDScript files."
-          echo "Running Godot's GDScript parser with warning output enabled."
+          echo "Checking every script with Godot 4.7.2."
 
           for script in "${scripts[@]}"; do
             relative_path="${script#./}"
@@ -68,9 +69,24 @@ jobs:
             echo "===== ${resource_path} =====" >> gdscript-warning-scan.log
 
             script_log="$(mktemp)"
-            timeout --signal=TERM --kill-after=1s 5s \
+            if timeout --signal=TERM --kill-after=1s 10s \
               godot --headless --path . --check-only --script "${resource_path}" --debug \
-              > "$script_log" 2>&1
+              > "$script_log" 2>&1; then
+              script_status=0
+            else
+              script_status=$?
+            fi
+
+            if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' "$script_log" > /dev/null; then
+              {
+                echo "===== ${resource_path} (Godot output) ====="
+                grep -E -A 2 'Parse Error:|SCRIPT ERROR:|ERROR:' "$script_log" || true
+              } >> gdscript-parse-errors.log
+            fi
+            if [ "$script_status" -ne 0 ]; then
+              echo "===== ${resource_path} (exit code $script_status) =====" >> gdscript-parse-errors.log
+              cat "$script_log" >> gdscript-parse-errors.log
+            fi
 
             awk '
               /WARNING:/ {
@@ -90,8 +106,20 @@ jobs:
             rm -f "$script_log"
           done
 
-          echo "Completed warning-only scan of ${#scripts[@]} GDScript files."
+          echo "Completed parser and warning scan of ${#scripts[@]} GDScript files."
           cat gdscript-warning-scan.log
+
+      - name: Fail when GDScript parse errors are detected
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -s gdscript-parse-errors.log ]; then
+            cat gdscript-parse-errors.log
+            echo "::error::GDScript parse/runtime errors were detected."
+            exit 1
+          fi
+          echo "GDScript parse scan passed: no parser errors or non-zero script checks."
 
       - name: Fail when GDScript warnings are detected
         if: always()
