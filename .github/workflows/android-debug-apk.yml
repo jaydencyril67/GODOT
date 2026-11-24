@@ -197,20 +197,50 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          LOG="$RUNNER_TEMP/godot-import.log"
+          PROJECT_BACKUP="$RUNNER_TEMP/project.godot.before-import"
+          cp project.godot "$PROJECT_BACKUP"
+          restore_project() {
+            cp "$PROJECT_BACKUP" project.godot
+          }
+          trap restore_project EXIT
+
+          # The custom theme references an imported .fontdata file. On a clean
+          # checkout that cache does not exist until the first import, so keep
+          # the theme disabled only during this bootstrap import.
+          sed -i '/^theme\/custom=/s/^/# Temporarily disabled for clean CI import: /' project.godot
+
+          IMPORT_LOG="$RUNNER_TEMP/godot-import.log"
           set +e
-          godot --headless --editor --path . --import --quit 2>&1 | tee "$LOG"
-          STATUS=${PIPESTATUS[0]}
+          godot --headless --editor --path . --import --quit 2>&1 | tee "$IMPORT_LOG"
+          IMPORT_STATUS=${PIPESTATUS[0]}
           set -e
-          if [[ "$STATUS" -ne 0 ]]; then
-            echo "::error::Godot resource import exited with status $STATUS."
-            exit "$STATUS"
+          if [[ "$IMPORT_STATUS" -ne 0 ]]; then
+            echo "::error::Godot resource import exited with status $IMPORT_STATUS."
+            exit "$IMPORT_STATUS"
           fi
-          if grep -Eiq '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Parse Error:|Failed to load|Failed loading|Error importing)' "$LOG"; then
-            echo "::error::Godot reported an import or script error despite returning exit code 0."
+          if grep -Eiq '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Parse Error:|Failed to load|Failed loading|Error importing)' "$IMPORT_LOG"; then
+            echo "::error::Godot reported an error during clean resource import."
             exit 1
           fi
-          echo "Godot resource import completed without reported errors."
+
+          # Restore the real project settings and verify that the imported
+          # theme/font and all project resources now load cleanly.
+          restore_project
+          trap - EXIT
+          VERIFY_LOG="$RUNNER_TEMP/godot-import-verify.log"
+          set +e
+          godot --headless --editor --path . --quit 2>&1 | tee "$VERIFY_LOG"
+          VERIFY_STATUS=${PIPESTATUS[0]}
+          set -e
+          if [[ "$VERIFY_STATUS" -ne 0 ]]; then
+            echo "::error::Godot post-import validation exited with status $VERIFY_STATUS."
+            exit "$VERIFY_STATUS"
+          fi
+          if grep -Eiq '(^|[[:space:]])(ERROR:|SCRIPT ERROR:|Parse Error:|Failed to load|Failed loading|Error importing)' "$VERIFY_LOG"; then
+            echo "::error::Godot reported an error after the clean import."
+            exit 1
+          fi
+          echo "Godot resource import and post-import validation completed without reported errors."
 
       - name: Export Android APK
         timeout-minutes: 25
