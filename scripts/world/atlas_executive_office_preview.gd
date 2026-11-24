@@ -45,8 +45,11 @@ func _ready() -> void:
 	if not _load_office_asset():
 		return
 	_build_office_collision()
-	# Let the physics server register the imported room collision before
-	# selecting a floor point for the player spawn.
+	# Always add a simple, reliable walkable base beneath the imported model.
+	# The Atlas mesh collision can be incomplete or contain only furniture.
+	_build_fallback_floor_collision()
+	fallback_floor_created = true
+	# Let the physics server register both collision bodies before spawning.
 	await get_tree().physics_frame
 	_build_first_person_player()
 	_build_touch_controls()
@@ -169,31 +172,8 @@ func _build_office_collision() -> void:
 
 
 func _find_spawn_transform() -> Dictionary:
-	var preferred_position := Vector3(0.0, 0.035, office_bounds.size.z * 0.28)
-	var preferred_forward := Vector3(0.0, 0.0, -1.0)
-	var has_entrance := false
-
-	for candidate in office_instance.find_children("*", "Node3D", true, false):
-		var node_3d := candidate as Node3D
-		if node_3d == null:
-			continue
-		var node_name := str(node_3d.name).to_lower()
-		if not node_name.contains("entrance") or not node_name.contains("door"):
-			continue
-		var entrance_position := to_local(node_3d.global_position)
-		var inward := Vector3(-entrance_position.x, 0.0, -entrance_position.z)
-		if inward.length_squared() <= 0.1:
-			continue
-		preferred_forward = inward.normalized()
-		preferred_position = entrance_position + preferred_forward * 1.35
-		has_entrance = true
-		break
-
-	var candidate_points: Array[Vector2] = [
-		Vector2(preferred_position.x, preferred_position.z),
-		Vector2.ZERO
-	]
-	var margin := minf(0.45, minf(office_bounds.size.x * 0.15, office_bounds.size.z * 0.15))
+	var candidate_points: Array[Vector2] = [Vector2.ZERO]
+	var margin := minf(0.55, minf(office_bounds.size.x * 0.15, office_bounds.size.z * 0.15))
 	var min_x := office_bounds.position.x + margin
 	var max_x := office_bounds.position.x + office_bounds.size.x - margin
 	var min_z := office_bounds.position.z + margin
@@ -217,29 +197,15 @@ func _find_spawn_transform() -> Dictionary:
 			continue
 		walkable_floor_found = true
 		return {
-			"position": Vector3(point.x, floor_position.y + 0.05, point.y),
-			"forward": preferred_forward
+			"position": Vector3(point.x, floor_position.y + 0.08, point.y),
+			"forward": Vector3(0.0, 0.0, -1.0)
 		}
 
-	# Some exported rooms have incomplete floor triangles. Keep the player
-	# inside the room bounds instead of letting the character fall forever.
-	_build_fallback_floor_collision()
-	fallback_floor_created = true
-	var safe_margin_x := minf(0.5, office_bounds.size.x * 0.25)
-	var safe_margin_z := minf(0.5, office_bounds.size.z * 0.25)
-	var safe_x := clampf(
-		preferred_position.x,
-		office_bounds.position.x + safe_margin_x,
-		office_bounds.position.x + office_bounds.size.x - safe_margin_x
-	)
-	var safe_z := clampf(
-		preferred_position.z,
-		office_bounds.position.z + safe_margin_z,
-		office_bounds.position.z + office_bounds.size.z - safe_margin_z
-	)
+	# The guaranteed base floor is centered at the normalized room origin.
+	# Use it directly if no clean point on the imported mesh was found.
 	return {
-		"position": Vector3(safe_x, 0.05, safe_z),
-		"forward": preferred_forward if has_entrance else Vector3(0.0, 0.0, -1.0)
+		"position": Vector3(0.0, 0.08, 0.0),
+		"forward": Vector3(0.0, 0.0, -1.0)
 	}
 
 
@@ -284,13 +250,16 @@ func _build_fallback_floor_collision() -> void:
 	floor_shape_node.name = "AtlasOfficeFallbackFloorShape"
 	var floor_shape := BoxShape3D.new()
 	floor_shape.size = Vector3(
-		maxf(office_bounds.size.x, 2.0),
+		maxf(office_bounds.size.x + 4.0, 6.0),
 		0.2,
-		maxf(office_bounds.size.z, 2.0)
+		maxf(office_bounds.size.z + 4.0, 6.0)
 	)
 	floor_shape_node.shape = floor_shape
 	floor_shape_node.position = Vector3(0.0, -0.1, 0.0)
 	floor_body.add_child(floor_shape_node)
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 1
+	floor_body.position = Vector3.ZERO
 	add_child(floor_body)
 
 
