@@ -14,9 +14,9 @@ This folder contains Godot-importable SVG adaptations of the Android vector/draw
 - The music-player UI-kit screenshots remain visual references; they are not stretched into live notification cards.
 
 ## Clocks
-The lock-screen asset library uses the 18 bundled analog clock faces and matching hour, minute, and second hand image sets in `assets/widgets/clock/`.
-
-The SVG conversions retain the source vector paths while replacing Android resource references with explicit SVG colors. Refer to the source asset folders and their README/license files for upstream attribution and license details.
+- Analog lock-screen styles load 41 images from `assets/lock-screen/clocks/analog/` through `scripts/lock_screen_asset_library.gd`.
+- Digital lock-screen faces are built from JSON definitions in `research/XMorphClock/Clock-Faces/Definitions/` and fonts in `research/XMorphClock/Fonts/Files/`.
+- XMorph widget layouts are loaded from `research/XMorphClock/Widgets/Definitions/` by `scripts/ui/xmorph_widget_asset_library.gd`.
 
 ## Lock-screen PIN entry
 - `pin-entry/pin_backspace.svg` is a Godot-ready explicit-color adaptation of the AOSP lock-screen backspace vector in `assets/lock-screen/aosp/SVG/ic_backspace_24dp.svg`.
