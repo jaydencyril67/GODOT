@@ -355,7 +355,7 @@ func _build_large_empty_room() -> void:
 		_add_visual_box_to(large_room_root, "LargeRoomSideDoorHandle%d" % int(side), Vector3(side * (half_width - 0.15), 1.08, side_door_z + 0.30), Vector3(0.06, 0.12, 0.08), metal_material)
 
 	# The far wall contains two additional doors, bringing the room to four.
-	var rear_door_centers := [-2.20, 2.20]
+	var rear_door_centers: Array[float] = [-2.20, 2.20]
 	var rear_door_half_width := 0.55
 	var rear_left_edge := rear_door_centers[0] - rear_door_half_width
 	var rear_left_inner := rear_door_centers[0] + rear_door_half_width
