@@ -16,6 +16,10 @@ window/stretch/aspect="expand"
 theme/custom="res://themes/digitalworld_theme.tres"
 
 [editor_plugins]
+enabled=PackedStringArray("res://addons/gdgs/plugin.cfg")
+
+[gdgs]
+rendering/backend="Raster"
 
 [rendering]
 textures/vram_compression/import_etc2_astc=true

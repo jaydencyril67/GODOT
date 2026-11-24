@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
@@ -89,6 +91,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -215,14 +219,14 @@ jobs:
       pass_marker: "WORLD_GLOBE_SMOKE_TEST: PASS"
       log_name: world-globe-smoke.log
 
-  atlas-executive-office-smoke:
-    name: Atlas executive office preview
+  gaussian-splat-office-smoke:
+    name: Gaussian Splat office preview
     uses: ./.github/workflows/godot-smoke-test.yml
     with:
-      test_name: Atlas executive office preview
-      script_path: scripts/tests/atlas_executive_office_smoke.gd
-      pass_marker: "ATLAS_EXECUTIVE_OFFICE_SMOKE_TEST: PASS"
-      log_name: atlas-executive-office-smoke.log
+      test_name: Gaussian Splat office preview
+      script_path: scripts/tests/gaussian_splat_office_smoke.gd
+      pass_marker: "GAUSSIAN_SPLAT_OFFICE_SMOKE_TEST: PASS"
+      log_name: gaussian-splat-office-smoke.log
 
   main-scene-startup:
     name: Main scene startup
@@ -231,6 +235,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:

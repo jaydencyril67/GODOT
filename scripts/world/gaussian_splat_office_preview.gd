@@ -2,7 +2,8 @@ extends Node3D
 
 signal back_requested
 
-const OFFICE_ASSET: PackedScene = preload("res://assets/3d/atlas_executive_office.glb")
+const GAUSSIAN_ASSET_PATH := "res://assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply"
+const SPLAT_NODE_SCRIPT := preload("res://addons/gdgs/runtime/nodes/gaussian_splat_node.gd")
 
 const WALK_SPEED := 2.65
 const LOOK_SENSITIVITY := 0.0036
@@ -20,7 +21,7 @@ const EXTERIOR_NAME_HINTS := [
 	"tree", "landscape", "exterior", "background"
 ]
 
-var office_instance: Node3D
+var gaussian_instance: Node3D
 var player: CharacterBody3D
 var player_camera: Camera3D
 var ui_root: Control
@@ -42,12 +43,13 @@ var fallback_floor_created := false
 
 func _ready() -> void:
 	_build_environment()
-	if not _load_office_asset():
+	if not _load_gaussian_splat_asset():
 		return
 	# Keep imported Atlas meshes visual-only: their all-mesh concave collision
 	# traps the player against furniture and decorative geometry. Walking uses
 	# the dedicated safety floor instead.
 	_build_fallback_floor_collision()
+	_build_room_perimeter_collision()
 	fallback_floor_created = true
 	# Let the physics server register both collision bodies before spawning.
 	await get_tree().physics_frame
@@ -57,58 +59,49 @@ func _ready() -> void:
 	set_physics_process(true)
 
 
-func _load_office_asset() -> bool:
-	office_instance = OFFICE_ASSET.instantiate() as Node3D
-	if office_instance == null:
-		push_error("The Atlas executive office GLB could not be instantiated.")
+func _load_gaussian_splat_asset() -> bool:
+	var gaussian_resource: Resource = load(GAUSSIAN_ASSET_PATH)
+	if gaussian_resource == null:
+		push_error("The Atlas Gaussian PLY could not be imported. Enable GDGS and allow Godot to finish importing the PLY.")
 		return false
 
-	office_instance.name = "AtlasExecutiveOffice"
-	add_child(office_instance)
+	var point_count := int(gaussian_resource.get("point_count"))
+	var bounds_value: Variant = gaussian_resource.get("aabb")
+	if point_count <= 0 or not (bounds_value is AABB):
+		push_error("The Atlas PLY did not produce a valid GaussianResource.")
+		return false
 
-	var mesh_nodes := office_instance.find_children("*", "MeshInstance3D", true, false)
-	var raw_bounds := AABB()
-	var has_bounds := false
-	for candidate in mesh_nodes:
-		var mesh_instance := candidate as MeshInstance3D
-		if mesh_instance == null or mesh_instance.mesh == null or _is_exterior_mesh(mesh_instance):
-			continue
-		var mesh_bounds: AABB = mesh_instance.get_aabb() * mesh_instance.global_transform
-		if not has_bounds:
-			raw_bounds = mesh_bounds
-			has_bounds = true
-		else:
-			raw_bounds = raw_bounds.merge(mesh_bounds)
-
-	if not has_bounds or raw_bounds.size.y <= 0.05:
-		push_error("The Atlas office did not contain measurable interior mesh geometry.")
+	var raw_bounds: AABB = bounds_value
+	if raw_bounds.size.x <= 0.05 or raw_bounds.size.y <= 0.05 or raw_bounds.size.z <= 0.05:
+		push_error("The Atlas Gaussian environment has invalid spatial bounds: %s" % raw_bounds)
 		return false
 
 	var scale_factor := clampf(TARGET_INTERIOR_HEIGHT / raw_bounds.size.y, 0.05, 12.0)
+	gaussian_instance = SPLAT_NODE_SCRIPT.new() as Node3D
+	if gaussian_instance == null:
+		push_error("GDGS GaussianSplatNode could not be instantiated.")
+		return false
+
+	gaussian_instance.name = "OfficeGaussianSplat"
+	gaussian_instance.set("gaussian", gaussian_resource)
+	gaussian_instance.scale = Vector3.ONE * scale_factor
+
+	# GDGS applies its standard PLY orientation correction (180 degrees around Z).
+	# Position the corrected splat so its lower Y bound rests on the physics floor.
 	var raw_center := raw_bounds.get_center()
-	office_instance.scale = Vector3.ONE * scale_factor
-	office_instance.position = Vector3(
-		-raw_center.x * scale_factor,
-		-raw_bounds.position.y * scale_factor,
+	gaussian_instance.position = Vector3(
+		raw_center.x * scale_factor,
+		raw_bounds.end.y * scale_factor,
 		-raw_center.z * scale_factor
 	)
-	office_instance.force_update_transform()
+	add_child(gaussian_instance)
+
 	office_bounds = AABB(
 		Vector3(-raw_bounds.size.x * scale_factor * 0.5, 0.0, -raw_bounds.size.z * scale_factor * 0.5),
 		raw_bounds.size * scale_factor
 	)
+	print("[GaussianSplatOffice] Loaded %d Gaussian splats; normalized bounds=%s" % [point_count, office_bounds])
 	return true
-
-
-func _is_exterior_mesh(mesh_instance: MeshInstance3D) -> bool:
-	var current: Node = mesh_instance
-	while current != null and current != office_instance:
-		var node_name := str(current.name).to_lower()
-		for hint in EXTERIOR_NAME_HINTS:
-			if node_name.contains(hint):
-				return true
-		current = current.get_parent()
-	return false
 
 
 func _find_spawn_transform() -> Dictionary:
@@ -185,9 +178,9 @@ func _has_player_clearance(space_state: PhysicsDirectSpaceState3D, point: Vector
 
 func _build_fallback_floor_collision() -> void:
 	var floor_body := StaticBody3D.new()
-	floor_body.name = "AtlasOfficeFallbackFloor"
+	floor_body.name = "GaussianSplatOfficeFallbackFloor"
 	var floor_shape_node := CollisionShape3D.new()
-	floor_shape_node.name = "AtlasOfficeFallbackFloorShape"
+	floor_shape_node.name = "GaussianSplatOfficeFallbackFloorShape"
 	# An infinite world-boundary plane avoids extent gaps in the generated
 	# box floor and guarantees a walkable surface across the whole room.
 	var floor_shape := WorldBoundaryShape3D.new()
@@ -203,9 +196,35 @@ func _build_fallback_floor_collision() -> void:
 	add_child(floor_body)
 
 
+func _build_room_perimeter_collision() -> void:
+	var width := office_bounds.size.x
+	var depth := office_bounds.size.z
+	var height := maxf(office_bounds.size.y, TARGET_INTERIOR_HEIGHT)
+	var thickness := 0.24
+	var wall_y := height * 0.5
+	_add_boundary_wall("SplatNorthBoundary", Vector3(width, height, thickness), Vector3(0.0, wall_y, -depth * 0.5))
+	_add_boundary_wall("SplatSouthBoundary", Vector3(width, height, thickness), Vector3(0.0, wall_y, depth * 0.5))
+	_add_boundary_wall("SplatWestBoundary", Vector3(thickness, height, depth), Vector3(-width * 0.5, wall_y, 0.0))
+	_add_boundary_wall("SplatEastBoundary", Vector3(thickness, height, depth), Vector3(width * 0.5, wall_y, 0.0))
+
+
+func _add_boundary_wall(node_name: String, wall_size: Vector3, wall_position: Vector3) -> void:
+	var wall_body := StaticBody3D.new()
+	wall_body.name = node_name
+	wall_body.collision_layer = 1
+	wall_body.collision_mask = 1
+	var wall_collision := CollisionShape3D.new()
+	var wall_shape := BoxShape3D.new()
+	wall_shape.size = wall_size
+	wall_collision.shape = wall_shape
+	wall_body.add_child(wall_collision)
+	wall_body.position = wall_position
+	add_child(wall_body)
+
+
 func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
-	world_environment.name = "AtlasOfficeEnvironment"
+	world_environment.name = "GaussianSplatOfficeEnvironment"
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#111416")
@@ -275,12 +294,12 @@ func _build_first_person_player() -> void:
 
 func _build_touch_controls() -> void:
 	var ui_layer := CanvasLayer.new()
-	ui_layer.name = "AtlasOfficeTouchUI"
+	ui_layer.name = "GaussianSplatOfficeTouchUI"
 	ui_layer.layer = 20
 	add_child(ui_layer)
 
 	ui_root = Control.new()
-	ui_root.name = "AtlasOfficeTouchRoot"
+	ui_root.name = "GaussianSplatOfficeTouchRoot"
 	ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(ui_root)
