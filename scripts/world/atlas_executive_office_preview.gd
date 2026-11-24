@@ -197,14 +197,14 @@ func _find_spawn_transform() -> Dictionary:
 			continue
 		walkable_floor_found = true
 		return {
-			"position": Vector3(point.x, floor_position.y + 0.08, point.y),
+			"position": Vector3(point.x, maxf(floor_position.y, 0.0) + 0.12, point.y),
 			"forward": Vector3(0.0, 0.0, -1.0)
 		}
 
 	# The guaranteed base floor is centered at the normalized room origin.
 	# Use it directly if no clean point on the imported mesh was found.
 	return {
-		"position": Vector3(0.0, 0.08, 0.0),
+		"position": Vector3(0.0, 0.12, 0.0),
 		"forward": Vector3(0.0, 0.0, -1.0)
 	}
 
