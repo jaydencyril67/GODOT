@@ -402,13 +402,13 @@ func _input(event: InputEvent) -> void:
 			_apply_look(event.relative)
 
 
-func _begin_touch(index: int, position: Vector2) -> void:
+func _begin_touch(index: int, touch_position: Vector2) -> void:
 	var screen_size := get_viewport().get_visible_rect().size
-	if _is_move_zone(position) and move_touch_index == -1:
+	if _is_move_zone(touch_position) and move_touch_index == -1:
 		touch_roles[index] = "move"
 		move_touch_index = index
-		_set_move_joystick(position)
-	elif position.x >= screen_size.x * 0.5:
+		_set_move_joystick(touch_position)
+	elif touch_position.x >= screen_size.x * 0.5:
 		touch_roles[index] = "look"
 
 
@@ -422,13 +422,13 @@ func _end_touch(index: int) -> void:
 		_reset_move_joystick()
 
 
-func _is_move_zone(position: Vector2) -> bool:
+func _is_move_zone(touch_position: Vector2) -> bool:
 	var screen_size := get_viewport().get_visible_rect().size
-	return position.x < screen_size.x * 0.5 and position.y > screen_size.y * 0.52
+	return touch_position.x < screen_size.x * 0.5 and touch_position.y > screen_size.y * 0.52
 
 
-func _set_move_joystick(position: Vector2) -> void:
-	var offset := position - move_pad_center
+func _set_move_joystick(touch_position: Vector2) -> void:
+	var offset := touch_position - move_pad_center
 	var distance := offset.length()
 	var clamped_offset := offset
 	if distance > JOYSTICK_RADIUS:
