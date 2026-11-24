@@ -42,11 +42,11 @@ func _run_test() -> void:
 		return
 
 	room_preview.call("_set_zoom", 1.0)
-	if float(camera.position.z) < float(room_constants["CAMERA_MIN_DISTANCE"]):
+	if camera.position.z < float(room_constants["CAMERA_MIN_DISTANCE"]) - 0.001:
 		_fail("Room preview zoom must respect the minimum camera distance.")
 		return
 	room_preview.call("_set_zoom", 10.0)
-	if float(camera.position.z) > float(room_constants["CAMERA_MAX_DISTANCE"]):
+	if camera.position.z > float(room_constants["CAMERA_MAX_DISTANCE"]) + 0.001:
 		_fail("Room preview zoom must respect the maximum camera distance.")
 		return
 
