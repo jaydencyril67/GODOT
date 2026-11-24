@@ -459,7 +459,7 @@ func _show_menu() -> void:
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
-	var room_preview_button := _add_action_button(menu, "EMPTY ROOM", false, _show_empty_room)
+	var room_preview_button := _add_action_button(menu, "EXECUTIVE OFFICE", false, _show_empty_room)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
