@@ -1,2 +1,1 @@
 *.ply filter=lfs diff=lfs merge=lfs -text
-assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply filter=lfs diff=lfs merge=lfs -text
