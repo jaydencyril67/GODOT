@@ -68,7 +68,10 @@ room_parts = [
     ("Room_Floor", (0.0, -0.08, 0.0), (6.16, 0.16, 5.16), floor_material),
     ("Room_Left_Wall", (-3.08, 1.50, 0.0), (0.16, 3.16, 5.16), wall_material),
     ("Room_Right_Wall", (3.08, 1.50, 0.0), (0.16, 3.16, 5.16), wall_material),
-    ("Room_Back_Wall", (0.0, 1.50, -2.58), (6.16, 3.16, 0.16), wall_material),
+    # Leave a 1.44 m x 2.20 m opening in the far wall for the glass exit door.
+    ("Room_Back_Wall_Left", (-1.90, 1.50, -2.58), (2.36, 3.16, 0.16), wall_material),
+    ("Room_Back_Wall_Right", (1.90, 1.50, -2.58), (2.36, 3.16, 0.16), wall_material),
+    ("Room_Back_Wall_Lintel", (0.0, 2.64, -2.58), (1.44, 0.88, 0.16), wall_material),
     ("Room_Front_Wall", (0.0, 1.50, 2.58), (6.16, 3.16, 0.16), wall_material),
     ("Room_Ceiling", (0.0, 3.08, 0.0), (6.16, 0.16, 5.16), ceiling_material),
 ]
@@ -82,6 +85,97 @@ for name, location, dimensions, material in room_parts:
     obj.data.materials.clear()
     obj.data.materials.append(material)
     room_objects.append(obj)
+
+
+# Simple glazed exit door, sized to fit the opening in the far wall.
+door_frame_material = bpy.data.materials.new("Graphite metal door frame")
+door_frame_material.diffuse_color = (0.20, 0.23, 0.24, 1.0)
+door_frame_material.use_nodes = True
+frame_bsdf = door_frame_material.node_tree.nodes.get("Principled BSDF")
+frame_bsdf.inputs["Base Color"].default_value = (0.20, 0.23, 0.24, 1.0)
+frame_bsdf.inputs["Metallic"].default_value = 0.48
+frame_bsdf.inputs["Roughness"].default_value = 0.38
+
+glass_material = bpy.data.materials.new("Soft blue green safety glass")
+glass_material.diffuse_color = (0.44, 0.66, 0.69, 0.38)
+glass_material.use_nodes = True
+glass_bsdf = glass_material.node_tree.nodes.get("Principled BSDF")
+glass_bsdf.inputs["Base Color"].default_value = (0.44, 0.66, 0.69, 0.38)
+glass_bsdf.inputs["Alpha"].default_value = 0.38
+glass_bsdf.inputs["Metallic"].default_value = 0.22
+glass_bsdf.inputs["Roughness"].default_value = 0.16
+transmission_socket = glass_bsdf.inputs.get("Transmission Weight") or glass_bsdf.inputs.get("Transmission")
+if transmission_socket is not None:
+    transmission_socket.default_value = 0.18
+try:
+    glass_material.surface_render_method = "BLENDED"
+except Exception:
+    try:
+        glass_material.blend_method = "BLEND"
+    except Exception:
+        pass
+
+sign_material = bpy.data.materials.new("Exit sign deep green")
+sign_material.diffuse_color = (0.06, 0.19, 0.13, 1.0)
+sign_material.use_nodes = True
+sign_bsdf = sign_material.node_tree.nodes.get("Principled BSDF")
+sign_bsdf.inputs["Base Color"].default_value = (0.06, 0.19, 0.13, 1.0)
+sign_bsdf.inputs["Roughness"].default_value = 0.72
+
+handle_material = bpy.data.materials.new("Brushed stainless steel handle")
+handle_material.diffuse_color = (0.72, 0.75, 0.74, 1.0)
+handle_material.use_nodes = True
+handle_bsdf = handle_material.node_tree.nodes.get("Principled BSDF")
+handle_bsdf.inputs["Base Color"].default_value = (0.72, 0.75, 0.74, 1.0)
+handle_bsdf.inputs["Metallic"].default_value = 0.82
+handle_bsdf.inputs["Roughness"].default_value = 0.22
+
+door_objects = []
+
+
+def add_door_box(name, location, dimensions, material):
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=location)
+    obj = bpy.context.object
+    obj.name = name
+    obj.dimensions = dimensions
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    obj.data.materials.append(material)
+    door_objects.append(obj)
+    return obj
+
+
+add_door_box("Glass_Exit_Door_Pane", (0.0, 1.10, -2.475), (1.20, 2.08, 0.035), glass_material)
+add_door_box("Glass_Exit_Door_Frame_Left", (-0.68, 1.10, -2.49), (0.08, 2.20, 0.16), door_frame_material)
+add_door_box("Glass_Exit_Door_Frame_Right", (0.68, 1.10, -2.49), (0.08, 2.20, 0.16), door_frame_material)
+add_door_box("Glass_Exit_Door_Frame_Top", (0.0, 2.20, -2.49), (1.44, 0.10, 0.16), door_frame_material)
+add_door_box("Glass_Exit_Door_Threshold", (0.0, 0.045, -2.49), (1.44, 0.09, 0.20), door_frame_material)
+add_door_box("Exit_Door_Handle_Mount", (0.48, 1.08, -2.445), (0.075, 0.22, 0.035), door_frame_material)
+
+bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.48, 1.08, -2.415))
+handle = bpy.context.object
+handle.name = "Exit_Door_Pull_Handle"
+handle.dimensions = (0.036, 0.34, 0.036)
+bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+handle.data.materials.append(handle_material)
+door_objects.append(handle)
+
+add_door_box("Exit_Sign_Panel", (0.0, 2.37, -2.48), (0.62, 0.18, 0.055), sign_material)
+
+exit_text_curve = bpy.data.curves.new("Exit sign lettering", type="FONT")
+exit_text_curve.body = "EXIT"
+exit_text_curve.align_x = "CENTER"
+exit_text_curve.align_y = "CENTER"
+exit_text_curve.size = 0.115
+exit_text_curve.extrude = 0.001
+exit_text = bpy.data.objects.new("Exit_Sign_Text", exit_text_curve)
+scene.collection.objects.link(exit_text)
+exit_text.location = (0.0, 2.37, -2.44)
+exit_text_curve.materials.append(handle_material)
+bpy.ops.object.select_all(action="DESELECT")
+exit_text.select_set(True)
+bpy.context.view_layer.objects.active = exit_text
+bpy.ops.object.convert(target="MESH")
+door_objects.append(bpy.context.object)
 
 
 # Soft preview lighting is included in the editable Blender project, not the exported room model.
@@ -119,7 +213,7 @@ scene.camera = camera
 
 # Export only the six architectural surfaces to keep the Godot asset completely empty.
 bpy.ops.object.select_all(action="DESELECT")
-for obj in room_objects:
+for obj in room_objects + door_objects:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = room_objects[0]
 bpy.ops.export_scene.gltf(filepath=GLB_PATH, export_format="GLB", use_selection=True, export_apply=True)
