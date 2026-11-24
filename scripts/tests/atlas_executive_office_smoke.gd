@@ -106,7 +106,7 @@ func _run_test() -> void:
 		return
 
 	var back_requested := false
-	office_preview.back_requested.connect(func() -> void:
+	office_preview.connect("back_requested", func() -> void:
 		back_requested = true
 	)
 	office_preview.call("_request_back")
