@@ -89,7 +89,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not dragging:
-	camera.position.z = lerpf(camera.position.z, target_distance, minf(delta * 5.0, 1.0))
+		camera.position.z = lerpf(camera.position.z, target_distance, minf(delta * 5.0, 1.0))
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	region_check_elapsed += delta
 	if region_check_elapsed >= 0.28:
