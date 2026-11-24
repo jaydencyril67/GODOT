@@ -184,6 +184,9 @@ func _build_space_environment() -> void:
 	world_environment.environment = environment
 	add_child(world_environment)
 
+	# Restore only the distant star background; keep the globe free of extra shells and UI.
+	_add_starfield()
+
 	camera = Camera3D.new()
 	camera.name = "GlobeCamera"
 	camera.position = Vector3(0.0, 0.0, START_DISTANCE)
@@ -254,7 +257,7 @@ func _build_planet() -> void:
 	earth_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(earth_instance)
 
-	_debug_event("3D Earth surface ready.") atmosphere.")
+	_debug_event("3D Earth surface ready.")
 
 
 func _build_sphere_mesh(radius: float, longitude_segments: int, latitude_segments: int) -> ArrayMesh:
