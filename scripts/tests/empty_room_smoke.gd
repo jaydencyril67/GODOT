@@ -68,8 +68,10 @@ func _run_test() -> void:
 	if room_preview.find_child("ExitSignText", true, false) == null:
 		_fail("The glass door is missing its EXIT sign.")
 		return
-	if room_preview.find_child("GlassExitDoorCollision", true, false) == null:
-		_fail("The closed glass exit door must block the player until it is opened.")
+	var door_pivot := room_preview.find_child("GlassExitDoorPivot", true, false) as Node3D
+	var door_body := room_preview.find_child("GlassExitDoorCollision", true, false) as AnimatableBody3D
+	if door_pivot == null or door_body == null:
+		_fail("The glass door needs a hinged pivot and a moving collision body.")
 		return
 
 	if room_preview.find_child("MovementJoystickBase", true, false) == null:
@@ -78,8 +80,38 @@ func _run_test() -> void:
 	if room_preview.find_child("MovementJoystickThumb", true, false) == null:
 		_fail("The movement joystick is missing its movable thumb.")
 		return
-	if room_preview.find_child("LookPad", true, false) == null or room_preview.find_child("LookHintLabel", true, false) == null:
-		_fail("The room is missing the right-side look control.")
+	var joystick_base := room_preview.find_child("MovementJoystickBase", true, false) as Panel
+	if joystick_base == null or not is_equal_approx(joystick_base.size.x, 259.2):
+		_fail("The movement joystick base must be scaled to 1.8 times its original width.")
+		return
+	if room_preview.find_child("LookPad", true, false) == null or room_preview.find_child("LookHintLabel", true, false) != null:
+		_fail("The right look circle must remain available without its LOOK text.")
+		return
+	if room_preview.find_child("FirstPersonModeLabel", true, false) != null:
+		_fail("The first-person label should no longer appear on screen.")
+		return
+	var door_button := room_preview.find_child("DoorOpenCircleButton", true, false) as Button
+	if door_button == null or door_button.visible:
+		_fail("The circular OPEN button must start hidden until the player approaches the door.")
+		return
+
+	var large_room := room_preview.find_child("LargeEmptyRoom", true, false) as Node3D
+	var large_floor := large_room.find_child("LargeRoomFloor", true, false) as MeshInstance3D if large_room != null else null
+	var large_floor_mesh := large_floor.mesh as BoxMesh if large_floor != null else null
+	var large_area := large_floor_mesh.size.x * large_floor_mesh.size.z if large_floor_mesh != null else 0.0
+	var first_area := 6.16 * 5.16
+	if large_room == null or large_area <= 0.0 or absf(large_area / first_area - 2.5) > 0.02:
+		_fail("The second empty room must have 2.5 times the first room's floor area.")
+		return
+	for door_index in range(1, 5):
+		if large_room.find_child("LargeRoomInteriorDoor%d" % door_index, true, false) == null:
+			_fail("The larger room is missing one of its four interior doors.")
+			return
+	if large_room.find_child("LargeRoomWindowGlass-1", true, false) == null or large_room.find_child("LargeRoomWindowGlass1", true, false) == null:
+		_fail("The larger room must have windows on both side walls.")
+		return
+	if large_room.find_child("LargeRoomStairRamp", true, false) == null or large_room.find_child("LargeRoomStairLanding", true, false) == null:
+		_fail("The larger room is missing its in-house staircase and upper landing.")
 		return
 	if room_preview.find_child("EmptyRoomBackButton", true, false) == null:
 		_fail("The first-person room is missing its Back button.")
@@ -117,6 +149,16 @@ func _run_test() -> void:
 	room_preview.call("_apply_look", Vector2(30.0, -20.0))
 	if is_equal_approx(player.rotation.y, starting_yaw) or camera.rotation.x <= 0.0:
 		_fail("The right-side look control must rotate the player view.")
+		return
+
+	player.position = Vector3(0.0, 0.0, -0.55)
+	room_preview.call("_update_door_interaction")
+	if not door_button.visible:
+		_fail("The OPEN circle must appear when the player gets close to the glass door.")
+		return
+	room_preview.call("_open_exit_door")
+	if not bool(room_preview.get("door_is_open")) or door_button.visible:
+		_fail("Tapping OPEN must begin opening the glass door and hide the prompt.")
 		return
 
 	room_preview.queue_free()
