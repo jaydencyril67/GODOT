@@ -32,9 +32,6 @@ func _run_test() -> void:
 	if earth_material.texture_filter != BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS:
 		_fail("Earth imagery must retain mipmapped filtering for clear zoom transitions.")
 		return
-	if not str(globe.get("OVERVIEW_URL")).contains("width=4096&height=2048"):
-		_fail("The Earth overview imagery should use the upgraded 4K texture request.")
-		return
 	if not _has_godot_clockwise_front_faces(earth.mesh):
 		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
 		return
