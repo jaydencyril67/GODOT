@@ -41,15 +41,16 @@ func _run_test() -> void:
 	if atmosphere == null or atmosphere.mesh == null:
 		_fail("The atmospheric rim is missing.")
 		return
-	if globe.find_child("GlobeDiagnosticsPanel", true, false) == null:
-		_fail("The live diagnostics panel is missing.")
+	if globe.find_child("DistantStars", true, false) != null:
+		_fail("The globe scene must not show decorative starfield surroundings.")
 		return
-	var copy_button := globe.get("debug_copy_button") as Button
-	if copy_button == null or copy_button.text != "COPY":
-		_fail("The live diagnostics panel is missing its COPY button.")
+	if globe.find_child("GlobeBackButton", true, false) == null:
+		_fail("The minimal globe interface must retain its back button.")
 		return
-	var admin_panel := globe.find_child("ZoomOnlyAdministrativeData", true, false)
-	if admin_panel != null:
+	if globe.find_child("GlobeDiagnosticsPanel", true, false) != null or globe.find_child("GlobeDiagnosticsOverlay", true, false) != null:
+		_fail("The globe scene must not display diagnostics panels.")
+		return
+	if globe.find_child("ZoomOnlyAdministrativeData", true, false) != null:
 		_fail("The globe must not show a manual country or province selector panel.")
 		return
 
