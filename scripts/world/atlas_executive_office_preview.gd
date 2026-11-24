@@ -221,7 +221,7 @@ func _query_walkable_floor(space_state: PhysicsDirectSpaceState3D, point: Vector
 		return {}
 	var hit_position: Vector3 = hit["position"]
 	var hit_normal: Vector3 = hit["normal"]
-	if absf(hit_normal.y) < 0.65 or hit_position.y < -0.15 or hit_position.y > 0.22:
+	if hit_normal.y < 0.8 or hit_position.y < -0.12 or hit_position.y > 0.08:
 		return {}
 	return hit
 
