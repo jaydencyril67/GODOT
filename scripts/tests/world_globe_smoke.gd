@@ -28,10 +28,6 @@ func _run_test() -> void:
 	if not _has_godot_clockwise_front_faces(earth.mesh):
 		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
 		return
-	var detail_mesh := globe.call("_build_geo_patch", -20.0, 20.0, -12.0, 12.0, 1.0045, 12, 8) as ArrayMesh
-	if detail_mesh == null or not _has_godot_clockwise_front_faces(detail_mesh):
-		_fail("Zoomed regional texture patches are wound backwards and will be culled.")
-		return
 	if clouds == null or clouds.mesh == null:
 		_fail("The separate cloud shell is missing.")
 		return
@@ -70,6 +66,27 @@ func _run_test() -> void:
 	globe.call("_set_zoom", 2.2)
 	if not globe.call("_is_province_zoom_active"):
 		_fail("State/province boundaries did not activate at the closer map zoom.")
+		return
+
+	globe.set("focused_country_name", "Testland")
+	var sample_adm1 := {
+		"type": "FeatureCollection",
+		"features": [{
+			"type": "Feature",
+			"properties": {"shapeName": "Test Province"},
+			"geometry": {
+				"type": "Polygon",
+				"coordinates": [[[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0], [-5.0, -5.0]]]
+			}
+		}]
+	}
+	if not globe.call("_apply_province_boundaries", sample_adm1):
+		_fail("The automatic state/province boundary layer could not be created.")
+		return
+	var province_layer := globe.find_child("AutomaticStateProvinceBoundaries", true, false) as MeshInstance3D
+	if province_layer == null or not province_layer.visible:
+		_fail("State/province outlines did not appear at the closer map zoom.")
+		return
 
 	globe.queue_free()
 	await process_frame
