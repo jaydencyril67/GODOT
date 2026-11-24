@@ -16,8 +16,6 @@ func _run_test() -> void:
 
 	var camera := globe.find_child("GlobeCamera", true, false) as Camera3D
 	var earth := globe.find_child("EarthSurface", true, false) as MeshInstance3D
-	var clouds := globe.find_child("ProceduralCloudDeck", true, false) as MeshInstance3D
-	var atmosphere := globe.find_child("BlueAtmosphericRim", true, false) as MeshInstance3D
 
 	if camera == null or not camera.current:
 		_fail("The globe scene did not activate its dedicated camera.")
@@ -35,11 +33,8 @@ func _run_test() -> void:
 	if not _has_godot_clockwise_front_faces(earth.mesh):
 		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
 		return
-	if clouds == null or clouds.mesh == null:
-		_fail("The separate cloud shell is missing.")
-		return
-	if atmosphere == null or atmosphere.mesh == null:
-		_fail("The atmospheric rim is missing.")
+	if globe.find_child("ProceduralCloudDeck", true, false) != null or globe.find_child("BlueAtmosphericRim", true, false) != null:
+		_fail("The minimal globe must not include separate cloud or atmosphere shells.")
 		return
 	if globe.find_child("DistantStars", true, false) != null:
 		_fail("The globe scene must not show decorative starfield surroundings.")
