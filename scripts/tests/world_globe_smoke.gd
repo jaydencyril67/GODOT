@@ -36,8 +36,8 @@ func _run_test() -> void:
 	if globe.find_child("ProceduralCloudDeck", true, false) != null or globe.find_child("BlueAtmosphericRim", true, false) != null:
 		_fail("The minimal globe must not include separate cloud or atmosphere shells.")
 		return
-	if globe.find_child("DistantStars", true, false) != null:
-		_fail("The globe scene must not show decorative starfield surroundings.")
+	if globe.find_child("DistantStars", true, false) == null:
+		_fail("The globe scene must restore its distant star background.")
 		return
 	if globe.find_child("GlobeBackButton", true, false) == null:
 		_fail("The minimal globe interface must retain its back button.")
