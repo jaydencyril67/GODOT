@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#102c3a"/>
+      <stop offset="1" stop-color="#07131e"/>
+    </linearGradient>
+    <linearGradient id="globe" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#69e0d0"/>
+      <stop offset="1" stop-color="#2787bd"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="220" r="132" fill="none" stroke="url(#globe)" stroke-width="24"/>
+  <path d="M124 220h264M256 88c-42 38-64 82-64 132s22 94 64 132M256 88c42 38 64 82 64 132s-22 94-64 132" fill="none" stroke="#b8f5ec" stroke-width="14" stroke-linecap="round" opacity=".9"/>
+  <path d="M145 155c34 23 71 35 111 35s77-12 111-35M145 285c34-23 71-35 111-35s77 12 111 35" fill="none" stroke="#b8f5ec" stroke-width="12" stroke-linecap="round" opacity=".65"/>
+  <path d="M173 390h166" stroke="#f0b86a" stroke-width="12" stroke-linecap="round"/>
+  <text x="256" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="700" letter-spacing="5" fill="#ffffff">DWHQ</text>
+</svg>
