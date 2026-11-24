@@ -326,7 +326,8 @@ func _build_large_empty_room() -> void:
 	var side_door_front_edge := side_door_z + side_door_half_width
 	var side_door_back_edge := side_door_z - side_door_half_width
 
-	for side in [-1.0, 1.0]:
+	for side_index in range(2):
+		var side: float = -1.0 if side_index == 0 else 1.0
 		var wall_x := side * (half_width - 0.08)
 		var front_segment_length := front_z - window_front_edge
 		var middle_segment_length := window_back_edge - side_door_front_edge
@@ -342,12 +343,14 @@ func _build_large_empty_room() -> void:
 		_add_visual_box_to(large_room_root, "LargeRoomWindowGlass%d" % int(side), Vector3(side * (half_width - 0.045), 1.80, window_center_z), Vector3(0.035, 1.36, 1.96), glass_material)
 		_add_visual_box_to(large_room_root, "LargeRoomWindowFrameTop%d" % int(side), Vector3(wall_x, 2.50, window_center_z), Vector3(0.11, 0.09, 2.14), metal_material)
 		_add_visual_box_to(large_room_root, "LargeRoomWindowFrameBottom%d" % int(side), Vector3(wall_x, 1.10, window_center_z), Vector3(0.11, 0.09, 2.14), metal_material)
-		for edge in [-1.0, 1.0]:
-			_add_visual_box_to(large_room_root, "LargeRoomWindowFrameSide%d_%d" % [int(side), int(edge)], Vector3(wall_x, 1.80, window_center_z + edge * 1.04), Vector3(0.11, 1.48, 0.09), metal_material)
+		for window_edge_index in range(2):
+			var window_edge: float = -1.0 if window_edge_index == 0 else 1.0
+			_add_visual_box_to(large_room_root, "LargeRoomWindowFrameSide%d_%d" % [int(side), int(window_edge)], Vector3(wall_x, 1.80, window_center_z + window_edge * 1.04), Vector3(0.11, 1.48, 0.09), metal_material)
 
 		_add_large_room_box("LargeRoomInteriorDoor%d" % (1 if side < 0.0 else 2), Vector3(side * (half_width - 0.045), 1.08, side_door_z), Vector3(0.05, 2.12, 1.0), wood_material)
-		for edge in [-1.0, 1.0]:
-			_add_visual_box_to(large_room_root, "LargeRoomSideDoorJamb%d_%d" % [int(side), int(edge)], Vector3(wall_x, 1.10, side_door_z + edge * 0.56), Vector3(0.10, 2.20, 0.10), wood_trim_material)
+		for jamb_edge_index in range(2):
+			var jamb_edge: float = -1.0 if jamb_edge_index == 0 else 1.0
+			_add_visual_box_to(large_room_root, "LargeRoomSideDoorJamb%d_%d" % [int(side), int(jamb_edge)], Vector3(wall_x, 1.10, side_door_z + jamb_edge * 0.56), Vector3(0.10, 2.20, 0.10), wood_trim_material)
 		_add_visual_box_to(large_room_root, "LargeRoomSideDoorHeader%d" % int(side), Vector3(wall_x, 2.22, side_door_z), Vector3(0.10, 0.10, 1.18), wood_trim_material)
 		_add_visual_box_to(large_room_root, "LargeRoomSideDoorHandle%d" % int(side), Vector3(side * (half_width - 0.15), 1.08, side_door_z + 0.30), Vector3(0.06, 0.12, 0.08), metal_material)
 
@@ -364,8 +367,9 @@ func _build_large_empty_room() -> void:
 	for door_index in range(rear_door_centers.size()):
 		var door_x: float = rear_door_centers[door_index]
 		_add_large_room_box("LargeRoomInteriorDoor%d" % (door_index + 3), Vector3(door_x, 1.08, back_z + 0.045), Vector3(1.0, 2.12, 0.05), wood_material)
-		for edge in [-1.0, 1.0]:
-			_add_visual_box_to(large_room_root, "LargeRoomRearDoorJamb%d_%d" % [door_index, int(edge)], Vector3(door_x + edge * 0.56, 1.10, back_z + 0.045), Vector3(0.10, 2.20, 0.10), wood_trim_material)
+		for rear_jamb_index in range(2):
+			var rear_jamb_edge: float = -1.0 if rear_jamb_index == 0 else 1.0
+			_add_visual_box_to(large_room_root, "LargeRoomRearDoorJamb%d_%d" % [door_index, int(rear_jamb_edge)], Vector3(door_x + rear_jamb_edge * 0.56, 1.10, back_z + 0.045), Vector3(0.10, 2.20, 0.10), wood_trim_material)
 		_add_visual_box_to(large_room_root, "LargeRoomRearDoorHeader%d" % door_index, Vector3(door_x, 2.22, back_z + 0.045), Vector3(1.18, 0.10, 0.10), wood_trim_material)
 		_add_visual_box_to(large_room_root, "LargeRoomRearDoorHandle%d" % door_index, Vector3(door_x + 0.30, 1.08, back_z + 0.12), Vector3(0.08, 0.12, 0.06), metal_material)
 
@@ -377,8 +381,9 @@ func _build_large_empty_room() -> void:
 		var step_height := float(step_index + 1) * 0.20
 		var step_z := -4.50 - float(step_index) * 0.40
 		_add_large_room_box("LargeRoomStairStep%02d" % step_index, Vector3(2.85, step_height * 0.5, step_z), Vector3(1.45, 0.20, 0.46), stair_material)
-	for side in [-1.0, 1.0]:
-		_add_large_room_rotated_box("LargeRoomStairHandrail%d" % int(side), Vector3(2.85 + side * 0.82, 1.00, -6.30), Vector3(0.075, 0.075, 4.0), wood_trim_material, stair_rotation, false)
+	for stair_side_index in range(2):
+		var stair_side: float = -1.0 if stair_side_index == 0 else 1.0
+		_add_large_room_rotated_box("LargeRoomStairHandrail%d" % int(stair_side), Vector3(2.85 + stair_side * 0.82, 1.00, -6.30), Vector3(0.075, 0.075, 4.0), wood_trim_material, stair_rotation, false)
 	_add_large_room_box("LargeRoomStairLanding", Vector3(2.85, 1.85, -8.45), Vector3(1.90, 0.16, 1.15), stair_material)
 
 	var room_light := OmniLight3D.new()
