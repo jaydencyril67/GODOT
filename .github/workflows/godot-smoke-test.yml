@@ -33,6 +33,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: ${{ inputs.include_gaussian_asset }}
+      - name: Install GDGS Gaussian Splat addon
+        shell: bash
+        run: bash .github/scripts/install-gdgs-addon.sh
+
       - name: Exclude Gaussian PLY for unrelated tests
         if: ${{ !inputs.include_gaussian_asset }}
         shell: bash
