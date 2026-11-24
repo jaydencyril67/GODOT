@@ -201,7 +201,6 @@ func _build_space_environment() -> void:
 	sunlight.shadow_enabled = false
 	add_child(sunlight)
 
-	_add_starfield()
 
 
 func _add_starfield() -> void:
@@ -346,94 +345,21 @@ func _build_interface() -> void:
 	layer.layer = 30
 	add_child(layer)
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	layer.add_child(margin)
-
-	var layout := VBoxContainer.new()
-	layout.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layout.add_theme_constant_override("separation", 10)
-	margin.add_child(layout)
-
-	var header := HBoxContainer.new()
-	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header.add_theme_constant_override("separation", 10)
-	layout.add_child(header)
-
 	var back := Button.new()
+	back.name = "GlobeBackButton"
 	back.text = "‹  BACK"
-	back.custom_minimum_size = Vector2(92, 46)
+	back.position = Vector2(16.0, 14.0)
+	back.custom_minimum_size = Vector2(92.0, 46.0)
 	back.pressed.connect(func() -> void: back_requested.emit())
 	_style_button(back, false)
-	header.add_child(back)
+	layer.add_child(back)
 
-	var heading := VBoxContainer.new()
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_theme_constant_override("separation", 1)
-	header.add_child(heading)
-
-	var title := Label.new()
-	title.text = "EARTH  /  LIVE ATLAS"
-	title.add_theme_font_size_override("font_size", 16)
-	title.add_theme_color_override("font_color", Color("#F0F4FB"))
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = "A planet-sized view of our world"
-	subtitle.add_theme_font_size_override("font_size", 10)
-	subtitle.add_theme_color_override("font_color", Color("#8E9EB8"))
-	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_child(subtitle)
-
-	debug_toggle = Button.new()
-	debug_toggle.text = "DEBUG"
-	debug_toggle.custom_minimum_size = Vector2(58, 44)
-	debug_toggle.pressed.connect(_toggle_debug_panel)
-	_style_button(debug_toggle, false)
-	header.add_child(debug_toggle)
-
-	var zoom_out := Button.new()
-	zoom_out.text = "−"
-	zoom_out.custom_minimum_size = Vector2(42, 44)
-	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + BUTTON_ZOOM_STEP))
-	_style_button(zoom_out, false)
-	header.add_child(zoom_out)
-
-	var zoom_in := Button.new()
-	zoom_in.text = "+"
-	zoom_in.custom_minimum_size = Vector2(42, 44)
-	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - BUTTON_ZOOM_STEP))
-	_style_button(zoom_in, true)
-	header.add_child(zoom_in)
-
-	var footer_spacer := Control.new()
-	footer_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	footer_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layout.add_child(footer_spacer)
-
+	# Keep the internal status target available for network/data callbacks,
+	# but never display loading or diagnostic text over the globe.
 	status_label = Label.new()
-	status_label.text = "DRAG TO ROTATE  ·  PINCH OR SCROLL TO ZOOM"
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 10)
-	status_label.add_theme_color_override("font_color", Color("#B8C9DF"))
-	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layout.add_child(status_label)
-
-	var attribution := Label.new()
-	attribution.text = "NASA Blue Marble imagery  ·  Country outlines: Natural Earth  ·  Regional boundaries: geoBoundaries (CC BY 4.0)"
-	attribution.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	attribution.add_theme_font_size_override("font_size", 9)
-	attribution.add_theme_color_override("font_color", Color("#72839D"))
-	attribution.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layout.add_child(attribution)
-	_build_debug_panel(layer)
+	status_label.name = "HiddenGlobeStatus"
+	status_label.visible = false
+	layer.add_child(status_label)
 
 
 func _build_debug_panel(layer: CanvasLayer) -> void:
