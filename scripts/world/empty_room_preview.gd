@@ -125,6 +125,7 @@ func _make_room_material(material_name: String, base_color: Color, roughness_val
 			if add_tile_lines and (x % 32 <= 1 or y % 32 <= 1):
 				pixel = pixel.darkened(0.045)
 			image.set_pixel(x, y, pixel)
+	image.generate_mipmaps()
 	var material := StandardMaterial3D.new()
 	material.resource_name = material_name
 	material.albedo_texture = ImageTexture.create_from_image(image)
