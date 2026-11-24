@@ -140,9 +140,17 @@ func _get_pinch_distance() -> float:
 	return first_point.distance_to(second_point)
 
 
+func _get_drag_rotation_sensitivity() -> float:
+	var zoom_range := maxf(MAX_DISTANCE - MIN_DISTANCE, 0.001)
+	var zoom_progress := clampf((target_distance - MIN_DISTANCE) / zoom_range, 0.0, 1.0)
+	var sensitivity_progress := pow(zoom_progress, 1.25)
+	return DRAG_ROTATION_SENSITIVITY * lerpf(0.28, 1.0, sensitivity_progress)
+
+
 func _drag_planet(relative: Vector2) -> void:
-	planet_root.rotate_y(relative.x * DRAG_ROTATION_SENSITIVITY)
-	planet_root.rotate_x(relative.y * DRAG_ROTATION_SENSITIVITY)
+	var sensitivity := _get_drag_rotation_sensitivity()
+	planet_root.rotate_y(relative.x * sensitivity)
+	planet_root.rotate_x(relative.y * sensitivity)
 	planet_root.rotation.x = clampf(planet_root.rotation.x, -1.48, 1.48)
 
 
@@ -535,7 +543,7 @@ func _refresh_debug_panel() -> void:
 		"State/province layer: " + province_layer_state,
 		"State/province names: " + province_names_state,
 		"Zoom target: %.2f (country <= %.2f / regions <= %.2f)" % [target_distance, COUNTRY_ZOOM_DISTANCE, PROVINCE_ZOOM_DISTANCE],
-		"Rotation: manual drag %.6f / auto-rotation disabled" % DRAG_ROTATION_SENSITIVITY,
+		"Rotation: manual drag %.6f to %.6f by zoom / auto-rotation disabled" % [DRAG_ROTATION_SENSITIVITY * 0.28, DRAG_ROTATION_SENSITIVITY],
 		"Zoom input: wheel %.3f / buttons %.3f / pinch %.5f / magnify %.2f" % [WHEEL_ZOOM_STEP, BUTTON_ZOOM_STEP, PINCH_ZOOM_SENSITIVITY, MAGNIFY_ZOOM_SENSITIVITY],
 		"Failures recorded: %d" % debug_failure_count,
 		"",
