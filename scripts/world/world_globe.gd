@@ -139,8 +139,8 @@ func _get_pinch_distance() -> float:
 
 
 func _drag_planet(relative: Vector2) -> void:
-	planet_root.rotate_y(relative.x * 0.005)
-	planet_root.rotate_x(relative.y * 0.005)
+	planet_root.rotate_y(relative.x * 0.0025)
+	planet_root.rotate_x(relative.y * 0.0025)
 	planet_root.rotation.x = clampf(planet_root.rotation.x, -1.48, 1.48)
 
 
