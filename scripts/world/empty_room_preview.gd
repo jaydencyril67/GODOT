@@ -33,6 +33,8 @@ var mouse_look_active := false
 
 func _ready() -> void:
 	_build_room()
+	_apply_room_finish()
+	_build_glass_exit_door()
 	_build_room_collisions()
 	_build_environment()
 	_build_first_person_player()
@@ -47,14 +49,17 @@ func _build_room() -> void:
 
 
 func _build_room_collisions() -> void:
-	# The imported GLTF is visual geometry. These simple colliders make the
-	# floor, four walls and ceiling solid without adding visible objects.
+	# The far wall has a framed glass exit door. The glass itself remains closed
+	# and collidable, while the wall geometry is split around its opening.
 	_add_room_collision_box("RoomFloorCollision", Vector3(0.0, -0.10, 0.0), Vector3(6.32, 0.20, 5.32))
 	_add_room_collision_box("LeftWallCollision", Vector3(-3.08, 1.50, 0.0), Vector3(0.16, 3.0, 5.16))
 	_add_room_collision_box("RightWallCollision", Vector3(3.08, 1.50, 0.0), Vector3(0.16, 3.0, 5.16))
-	_add_room_collision_box("BackWallCollision", Vector3(0.0, 1.50, -2.58), Vector3(6.16, 3.0, 0.16))
+	_add_room_collision_box("BackWallLeftCollision", Vector3(-1.90, 1.50, -2.58), Vector3(2.36, 3.0, 0.16))
+	_add_room_collision_box("BackWallRightCollision", Vector3(1.90, 1.50, -2.58), Vector3(2.36, 3.0, 0.16))
+	_add_room_collision_box("BackWallTopCollision", Vector3(0.0, 2.64, -2.58), Vector3(1.44, 0.88, 0.16))
 	_add_room_collision_box("FrontWallCollision", Vector3(0.0, 1.50, 2.58), Vector3(6.16, 3.0, 0.16))
 	_add_room_collision_box("CeilingCollision", Vector3(0.0, 3.08, 0.0), Vector3(6.16, 0.16, 5.16))
+	_add_room_collision_box("GlassExitDoorCollision", Vector3(0.0, 1.10, -2.48), Vector3(1.18, 2.12, 0.08))
 
 
 func _add_room_collision_box(node_name: String, center: Vector3, dimensions: Vector3) -> void:
@@ -67,6 +72,142 @@ func _add_room_collision_box(node_name: String, center: Vector3, dimensions: Vec
 	collision.shape = shape
 	body.add_child(collision)
 	add_child(body)
+
+
+func _apply_room_finish() -> void:
+	var room := get_node_or_null("EmptyRoomAsset")
+	if room == null:
+		return
+	var mesh_nodes := room.find_children("*", "MeshInstance3D", true, false)
+	if mesh_nodes.is_empty():
+		push_warning("Empty room model has no mesh to receive its surface finish.")
+		return
+	var room_mesh := mesh_nodes[0] as MeshInstance3D
+	if room_mesh.mesh == null or room_mesh.mesh.get_surface_count() < 6:
+		push_warning("Empty room model does not contain the expected six surfaces.")
+		return
+
+	var wall_material := _make_room_material("Soft textured warm wall plaster", Color("#D2D0C8"), 0.94, 0.018, 41, false)
+	var floor_material := _make_room_material("Subtle tiled mineral floor", Color("#858A8B"), 0.88, 0.025, 73, true)
+	var ceiling_material := _make_room_material("Light matte ceiling", Color("#E5E2DB"), 0.97, 0.008, 19, false)
+	room_mesh.set_surface_override_material(0, floor_material)
+	room_mesh.set_surface_override_material(1, wall_material)
+	room_mesh.set_surface_override_material(2, wall_material)
+	room_mesh.set_surface_override_material(4, wall_material)
+	room_mesh.set_surface_override_material(5, ceiling_material)
+
+	# The original solid back wall surface is replaced by three wall sections,
+	# leaving a real visual opening for the glass door.
+	var hidden_wall := StandardMaterial3D.new()
+	hidden_wall.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hidden_wall.albedo_color = Color(0.0, 0.0, 0.0, 0.0)
+	hidden_wall.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	room_mesh.set_surface_override_material(3, hidden_wall)
+
+
+func _make_room_material(material_name: String, base_color: Color, roughness_value: float, noise_amount: float, seed_value: int, add_tile_lines: bool) -> StandardMaterial3D:
+	var image := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	noise.seed = seed_value
+	noise.frequency = 0.055
+	for y in range(128):
+		for x in range(128):
+			var variation := noise.get_noise_2d(float(x), float(y)) * noise_amount
+			var pixel := Color(
+				clampf(base_color.r + variation, 0.0, 1.0),
+				clampf(base_color.g + variation, 0.0, 1.0),
+				clampf(base_color.b + variation, 0.0, 1.0),
+				1.0
+			)
+			if add_tile_lines and (x % 32 <= 1 or y % 32 <= 1):
+				pixel = pixel.darkened(0.045)
+			image.set_pixel(x, y, pixel)
+	var material := StandardMaterial3D.new()
+	material.resource_name = material_name
+	material.albedo_texture = ImageTexture.create_from_image(image)
+	material.roughness = roughness_value
+	material.metallic = 0.0
+	material.uv1_scale = Vector3(2.0, 2.0, 1.0)
+	return material
+
+
+func _build_glass_exit_door() -> void:
+	var wall_material := StandardMaterial3D.new()
+	wall_material.albedo_color = Color("#D2D0C8")
+	wall_material.roughness = 0.94
+
+	# Rebuild the far wall around a 1.44 m wide, 2.20 m high doorway.
+	_add_visual_box("ExitDoorWallLeft", Vector3(-1.90, 1.50, -2.58), Vector3(2.36, 3.16, 0.16), wall_material)
+	_add_visual_box("ExitDoorWallRight", Vector3(1.90, 1.50, -2.58), Vector3(2.36, 3.16, 0.16), wall_material)
+	_add_visual_box("ExitDoorWallLintel", Vector3(0.0, 2.64, -2.58), Vector3(1.44, 0.88, 0.16), wall_material)
+
+	var frame_material := StandardMaterial3D.new()
+	frame_material.albedo_color = Color("#343B3E")
+	frame_material.metallic = 0.48
+	frame_material.roughness = 0.38
+	_add_visual_box("GlassExitDoorFrameLeft", Vector3(-0.68, 1.10, -2.49), Vector3(0.08, 2.20, 0.16), frame_material)
+	_add_visual_box("GlassExitDoorFrameRight", Vector3(0.68, 1.10, -2.49), Vector3(0.08, 2.20, 0.16), frame_material)
+	_add_visual_box("GlassExitDoorFrameTop", Vector3(0.0, 2.20, -2.49), Vector3(1.44, 0.10, 0.16), frame_material)
+	_add_visual_box("GlassExitDoorThreshold", Vector3(0.0, 0.045, -2.49), Vector3(1.44, 0.09, 0.20), frame_material)
+
+	var glass_material := StandardMaterial3D.new()
+	glass_material.albedo_color = Color(0.44, 0.66, 0.69, 0.38)
+	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass_material.metallic = 0.22
+	glass_material.roughness = 0.16
+	glass_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	glass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_add_visual_box("GlassExitDoorPane", Vector3(0.0, 1.10, -2.475), Vector3(1.20, 2.08, 0.035), glass_material)
+
+	var handle_mount_material := StandardMaterial3D.new()
+	handle_mount_material.albedo_color = Color("#24292B")
+	handle_mount_material.metallic = 0.62
+	handle_mount_material.roughness = 0.30
+	_add_visual_box("ExitDoorHandleMount", Vector3(0.48, 1.08, -2.445), Vector3(0.075, 0.22, 0.035), handle_mount_material)
+
+	var handle_material := StandardMaterial3D.new()
+	handle_material.albedo_color = Color("#C6C9C7")
+	handle_material.metallic = 0.82
+	handle_material.roughness = 0.22
+	var handle_mesh := CylinderMesh.new()
+	handle_mesh.top_radius = 0.018
+	handle_mesh.bottom_radius = 0.018
+	handle_mesh.height = 0.34
+	handle_mesh.radial_segments = 12
+	var handle := MeshInstance3D.new()
+	handle.name = "ExitDoorPullHandle"
+	handle.mesh = handle_mesh
+	handle.position = Vector3(0.48, 1.08, -2.415)
+	handle.material_override = handle_material
+	add_child(handle)
+
+	var sign_material := StandardMaterial3D.new()
+	sign_material.albedo_color = Color("#1E4938")
+	sign_material.roughness = 0.72
+	_add_visual_box("ExitSignPanel", Vector3(0.0, 2.37, -2.48), Vector3(0.62, 0.18, 0.055), sign_material)
+
+	var exit_label := Label3D.new()
+	exit_label.name = "ExitSignText"
+	exit_label.text = "EXIT"
+	exit_label.font_size = 42
+	exit_label.pixel_size = 0.0017
+	exit_label.modulate = Color("#E6F6EB")
+	exit_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	exit_label.position = Vector3(0.0, 2.345, -2.44)
+	add_child(exit_label)
+
+
+func _add_visual_box(node_name: String, center: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var box := BoxMesh.new()
+	box.size = dimensions
+	mesh_instance.mesh = box
+	mesh_instance.position = center
+	mesh_instance.material_override = material
+	add_child(mesh_instance)
+	return mesh_instance
 
 
 func _build_environment() -> void:
