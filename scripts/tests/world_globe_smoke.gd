@@ -18,7 +18,6 @@ func _run_test() -> void:
 	var earth := globe.find_child("EarthSurface", true, false) as MeshInstance3D
 	var clouds := globe.find_child("ProceduralCloudDeck", true, false) as MeshInstance3D
 	var atmosphere := globe.find_child("BlueAtmosphericRim", true, false) as MeshInstance3D
-	var admin_panel := globe.find_child("ZoomOnlyAdministrativeData", true, false) as PanelContainer
 
 	if camera == null or not camera.current:
 		_fail("The globe scene did not activate its dedicated camera.")
@@ -39,15 +38,38 @@ func _run_test() -> void:
 	if atmosphere == null or atmosphere.mesh == null:
 		_fail("The atmospheric rim is missing.")
 		return
-	if admin_panel == null or admin_panel.visible:
-		_fail("Country and province controls must remain hidden at the initial globe zoom.")
+	var admin_panel := globe.find_child("ZoomOnlyAdministrativeData", true, false)
+	if admin_panel != null:
+		_fail("The globe must not show a manual country or province selector panel.")
+		return
+
+	var sample_geojson := {
+		"type": "FeatureCollection",
+		"features": [{
+			"type": "Feature",
+			"properties": {"ADMIN": "Testland", "NAME": "Testland", "ADM0_A3": "TST", "ISO_A3_EH": "TST"},
+			"bbox": [-10.0, -10.0, 10.0, 10.0],
+			"geometry": {
+				"type": "Polygon",
+				"coordinates": [[[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0], [-10.0, -10.0]]]
+			}
+		}]
+	}
+	if not globe.call("_apply_country_boundaries", sample_geojson):
+		_fail("The automatic world country-boundary layer could not be created.")
+		return
+	var detected_country: Dictionary = globe.call("_find_country_at_front")
+	if detected_country.is_empty() or str(detected_country.get("properties", {}).get("ADM0_A3", "")) != "TST":
+		_fail("The globe did not resolve the country at the center of its current view.")
 		return
 
 	globe.call("_set_zoom", 2.8)
-	await process_frame
-	if not admin_panel.visible:
-		_fail("Country and province controls did not appear after zooming in.")
+	if globe.call("_is_province_zoom_active"):
+		_fail("State/province boundaries should remain hidden at the country overview zoom.")
 		return
+	globe.call("_set_zoom", 2.2)
+	if not globe.call("_is_province_zoom_active"):
+		_fail("State/province boundaries did not activate at the closer map zoom.")
 
 	globe.queue_free()
 	await process_frame

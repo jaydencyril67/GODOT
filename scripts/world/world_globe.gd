@@ -6,8 +6,9 @@ const RADIUS := 1.0
 const START_DISTANCE := 3.65
 const MIN_DISTANCE := 1.42
 const MAX_DISTANCE := 7.0
-const ADMIN_ZOOM_DISTANCE := 3.05
+const PROVINCE_ZOOM_DISTANCE := 2.35
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
+const COUNTRY_BOUNDARIES_URL := "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
 const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=default&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=2048&height=1024&time=default"
 const CACHE_ROOT := "user://digitalworld/globe"
@@ -69,20 +70,15 @@ var target_distance := START_DISTANCE
 var dragging := false
 var touch_points: Dictionary = {}
 var last_pinch_distance := 0.0
-var country_catalog_loaded := false
-var country_catalog_loading := false
-var selection_generation := 0
-var selected_country_iso := ""
-var selected_country_name := ""
-var state_records: Array[Dictionary] = []
-var boundary_nodes: Array[Node3D] = []
-var detail_patch: MeshInstance3D
-var selected_state_marker: Label3D
-var country_select: OptionButton
-var province_select: OptionButton
-var admin_panel: PanelContainer
-var retry_button: Button
-var country_catalog_attempted := false
+var country_features: Array = []
+var country_boundaries_loaded := false
+var country_boundaries_loading := false
+var country_boundary_node: MeshInstance3D
+var province_boundary_nodes: Array[MeshInstance3D] = []
+var focused_country_iso := ""
+var focused_country_name := ""
+var region_request_generation := 0
+var region_check_elapsed := 0.0
 var status_label: Label
 var overview_texture: Texture2D
 
@@ -92,7 +88,7 @@ func _ready() -> void:
 	_build_planet()
 	_build_interface()
 	_load_overview_map()
-	_update_admin_visibility()
+	_load_country_boundaries()
 	set_process(true)
 
 
@@ -101,7 +97,10 @@ func _process(delta: float) -> void:
 		planet_root.rotate_y(delta * 0.012)
 	camera.position.z = lerpf(camera.position.z, target_distance, minf(delta * 5.0, 1.0))
 	camera.look_at(Vector3.ZERO, Vector3.UP)
-	_update_admin_visibility()
+	region_check_elapsed += delta
+	if region_check_elapsed >= 0.28:
+		region_check_elapsed = 0.0
+		_update_administrative_layers()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -388,55 +387,6 @@ func _build_interface() -> void:
 	_style_button(zoom_in, true)
 	header.add_child(zoom_in)
 
-	admin_panel = PanelContainer.new()
-	admin_panel.name = "ZoomOnlyAdministrativeData"
-	admin_panel.visible = false
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.015, 0.035, 0.07, 0.90)
-	panel_style.border_color = Color("#4976A8", 0.7)
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.content_margin_left = 10
-	panel_style.content_margin_right = 10
-	panel_style.content_margin_top = 8
-	panel_style.content_margin_bottom = 8
-	admin_panel.add_theme_stylebox_override("panel", panel_style)
-	layout.add_child(admin_panel)
-
-	var selectors := VBoxContainer.new()
-	selectors.add_theme_constant_override("separation", 6)
-	admin_panel.add_child(selectors)
-
-	var selector_title := Label.new()
-	selector_title.text = "EXPLORE ADMINISTRATIVE BOUNDARIES"
-	selector_title.add_theme_font_size_override("font_size", 10)
-	selector_title.add_theme_color_override("font_color", Color("#A9C9EF"))
-	selectors.add_child(selector_title)
-
-	country_select = OptionButton.new()
-	country_select.custom_minimum_size = Vector2(0, 42)
-	country_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	country_select.add_item("Loading country index…")
-	country_select.disabled = true
-	country_select.item_selected.connect(_on_country_selected)
-	selectors.add_child(country_select)
-
-	province_select = OptionButton.new()
-	province_select.custom_minimum_size = Vector2(0, 42)
-	province_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	province_select.add_item("Select a country first")
-	province_select.disabled = true
-	province_select.item_selected.connect(_on_province_selected)
-	selectors.add_child(province_select)
-
-	retry_button = Button.new()
-	retry_button.text = "RETRY WORLD DATA"
-	retry_button.visible = false
-	retry_button.custom_minimum_size = Vector2(0, 38)
-	retry_button.pressed.connect(_on_retry_pressed)
-	_style_button(retry_button, false)
-	selectors.add_child(retry_button)
-
 	var footer_spacer := Control.new()
 	footer_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	footer_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -451,7 +401,7 @@ func _build_interface() -> void:
 	layout.add_child(status_label)
 
 	var attribution := Label.new()
-	attribution.text = "NASA GIBS / NASA ESDIS imagery  ·  geoBoundaries gbOpen (CC BY 4.0)"
+	attribution.text = "NASA Blue Marble imagery  ·  Country outlines: Natural Earth  ·  Regional boundaries: geoBoundaries (CC BY 4.0)"
 	attribution.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	attribution.add_theme_font_size_override("font_size", 9)
 	attribution.add_theme_color_override("font_color", Color("#72839D"))
@@ -511,234 +461,199 @@ func _apply_overview_image(image: Image) -> bool:
 	return true
 
 
-func _update_admin_visibility() -> void:
-	if not is_instance_valid(admin_panel):
-		return
-	var should_show := target_distance <= ADMIN_ZOOM_DISTANCE
-	admin_panel.visible = should_show
-	if should_show and not country_catalog_loaded and not country_catalog_loading and not country_catalog_attempted:
-		_load_country_catalog()
+func _load_country_boundaries() -> void:
+	country_boundaries_loading = true
+	status_label.text = "LOADING WORLD COUNTRY BOUNDARIES…"
+	var cache_path := CACHE_ROOT + "/natural_earth_admin0.geojson"
+	_request_bytes(COUNTRY_BOUNDARIES_URL, cache_path, 12 * 1024 * 1024, _on_country_boundaries_loaded)
 
 
-func _load_country_catalog() -> void:
-	country_catalog_attempted = true
-	country_catalog_loading = true
-	retry_button.visible = false
-	status_label.text = "LOADING COUNTRY INDEX…"
-	var cache_path := CACHE_ROOT + "/countries_adm0.json"
-	_request_bytes(GEOBOUNDARIES_ROOT + "/ALL/ADM0/", cache_path, 18 * 1024 * 1024, _on_country_catalog_loaded)
-
-
-func _on_country_catalog_loaded(result: int, response_code: int, body: PackedByteArray) -> void:
-	country_catalog_loading = false
+func _on_country_boundaries_loaded(result: int, response_code: int, body: PackedByteArray) -> void:
+	country_boundaries_loading = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-		status_label.text = "COUNTRY INDEX UNAVAILABLE  ·  USE RETRY"
-		retry_button.visible = true
-		country_select.clear()
-		country_select.add_item("Country index unavailable")
-		country_select.disabled = true
+		status_label.text = "COUNTRY OUTLINES UNAVAILABLE  ·  CHECK YOUR CONNECTION"
 		return
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
-	if not parsed is Array:
-		status_label.text = "COUNTRY INDEX FORMAT NOT RECOGNISED"
-		retry_button.visible = true
+	if not parsed is Dictionary or not _apply_country_boundaries(parsed):
+		status_label.text = "COUNTRY OUTLINE DATA COULD NOT BE READ"
 		return
-	var countries: Array[Dictionary] = []
-	for item in parsed:
-		if item is Dictionary:
-			var country_name := str(item.get("boundaryName", "")).strip_edges()
-			var iso := str(item.get("boundaryISO", "")).strip_edges()
-			if not country_name.is_empty() and iso.length() == 3:
-				countries.append({"name": country_name, "iso": iso})
-	countries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return str(a["name"]).nocasecmp_to(str(b["name"])) < 0)
-	country_select.clear()
-	country_select.add_item("Choose a country…")
-	country_select.set_item_metadata(0, "")
-	for country in countries:
-		country_select.add_item(str(country["name"]))
-		country_select.set_item_metadata(country_select.item_count - 1, str(country["iso"]))
-	country_select.disabled = countries.is_empty()
-	country_catalog_loaded = not countries.is_empty()
-	retry_button.visible = countries.is_empty()
-	status_label.text = "%d COUNTRIES AVAILABLE  ·  SELECT ONE TO LOAD ITS REGIONS" % countries.size()
+	status_label.text = "%d COUNTRY OUTLINES  ·  ZOOM IN FOR STATES / PROVINCES" % country_features.size()
 
 
-func _on_retry_pressed() -> void:
-	if not selected_country_iso.is_empty():
-		for index in range(1, country_select.item_count):
-			if str(country_select.get_item_metadata(index)) == selected_country_iso:
-				_on_country_selected(index)
-				return
-	country_catalog_attempted = false
-	_load_country_catalog()
+func _apply_country_boundaries(geojson: Dictionary) -> bool:
+	var features: Variant = geojson.get("features", [])
+	if not features is Array or features.is_empty():
+		return false
+	var next_node := _add_boundary_mesh(geojson, Color("#B9D9F6"), 1.006, "WorldCountryBoundaries")
+	if next_node == null:
+		return false
+	if is_instance_valid(country_boundary_node):
+		country_boundary_node.queue_free()
+	country_boundary_node = next_node
+	country_features = features
+	country_boundaries_loaded = true
+	return true
 
 
-func _on_country_selected(index: int) -> void:
-	if index <= 0:
+func _is_province_zoom_active() -> bool:
+	return target_distance <= PROVINCE_ZOOM_DISTANCE
+
+
+func _update_administrative_layers() -> void:
+	var show_provinces := _is_province_zoom_active()
+	for node in province_boundary_nodes:
+		if is_instance_valid(node):
+			node.visible = show_provinces
+	if not show_provinces or not country_boundaries_loaded:
 		return
-	var iso := str(country_select.get_item_metadata(index))
-	if iso.length() != 3:
+
+	var feature := _find_country_at_front()
+	if feature.is_empty():
+		status_label.text = "ZOOM ONTO A COUNTRY TO LOAD ITS REGIONS"
 		return
-	selection_generation += 1
-	var generation := selection_generation
-	selected_country_iso = iso
-	selected_country_name = country_select.get_item_text(index)
-	retry_button.visible = false
-	_clear_boundaries()
-	province_select.clear()
-	province_select.add_item("Loading states / provinces…")
-	province_select.disabled = true
-	status_label.text = "LOADING %s BOUNDARIES…" % selected_country_name.to_upper()
+	var properties: Dictionary = feature.get("properties", {})
+	var iso := str(properties.get("ADM0_A3", "")).strip_edges()
+	if iso.length() != 3 or iso == "-99":
+		iso = str(properties.get("ISO_A3_EH", "")).strip_edges()
+	if iso.length() != 3 or iso == "-99":
+		status_label.text = "REGIONAL BOUNDARIES UNAVAILABLE FOR THIS AREA"
+		return
 
-	var adm0_cache := CACHE_ROOT + "/adm0_" + iso + ".json"
-	var adm1_cache := CACHE_ROOT + "/adm1_" + iso + ".json"
-	_request_boundary_metadata(iso, "ADM0", adm0_cache, generation)
-	_request_boundary_metadata(iso, "ADM1", adm1_cache, generation)
+	if iso == focused_country_iso:
+		return
+
+	focused_country_iso = iso
+	focused_country_name = str(properties.get("ADMIN", properties.get("NAME", "Selected country")))
+	region_request_generation += 1
+	var generation := region_request_generation
+	_clear_province_boundaries()
+	status_label.text = "LOADING %s STATES / PROVINCES…" % focused_country_name.to_upper()
+	_request_country_provinces(iso, generation)
 
 
-func _request_boundary_metadata(iso: String, level: String, cache_path: String, generation: int) -> void:
-	var url := GEOBOUNDARIES_ROOT + "/" + iso + "/" + level + "/"
-	_request_bytes(url, cache_path, 3 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
-		if generation != selection_generation:
+func _find_country_at_front() -> Dictionary:
+	if country_features.is_empty() or not is_instance_valid(planet_root):
+		return {}
+	var local_direction := (planet_root.global_transform.basis.inverse() * Vector3.BACK).normalized()
+	var longitude := rad_to_deg(atan2(local_direction.x, local_direction.z))
+	var latitude := rad_to_deg(asin(clampf(local_direction.y, -1.0, 1.0)))
+
+	for item in country_features:
+		if not item is Dictionary:
+			continue
+		var feature: Dictionary = item
+		var bounds: Array = feature.get("bbox", [])
+		if bounds.size() >= 4:
+			if longitude < float(bounds[0]) or longitude > float(bounds[2]) or latitude < float(bounds[1]) or latitude > float(bounds[3]):
+				continue
+		var geometry: Dictionary = feature.get("geometry", {})
+		if _geometry_contains_point(geometry, longitude, latitude):
+			return feature
+	return {}
+
+
+func _geometry_contains_point(geometry: Dictionary, longitude: float, latitude: float) -> bool:
+	var coordinates: Variant = geometry.get("coordinates", [])
+	match str(geometry.get("type", "")):
+		"Polygon":
+			return _polygon_contains_point(coordinates, longitude, latitude)
+		"MultiPolygon":
+			if coordinates is Array:
+				for polygon in coordinates:
+					if _polygon_contains_point(polygon, longitude, latitude):
+						return true
+	return false
+
+
+func _polygon_contains_point(polygon: Variant, longitude: float, latitude: float) -> bool:
+	if not polygon is Array or polygon.is_empty():
+		return false
+	var rings: Array = polygon
+	if not _point_in_ring(rings[0], longitude, latitude):
+		return false
+	for hole_index in range(1, rings.size()):
+		if _point_in_ring(rings[hole_index], longitude, latitude):
+			return false
+	return true
+
+
+func _point_in_ring(ring: Variant, longitude: float, latitude: float) -> bool:
+	if not ring is Array or ring.size() < 4:
+		return false
+	var inside := false
+	var previous_index := ring.size() - 1
+	for index in range(ring.size()):
+		var current: Array = ring[index]
+		var previous: Array = ring[previous_index]
+		if current.size() >= 2 and previous.size() >= 2:
+			var current_lon := float(current[0])
+			var current_lat := float(current[1])
+			var previous_lon := float(previous[0])
+			var previous_lat := float(previous[1])
+			if (current_lat > latitude) != (previous_lat > latitude):
+				var intersection_lon := (previous_lon - current_lon) * (latitude - current_lat) / (previous_lat - current_lat) + current_lon
+				if longitude < intersection_lon:
+					inside = not inside
+		previous_index = index
+	return inside
+
+
+func _request_country_provinces(iso: String, generation: int) -> void:
+	var metadata_cache := CACHE_ROOT + "/automatic_adm1_" + iso + ".json"
+	var metadata_url := GEOBOUNDARIES_ROOT + "/" + iso + "/ADM1/"
+	_request_bytes(metadata_url, metadata_cache, 3 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
+		if generation != region_request_generation or not _is_province_zoom_active():
 			return
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-			if level == "ADM1":
-				province_select.clear()
-				province_select.add_item("No regional dataset available")
-				province_select.disabled = true
-			status_label.text = "%s BOUNDARY METADATA UNAVAILABLE  ·  USE RETRY" % level
-			retry_button.visible = true
+			status_label.text = "%s REGIONAL DATA IS UNAVAILABLE" % focused_country_name.to_upper()
 			return
 		var metadata: Variant = JSON.parse_string(body.get_string_from_utf8())
 		if not metadata is Dictionary:
-			retry_button.visible = true
-			status_label.text = "%s METADATA FORMAT NOT RECOGNISED  ·  USE RETRY" % level
+			status_label.text = "%s REGIONAL DATA COULD NOT BE READ" % focused_country_name.to_upper()
 			return
 		var geojson_url := str(metadata.get("simplifiedGeometryGeoJSON", metadata.get("gjDownloadURL", "")))
 		if geojson_url.is_empty():
-			retry_button.visible = true
-			status_label.text = "%s DATASET HAS NO GEOMETRY URL  ·  USE RETRY" % level
+			status_label.text = "%s HAS NO PUBLISHED ADM1 DATASET" % focused_country_name.to_upper()
 			return
-		var geojson_cache := CACHE_ROOT + "/" + level.to_lower() + "_" + iso + "_geometry.json"
-		_request_bytes(geojson_url, geojson_cache, 22 * 1024 * 1024, func(geo_result: int, geo_code: int, geo_body: PackedByteArray) -> void:
-			if generation != selection_generation:
+		var geometry_cache := CACHE_ROOT + "/automatic_adm1_" + iso + "_geometry.json"
+		_request_bytes(geojson_url, geometry_cache, 24 * 1024 * 1024, func(geo_result: int, geo_code: int, geo_body: PackedByteArray) -> void:
+			if generation != region_request_generation or not _is_province_zoom_active():
 				return
 			if geo_result != HTTPRequest.RESULT_SUCCESS or geo_code != 200:
-				status_label.text = "%s BOUNDARIES COULD NOT BE DOWNLOADED  ·  USE RETRY" % level
-				retry_button.visible = true
+				status_label.text = "%s REGIONAL BOUNDARIES COULD NOT BE DOWNLOADED" % focused_country_name.to_upper()
 				return
 			var geojson: Variant = JSON.parse_string(geo_body.get_string_from_utf8())
 			if not geojson is Dictionary:
-				retry_button.visible = true
-				status_label.text = "%s GEOMETRY FORMAT NOT RECOGNISED  ·  USE RETRY" % level
+				status_label.text = "%s REGIONAL DATA FORMAT IS INVALID" % focused_country_name.to_upper()
 				return
-			if level == "ADM0":
-				_process_country_geojson(geojson)
-			else:
-				_process_province_geojson(geojson)
+			_apply_province_boundaries(geojson)
 		)
 	)
 
 
-func _process_country_geojson(geojson: Dictionary) -> void:
-	var features: Array = geojson.get("features", [])
-	if features.is_empty():
-		retry_button.visible = true
-		status_label.text = "COUNTRY GEOMETRY IS EMPTY  ·  USE RETRY"
-		return
-	var stats := _geojson_stats(geojson)
-	_add_boundary_mesh(geojson, Color("#C8E4FF"), 1.006, "CountryBoundary")
-	if not stats.is_empty():
-		_focus_geo(stats.get("center", Vector2.ZERO), 2.55)
-		_request_detail_map(stats)
-	status_label.text = "%s COUNTRY OUTLINE LOADED" % selected_country_name.to_upper()
+func _apply_province_boundaries(geojson: Dictionary) -> bool:
+	var features: Variant = geojson.get("features", [])
+	if not features is Array or features.is_empty():
+		status_label.text = "%s HAS NO STATE / PROVINCE FEATURES" % focused_country_name.to_upper()
+		return false
+	var node := _add_boundary_mesh(geojson, Color("#73BDFF"), 1.009, "AutomaticStateProvinceBoundaries")
+	if node == null:
+		status_label.text = "%s REGIONAL OUTLINES COULD NOT BE DRAWN" % focused_country_name.to_upper()
+		return false
+	node.visible = _is_province_zoom_active()
+	province_boundary_nodes.append(node)
+	status_label.text = "%s  ·  %d STATES / PROVINCES" % [focused_country_name.to_upper(), features.size()]
+	return true
 
 
-func _process_province_geojson(geojson: Dictionary) -> void:
-	var features: Array = geojson.get("features", [])
-	state_records.clear()
-	for feature in features:
-		if not feature is Dictionary:
-			continue
-		var geometry: Dictionary = feature.get("geometry", {})
-		var stats := _geometry_stats(geometry.get("coordinates", []))
-		if stats.is_empty():
-			continue
-		var properties: Dictionary = feature.get("properties", {})
-		var state_name := _feature_name(properties)
-		if state_name.is_empty():
-			state_name = "Region %d" % (state_records.size() + 1)
-		state_records.append({"name": state_name, "center": stats["center"], "bounds": stats})
-	_add_boundary_mesh(geojson, Color("#69B9FF"), 1.009, "ProvinceBoundaries")
-	province_select.clear()
-	province_select.add_item("Choose a state / province…")
-	province_select.set_item_metadata(0, -1)
-	for index in range(state_records.size()):
-		province_select.add_item(str(state_records[index]["name"]))
-		province_select.set_item_metadata(index + 1, index)
-	province_select.disabled = state_records.is_empty()
-	status_label.text = "%s  ·  %d STATES / PROVINCES LOADED" % [selected_country_name.to_upper(), state_records.size()]
-
-
-func _feature_name(properties: Dictionary) -> String:
-	for key in ["shapeName", "name", "NAME_1", "name_1", "NAME", "admin", "region"]:
-		if properties.has(key):
-			var value := str(properties[key]).strip_edges()
-			if not value.is_empty():
-				return value
-	return ""
-
-
-func _on_province_selected(index: int) -> void:
-	if index <= 0:
-		return
-	var record_index := int(province_select.get_item_metadata(index))
-	if record_index < 0 or record_index >= state_records.size():
-		return
-	var record: Dictionary = state_records[record_index]
-	var center: Vector2 = record["center"]
-	_focus_geo(center, 1.78)
-	_update_state_marker(str(record["name"]), center)
-	_request_detail_map(record["bounds"])
-	status_label.text = "%s  /  %s" % [selected_country_name.to_upper(), str(record["name"]).to_upper()]
-
-
-func _focus_geo(center: Vector2, distance: float) -> void:
-	var direction := _geo_to_sphere(center.x, center.y, 1.0).normalized()
-	planet_root.rotation = Quaternion(direction, Vector3.BACK).get_euler()
-	target_distance = clampf(distance, MIN_DISTANCE, MAX_DISTANCE)
-
-
-func _update_state_marker(label_text: String, center: Vector2) -> void:
-	if is_instance_valid(selected_state_marker):
-		selected_state_marker.queue_free()
-	selected_state_marker = Label3D.new()
-	selected_state_marker.name = "SelectedAdministrativeLabel"
-	selected_state_marker.text = label_text.to_upper()
-	selected_state_marker.font_size = 20
-	selected_state_marker.pixel_size = 0.002
-	selected_state_marker.outline_size = 3
-	selected_state_marker.modulate = Color("#E8F4FF")
-	selected_state_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	selected_state_marker.position = _geo_to_sphere(center.x, center.y, 1.026)
-	planet_root.add_child(selected_state_marker)
-
-
-func _clear_boundaries() -> void:
-	for node in boundary_nodes:
+func _clear_province_boundaries() -> void:
+	for node in province_boundary_nodes:
 		if is_instance_valid(node):
 			node.queue_free()
-	boundary_nodes.clear()
-	if is_instance_valid(detail_patch):
-		detail_patch.queue_free()
-	detail_patch = null
-	if is_instance_valid(selected_state_marker):
-		selected_state_marker.queue_free()
-	selected_state_marker = null
-	state_records.clear()
+	province_boundary_nodes.clear()
 
 
-func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_name: String) -> void:
+func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_name: String) -> MeshInstance3D:
 	var lines := SurfaceTool.new()
 	lines.begin(Mesh.PRIMITIVE_LINES)
 	var line_material := StandardMaterial3D.new()
@@ -746,7 +661,7 @@ func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_n
 	line_material.albedo_color = color
 	line_material.emission_enabled = true
 	line_material.emission = color
-	line_material.emission_energy_multiplier = 0.7
+	line_material.emission_energy_multiplier = 0.65
 	lines.set_material(line_material)
 	var features: Array = geojson.get("features", [])
 	for feature in features:
@@ -770,15 +685,14 @@ func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_n
 				lines.set_normal(point_b.normalized())
 				lines.add_vertex(point_b)
 	var mesh := lines.commit()
-	if mesh == null:
-		return
+	if mesh == null or mesh.get_surface_count() == 0:
+		return null
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	instance.mesh = mesh
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(instance)
-	boundary_nodes.append(instance)
-
+	return instance
 
 func _collect_rings(value: Variant, output: Array) -> void:
 	if not value is Array:
@@ -791,129 +705,6 @@ func _collect_rings(value: Variant, output: Array) -> void:
 			return
 	for item in array_value:
 		_collect_rings(item, output)
-
-
-func _geojson_stats(geojson: Dictionary) -> Dictionary:
-	var all_points: Array[Vector2] = []
-	var features: Array = geojson.get("features", [])
-	for feature in features:
-		if feature is Dictionary:
-			_collect_coordinates(feature.get("geometry", {}).get("coordinates", []), all_points)
-	return _points_stats(all_points)
-
-
-func _geometry_stats(coordinates: Variant) -> Dictionary:
-	var points: Array[Vector2] = []
-	_collect_coordinates(coordinates, points)
-	return _points_stats(points)
-
-
-func _collect_coordinates(value: Variant, output: Array[Vector2]) -> void:
-	if not value is Array:
-		return
-	var array_value: Array = value
-	if array_value.size() >= 2 and typeof(array_value[0]) in [TYPE_FLOAT, TYPE_INT] and typeof(array_value[1]) in [TYPE_FLOAT, TYPE_INT]:
-		output.append(Vector2(float(array_value[0]), float(array_value[1])))
-		return
-	for item in array_value:
-		_collect_coordinates(item, output)
-
-
-func _points_stats(points: Array[Vector2]) -> Dictionary:
-	if points.is_empty():
-		return {}
-	var min_lon := 180.0
-	var max_lon := -180.0
-	var min_lat := 90.0
-	var max_lat := -90.0
-	var center := Vector2.ZERO
-	for point in points:
-		min_lon = minf(min_lon, point.x)
-		max_lon = maxf(max_lon, point.x)
-		min_lat = minf(min_lat, point.y)
-		max_lat = maxf(max_lat, point.y)
-		center += point
-	center /= float(points.size())
-	var padding_lon := maxf((max_lon - min_lon) * 0.08, 0.15)
-	var padding_lat := maxf((max_lat - min_lat) * 0.08, 0.15)
-	return {
-		"center": center,
-		"west": maxf(-180.0, min_lon - padding_lon),
-		"east": minf(180.0, max_lon + padding_lon),
-		"south": maxf(-89.0, min_lat - padding_lat),
-		"north": minf(89.0, max_lat + padding_lat)
-	}
-
-
-func _request_detail_map(bounds: Dictionary) -> void:
-	if bounds.is_empty():
-		return
-	var west := float(bounds.get("west", -180.0))
-	var east := float(bounds.get("east", 180.0))
-	var south := float(bounds.get("south", -80.0))
-	var north := float(bounds.get("north", 80.0))
-	if east - west < 0.1 or north - south < 0.1:
-		return
-	var width := 1280
-	var height := clampi(int(float(width) * (north - south) / (east - west)), 256, 1600)
-	var bbox := "%.5f,%.5f,%.5f,%.5f" % [west, south, east, north]
-	var url := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=&format=image/jpeg&srs=EPSG:4326&bbox=" + bbox + "&width=%d&height=%d" % [width, height]
-	var cache_key := selected_country_iso + "_" + str(roundi(west * 10.0)) + "_" + str(roundi(south * 10.0)) + "_" + str(roundi(east * 10.0)) + "_" + str(roundi(north * 10.0))
-	var cache_path := CACHE_ROOT + "/detail_" + cache_key + ".jpg"
-	_request_bytes(url, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
-		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-			return
-		var image := Image.new()
-		if image.load_jpg_from_buffer(body) != OK:
-			return
-		_apply_detail_patch(image, west, east, south, north)
-	)
-
-
-func _apply_detail_patch(image: Image, west: float, east: float, south: float, north: float) -> void:
-	if is_instance_valid(detail_patch):
-		detail_patch.queue_free()
-	var detail_mesh := _build_geo_patch(west, east, south, north, 1.0045, 32, 20)
-	detail_patch = MeshInstance3D.new()
-	detail_patch.name = "ZoomedSatelliteDetail"
-	detail_patch.mesh = detail_mesh
-	var detail_material := ShaderMaterial.new()
-	var shader := Shader.new()
-	shader.code = PATCH_SHADER
-	detail_material.shader = shader
-	var detail_image := image.duplicate()
-	detail_image.generate_mipmaps()
-	detail_material.set_shader_parameter("detail_map", ImageTexture.create_from_image(detail_image))
-	detail_patch.material_override = detail_material
-	detail_patch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	planet_root.add_child(detail_patch)
-
-
-func _build_geo_patch(west: float, east: float, south: float, north: float, radius: float, x_segments: int, y_segments: int) -> ArrayMesh:
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for y in range(y_segments):
-		var v0 := float(y) / float(y_segments)
-		var v1 := float(y + 1) / float(y_segments)
-		var lat0 := lerpf(north, south, v0)
-		var lat1 := lerpf(north, south, v1)
-		for x in range(x_segments):
-			var u0 := float(x) / float(x_segments)
-			var u1 := float(x + 1) / float(x_segments)
-			var lon0 := lerpf(west, east, u0)
-			var lon1 := lerpf(west, east, u1)
-			var p00 := _geo_to_sphere(lon0, lat0, radius)
-			var p01 := _geo_to_sphere(lon1, lat0, radius)
-			var p10 := _geo_to_sphere(lon0, lat1, radius)
-			var p11 := _geo_to_sphere(lon1, lat1, radius)
-			_add_surface_vertex(surface, p00, Vector2(u0, v0))
-			_add_surface_vertex(surface, p01, Vector2(u1, v0))
-			_add_surface_vertex(surface, p10, Vector2(u0, v1))
-			_add_surface_vertex(surface, p01, Vector2(u1, v0))
-			_add_surface_vertex(surface, p11, Vector2(u1, v1))
-			_add_surface_vertex(surface, p10, Vector2(u0, v1))
-	surface.index()
-	return surface.commit()
 
 
 func _request_bytes(url: String, cache_path: String, body_limit: int, completed: Callable, refresh_cache: bool = false) -> void:
