@@ -163,7 +163,6 @@ func _build_office_collision() -> void:
 
 
 func _find_spawn_transform() -> Dictionary:
-	var mesh_nodes := office_instance.find_children("*", "MeshInstance3D", true, false)
 	var entrance_position := Vector3.ZERO
 	var found_entrance := false
 
@@ -172,7 +171,7 @@ func _find_spawn_transform() -> Dictionary:
 		if node_3d == null:
 			continue
 		var node_name := str(node_3d.name).to_lower()
-		if "entrance" not in node_name or "door" not in node_name:
+		if not node_name.contains("entrance") or not node_name.contains("door"):
 			continue
 		entrance_position = to_local(node_3d.global_position)
 		if Vector2(entrance_position.x, entrance_position.z).length() > 0.75:
