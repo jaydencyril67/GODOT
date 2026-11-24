@@ -43,16 +43,18 @@ func _run_test() -> void:
 
 	var walkable_floor_found := bool(office_preview.get("walkable_floor_found"))
 	var fallback_floor_created := bool(office_preview.get("fallback_floor_created"))
-	if not walkable_floor_found and not fallback_floor_created:
-		_fail("The office preview did not find or create a safe floor beneath the player.")
+	var safety_floor := office_preview.find_child("AtlasOfficeFallbackFloor", true, false) as StaticBody3D
+	var safety_floor_shape := office_preview.find_child("AtlasOfficeFallbackFloorShape", true, false) as CollisionShape3D
+	if not fallback_floor_created or safety_floor == null or safety_floor_shape == null or not (safety_floor_shape.shape is BoxShape3D):
+		_fail("The office preview must include its guaranteed BoxShape3D safety floor.")
 		return
-	for frame_index in range(12):
+	for frame_index in range(24):
 		await physics_frame
 	if not player.is_on_floor():
 		_fail("The first-person player is still falling instead of standing on the office floor.")
 		return
-	if player.global_position.y < -0.1:
-		_fail("The first-person player fell below the office floor.")
+	if player.global_position.y < -0.02:
+		_fail("The first-person player fell below the safety floor. Y=%s velocity=%s mesh_floor=%s" % [player.global_position.y, player.velocity, walkable_floor_found])
 		return
 
 	var player_collision := player.find_child("PlayerCapsule", true, false) as CollisionShape3D
