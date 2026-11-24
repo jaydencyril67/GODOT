@@ -102,8 +102,13 @@ func _run_test() -> void:
 		_fail("Pushing the left joystick forward must produce forward movement input.")
 		return
 
-	await physics_frame
-	if player.global_position.z >= starting_position.z:
+	# Allow several physics ticks for the newly spawned capsule to settle
+	# onto the floor while confirming that the forward input is applied.
+	for _frame in range(6):
+		await physics_frame
+		if player.global_position.z < starting_position.z - 0.005:
+			break
+	if player.global_position.z >= starting_position.z - 0.005:
 		_fail("The first-person controller did not move forward when the joystick was pushed.")
 		return
 	room_preview.call("_reset_move_joystick")
