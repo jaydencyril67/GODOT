@@ -310,12 +310,11 @@ func _build_large_empty_room() -> void:
 
 	# The front wall has a matching opening so the glass door connects directly
 	# into this room with no step or narrow corridor between the spaces.
-	var entry_half_width := 0.72
-	var side_wall_width := half_width - entry_half_width
-	var side_wall_center := (half_width + entry_half_width) * 0.5
-	_add_large_room_box("LargeRoomFrontWallLeft", Vector3(-side_wall_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(side_wall_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
-	_add_large_room_box("LargeRoomFrontWallRight", Vector3(side_wall_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(side_wall_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
-	_add_large_room_box("LargeRoomFrontWallLintel", Vector3(0.0, 2.70, front_z + 0.08), Vector3(1.44, 1.0, 0.16), wall_material)
+	var existing_room_half_width := 3.08
+	var front_extension_width := half_width - existing_room_half_width
+	var front_extension_center := (half_width + existing_room_half_width) * 0.5
+	_add_large_room_box("LargeRoomFrontWallLeftExtension", Vector3(-front_extension_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(front_extension_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
+	_add_large_room_box("LargeRoomFrontWallRightExtension", Vector3(front_extension_center, LARGE_ROOM_HEIGHT * 0.5, front_z + 0.08), Vector3(front_extension_width, LARGE_ROOM_HEIGHT, 0.16), wall_material)
 
 	# Side walls each contain a wide daylight window and one closed interior door.
 	var window_center_z := -5.90
