@@ -16,10 +16,6 @@ const JOYSTICK_BASE_SIZE := Vector2(259.2, 259.2)
 const JOYSTICK_THUMB_SIZE := Vector2(90.0, 90.0)
 const LOOK_PAD_SIZE := Vector2(118.0, 118.0)
 const TARGET_INTERIOR_HEIGHT := 3.40
-const EXTERIOR_NAME_HINTS := [
-	"skyline", "tower", "maple", "hedge", "bush", "plant",
-	"tree", "landscape", "exterior", "background"
-]
 
 var gaussian_instance: Node3D
 var player: CharacterBody3D
@@ -45,9 +41,8 @@ func _ready() -> void:
 	_build_environment()
 	if not _load_gaussian_splat_asset():
 		return
-	# Keep imported Atlas meshes visual-only: their all-mesh concave collision
-	# traps the player against furniture and decorative geometry. Walking uses
-	# the dedicated safety floor instead.
+	# Gaussian splats are visual-only. A separate safety floor and perimeter
+	# colliders keep the first-person controller grounded and inside the room.
 	_build_fallback_floor_collision()
 	_build_room_perimeter_collision()
 	fallback_floor_created = true
@@ -191,7 +186,7 @@ func _build_fallback_floor_collision() -> void:
 	floor_body.add_child(floor_shape_node)
 	floor_body.collision_layer = 1
 	floor_body.collision_mask = 1
-	floor_body.set_meta("atlas_safety_floor_top", 0.0)
+	floor_body.set_meta("gaussian_splat_safety_floor_top", 0.0)
 	floor_body.position = Vector3.ZERO
 	add_child(floor_body)
 
