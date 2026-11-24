@@ -19,7 +19,8 @@ func _run_test() -> void:
 		_fail("The Blender-compatible room asset was not instantiated.")
 		return
 
-	var room_mesh := room_asset.find_child("*", "MeshInstance3D", true, false) as MeshInstance3D
+	var room_meshes := room_asset.find_children("*", "MeshInstance3D", true, false)
+	var room_mesh := room_meshes[0] as MeshInstance3D if not room_meshes.is_empty() else null
 	if room_mesh == null or room_mesh.mesh == null or room_mesh.mesh.get_surface_count() != 6:
 		_fail("The imported room must contain exactly six architectural surfaces: floor, four walls and ceiling.")
 		return
