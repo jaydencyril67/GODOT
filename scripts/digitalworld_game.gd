@@ -455,10 +455,9 @@ func _show_menu() -> void:
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
-	var globe_button := _add_action_button(menu, "EXPLORE EARTH", false, _show_world_globe)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, globe_button, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
