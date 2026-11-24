@@ -496,9 +496,15 @@ func _refresh_debug_panel() -> void:
 	var atmosphere_ready := is_instance_valid(planet_root) and is_instance_valid(planet_root.get_node_or_null("BlueAtmosphericRim"))
 	var map_state := "LOADED" if overview_texture != null else "FALLBACK / WAITING"
 	var country_state := "LOADED (%d features)" % country_features.size() if country_boundaries_loaded else ("LOADING" if country_boundaries_loading else "NOT LOADED")
-	var country_layer_state := "VISIBLE" if is_instance_valid(country_boundary_node) and country_boundary_node.visible else "HIDDEN"
+	var country_expected := _is_country_zoom_active()
+	var country_actual := is_instance_valid(country_boundary_node) and country_boundary_node.visible
+	var country_layer_state := "WAITING FOR DATA" if not country_boundaries_loaded else ("OK / VISIBLE" if country_actual and country_expected else ("OK / HIDDEN" if not country_actual and not country_expected else "MISMATCH: expected %s" % ("VISIBLE" if country_expected else "HIDDEN")))
+	var country_names_state := "OK (%d labels)" % country_label_nodes.size() if not country_boundaries_loaded or not country_label_nodes.is_empty() else "FAIL: no country names generated"
 	var province_ready := not province_boundary_nodes.is_empty()
-	var province_layer_state := "VISIBLE" if province_ready and province_boundary_nodes[0].visible else ("LOADED / HIDDEN" if province_ready else "NOT LOADED")
+	var province_expected := _is_province_zoom_active()
+	var province_actual := province_ready and is_instance_valid(province_boundary_nodes[0]) and province_boundary_nodes[0].visible
+	var province_layer_state := "WAITING FOR COUNTRY / DATA" if not province_ready and province_expected else ("NOT NEEDED AT THIS ZOOM" if not province_expected and not province_ready else ("OK / VISIBLE" if province_actual and province_expected else ("OK / HIDDEN" if not province_actual and not province_expected else "MISMATCH: expected %s" % ("VISIBLE" if province_expected else "HIDDEN"))))
+	var province_names_state := "OK (%d labels)" % province_label_nodes.size() if not province_ready or not province_label_nodes.is_empty() else "FAIL: no region names generated"
 	var lines := PackedStringArray([
 		"3D Earth mesh: %s" % ("READY" if earth_ready else "FAILED"),
 		"Lit material: %s" % ("STANDARD PBR" if earth_material is StandardMaterial3D else "FAILED"),
@@ -507,7 +513,9 @@ func _refresh_debug_panel() -> void:
 		"NASA imagery: " + map_state,
 		"Country dataset: " + country_state,
 		"Country borders: " + country_layer_state,
+		"Country names: " + country_names_state,
 		"State/province layer: " + province_layer_state,
+		"State/province names: " + province_names_state,
 		"Zoom target: %.2f (country <= %.2f / regions <= %.2f)" % [target_distance, COUNTRY_ZOOM_DISTANCE, PROVINCE_ZOOM_DISTANCE],
 		"Rotation: drag %.6f / idle %.3f" % [DRAG_ROTATION_SENSITIVITY, IDLE_ROTATION_SPEED],
 		"Zoom input: wheel %.3f / buttons %.3f / pinch %.5f / magnify %.2f" % [WHEEL_ZOOM_STEP, BUTTON_ZOOM_STEP, PINCH_ZOOM_SENSITIVITY, MAGNIFY_ZOOM_SENSITIVITY],
@@ -600,6 +608,7 @@ func _on_country_boundaries_loaded(result: int, response_code: int, body: Packed
 	if not parsed is Dictionary or not _apply_country_boundaries(parsed):
 		if not country_cache_retry_used:
 			country_cache_retry_used = true
+			country_boundaries_loading = true
 			_debug_event("Cached country dataset is invalid; retrying from the online source.", true)
 			_request_bytes(COUNTRY_BOUNDARIES_URL, CACHE_ROOT + "/natural_earth_admin0.geojson", 12 * 1024 * 1024, _on_country_boundaries_loaded, true)
 			return
@@ -792,17 +801,22 @@ func _request_country_provinces(iso: String, generation: int) -> void:
 func _apply_province_boundaries(geojson: Dictionary) -> bool:
 	var features: Variant = geojson.get("features", [])
 	if not features is Array or features.is_empty():
+		_debug_event("%s ADM1 dataset returned no state/province features." % focused_country_name, true)
 		status_label.text = "%s HAS NO STATE / PROVINCE FEATURES" % focused_country_name.to_upper()
 		return false
 	var node := _add_boundary_mesh(geojson, Color("#55B5E9"), 1.019, "AutomaticStateProvinceBoundaries")
 	if node == null:
+		_debug_event("%s ADM1 features could not be converted into a boundary mesh." % focused_country_name, true)
 		status_label.text = "%s REGIONAL OUTLINES COULD NOT BE DRAWN" % focused_country_name.to_upper()
 		return false
 	node.visible = _is_province_zoom_active()
 	province_boundary_nodes.append(node)
 	_create_province_labels(features)
 	_refresh_globe_label_visibility()
-	_debug_event("%s ADM1 layer ready: %d state/province features." % [focused_country_name, features.size()])
+	if province_label_nodes.is_empty():
+		_debug_event("%s ADM1 geometry loaded, but no usable state/province label locations were created." % focused_country_name, true)
+	else:
+		_debug_event("%s ADM1 layer ready: %d regions and %d labels." % [focused_country_name, features.size(), province_label_nodes.size()])
 	status_label.text = "%s  ·  %d STATES / PROVINCES" % [focused_country_name.to_upper(), features.size()]
 	return true
 
@@ -981,10 +995,11 @@ func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_n
 	lines.begin(Mesh.PRIMITIVE_LINES)
 	var line_material := StandardMaterial3D.new()
 	line_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	line_material.albedo_color = color
+	line_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	line_material.albedo_color = Color(color.r, color.g, color.b, 0.72)
 	line_material.emission_enabled = true
-	line_material.emission = color
-	line_material.emission_energy_multiplier = 0.28
+	line_material.emission = Color(color.r, color.g, color.b, 0.72)
+	line_material.emission_energy_multiplier = 0.22
 	lines.set_material(line_material)
 	var features: Array = geojson.get("features", [])
 	for feature in features:
