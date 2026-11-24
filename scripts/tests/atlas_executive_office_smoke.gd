@@ -1,5 +1,7 @@
 extends SceneTree
 
+var back_requested_seen := false
+
 func _initialize() -> void:
 	call_deferred("_run_test")
 
@@ -105,12 +107,10 @@ func _run_test() -> void:
 		_fail("The right-side look control must rotate the player view.")
 		return
 
-	var back_requested := false
-	office_preview.connect("back_requested", func() -> void:
-		back_requested = true
-	)
+	back_requested_seen = false
+	office_preview.connect("back_requested", Callable(self, "_on_atlas_office_back_requested"))
 	office_preview.call("_request_back")
-	if not back_requested:
+	if not back_requested_seen:
 		_fail("The Back button signal must be emitted so the game can return to the landing page.")
 		return
 
@@ -118,6 +118,10 @@ func _run_test() -> void:
 	await process_frame
 	print("ATLAS_EXECUTIVE_OFFICE_SMOKE_TEST: PASS")
 	quit()
+
+
+func _on_atlas_office_back_requested() -> void:
+	back_requested_seen = true
 
 
 func _fail(message: String) -> void:
