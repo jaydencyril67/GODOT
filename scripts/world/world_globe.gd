@@ -8,7 +8,6 @@ const MIN_DISTANCE := 1.08
 const MAX_DISTANCE := START_DISTANCE
 const COUNTRY_ZOOM_DISTANCE := 3.25
 const PROVINCE_ZOOM_DISTANCE := 1.82
-const IDLE_ROTATION_SPEED := 0.009
 const DRAG_ROTATION_SENSITIVITY := 0.001875
 const WHEEL_ZOOM_STEP := 0.231
 const BUTTON_ZOOM_STEP := 0.252
@@ -90,7 +89,6 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not dragging:
-		planet_root.rotate_y(delta * IDLE_ROTATION_SPEED)
 	camera.position.z = lerpf(camera.position.z, target_distance, minf(delta * 5.0, 1.0))
 	camera.look_at(Vector3.ZERO, Vector3.UP)
 	region_check_elapsed += delta
@@ -537,7 +535,7 @@ func _refresh_debug_panel() -> void:
 		"State/province layer: " + province_layer_state,
 		"State/province names: " + province_names_state,
 		"Zoom target: %.2f (country <= %.2f / regions <= %.2f)" % [target_distance, COUNTRY_ZOOM_DISTANCE, PROVINCE_ZOOM_DISTANCE],
-		"Rotation: drag %.6f / idle %.3f" % [DRAG_ROTATION_SENSITIVITY, IDLE_ROTATION_SPEED],
+		"Rotation: manual drag %.6f / auto-rotation disabled" % DRAG_ROTATION_SENSITIVITY,
 		"Zoom input: wheel %.3f / buttons %.3f / pinch %.5f / magnify %.2f" % [WHEEL_ZOOM_STEP, BUTTON_ZOOM_STEP, PINCH_ZOOM_SENSITIVITY, MAGNIFY_ZOOM_SENSITIVITY],
 		"Failures recorded: %d" % debug_failure_count,
 		"",
