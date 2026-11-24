@@ -43,7 +43,7 @@ func _run_test() -> void:
 		"type": "FeatureCollection",
 		"features": [{
 			"type": "Feature",
-			"properties": {"ADMIN": "Testland", "NAME": "Testland", "ADM0_A3": "TST", "ISO_A3_EH": "TST"},
+			"properties": {"ADMIN": "Testland", "NAME": "Testland", "ADM0_A3": "TST", "ISO_A3_EH": "TST", "LABEL_X": 0.0, "LABEL_Y": 0.0, "LABELRANK": 1},
 			"bbox": [-10.0, -10.0, 10.0, 10.0],
 			"geometry": {
 				"type": "Polygon",
@@ -54,6 +54,9 @@ func _run_test() -> void:
 	if not globe.call("_apply_country_boundaries", sample_geojson):
 		_fail("The automatic world country-boundary layer could not be created.")
 		return
+	if globe.get("country_label_nodes").is_empty():
+		_fail("Country name labels were not generated from the country dataset.")
+		return
 	var detected_country: Dictionary = globe.call("_find_country_at_front")
 	if detected_country.is_empty() or str(detected_country.get("properties", {}).get("ADM0_A3", "")) != "TST":
 		_fail("The globe did not resolve the country at the center of its current view.")
@@ -62,6 +65,17 @@ func _run_test() -> void:
 	globe.call("_set_zoom", 2.8)
 	if globe.call("_is_province_zoom_active"):
 		_fail("State/province boundaries should remain hidden at the country overview zoom.")
+		return
+	if absf(float(globe.get("target_distance")) - 2.8) > 0.001:
+		_fail("The zoom-out view should remain within the configured overview range.")
+		return
+	globe.call("_set_zoom", 100.0)
+	if absf(float(globe.get("target_distance")) - 3.65) > 0.001:
+		_fail("Zooming out should stop at the initial globe view.")
+		return
+	globe.call("_set_zoom", -10.0)
+	if absf(float(globe.get("target_distance")) - 1.08) > 0.001:
+		_fail("The globe cannot zoom close enough to the regional layer.")
 		return
 	globe.call("_set_zoom", 2.2)
 	if not globe.call("_is_province_zoom_active"):
@@ -73,7 +87,7 @@ func _run_test() -> void:
 		"type": "FeatureCollection",
 		"features": [{
 			"type": "Feature",
-			"properties": {"shapeName": "Test Province"},
+			"properties": {"shapeName": "Test Province", "label_x": 0.0, "label_y": 0.0},
 			"geometry": {
 				"type": "Polygon",
 				"coordinates": [[[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0], [-5.0, -5.0]]]
@@ -86,6 +100,9 @@ func _run_test() -> void:
 	var province_layer := globe.find_child("AutomaticStateProvinceBoundaries", true, false) as MeshInstance3D
 	if province_layer == null or not province_layer.visible:
 		_fail("State/province outlines did not appear at the closer map zoom.")
+		return
+	if globe.get("province_label_nodes").is_empty():
+		_fail("State/province name labels were not generated from the ADM1 dataset.")
 		return
 
 	globe.queue_free()

@@ -4,9 +4,9 @@ signal back_requested
 
 const RADIUS := 1.0
 const START_DISTANCE := 3.65
-const MIN_DISTANCE := 1.42
-const MAX_DISTANCE := 7.0
-const PROVINCE_ZOOM_DISTANCE := 2.35
+const MIN_DISTANCE := 1.08
+const MAX_DISTANCE := START_DISTANCE
+const PROVINCE_ZOOM_DISTANCE := 2.78
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
 const COUNTRY_BOUNDARIES_URL := "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
@@ -65,7 +65,9 @@ var country_features: Array = []
 var country_boundaries_loaded := false
 var country_boundaries_loading := false
 var country_boundary_node: MeshInstance3D
+var country_label_nodes: Array[Label3D] = []
 var province_boundary_nodes: Array[MeshInstance3D] = []
+var province_label_nodes: Array[Label3D] = []
 var focused_country_iso := ""
 var focused_country_name := ""
 var region_request_generation := 0
@@ -97,9 +99,9 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			_set_zoom(target_distance - 0.34)
+			_set_zoom(target_distance - 0.44)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			_set_zoom(target_distance + 0.34)
+			_set_zoom(target_distance + 0.44)
 		elif event.button_index == MOUSE_BUTTON_LEFT:
 			dragging = event.pressed
 	elif event is InputEventMouseMotion and dragging:
@@ -119,7 +121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if touch_points.size() >= 2:
 				var next_distance := _get_pinch_distance()
 				if last_pinch_distance > 0.0 and next_distance > 0.0:
-					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.008)
+					_set_zoom(target_distance + (last_pinch_distance - next_distance) * 0.010)
 				last_pinch_distance = next_distance
 			else:
 				_drag_planet(event.relative)
@@ -148,6 +150,10 @@ func _set_zoom(distance: float) -> void:
 		for node in province_boundary_nodes:
 			if is_instance_valid(node):
 				node.visible = false
+		for label in province_label_nodes:
+			if is_instance_valid(label):
+				label.visible = false
+	_refresh_globe_label_visibility()
 
 
 func _build_space_environment() -> void:
@@ -369,14 +375,14 @@ func _build_interface() -> void:
 	var zoom_out := Button.new()
 	zoom_out.text = "−"
 	zoom_out.custom_minimum_size = Vector2(42, 44)
-	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + 0.36))
+	zoom_out.pressed.connect(func() -> void: _set_zoom(target_distance + 0.48))
 	_style_button(zoom_out, false)
 	header.add_child(zoom_out)
 
 	var zoom_in := Button.new()
 	zoom_in.text = "+"
 	zoom_in.custom_minimum_size = Vector2(42, 44)
-	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - 0.36))
+	zoom_in.pressed.connect(func() -> void: _set_zoom(target_distance - 0.48))
 	_style_button(zoom_in, true)
 	header.add_child(zoom_in)
 
@@ -477,7 +483,7 @@ func _apply_country_boundaries(geojson: Dictionary) -> bool:
 	var features: Variant = geojson.get("features", [])
 	if not features is Array or features.is_empty():
 		return false
-	var next_node := _add_boundary_mesh(geojson, Color("#B9D9F6"), 1.006, "WorldCountryBoundaries")
+	var next_node := _add_boundary_mesh(geojson, Color("#D2E8FF"), 1.020, "WorldCountryBoundaries")
 	if next_node == null:
 		return false
 	if is_instance_valid(country_boundary_node):
@@ -485,6 +491,8 @@ func _apply_country_boundaries(geojson: Dictionary) -> bool:
 	country_boundary_node = next_node
 	country_features = features
 	country_boundaries_loaded = true
+	_create_country_labels(features)
+	_refresh_globe_label_visibility()
 	return true
 
 
@@ -493,6 +501,7 @@ func _is_province_zoom_active() -> bool:
 
 
 func _update_administrative_layers() -> void:
+	_refresh_globe_label_visibility()
 	var show_provinces := _is_province_zoom_active()
 	for node in province_boundary_nodes:
 		if is_instance_valid(node):
@@ -527,7 +536,7 @@ func _update_administrative_layers() -> void:
 func _find_country_at_front() -> Dictionary:
 	if country_features.is_empty() or not is_instance_valid(planet_root):
 		return {}
-	var local_direction := (planet_root.global_transform.basis.inverse() * Vector3.BACK).normalized()
+	var local_direction := planet_root.to_local(camera.global_position).normalized()
 	var longitude := rad_to_deg(atan2(local_direction.x, local_direction.z))
 	var latitude := rad_to_deg(asin(clampf(local_direction.y, -1.0, 1.0)))
 
@@ -629,12 +638,14 @@ func _apply_province_boundaries(geojson: Dictionary) -> bool:
 	if not features is Array or features.is_empty():
 		status_label.text = "%s HAS NO STATE / PROVINCE FEATURES" % focused_country_name.to_upper()
 		return false
-	var node := _add_boundary_mesh(geojson, Color("#73BDFF"), 1.009, "AutomaticStateProvinceBoundaries")
+	var node := _add_boundary_mesh(geojson, Color("#63C2FF"), 1.027, "AutomaticStateProvinceBoundaries")
 	if node == null:
 		status_label.text = "%s REGIONAL OUTLINES COULD NOT BE DRAWN" % focused_country_name.to_upper()
 		return false
 	node.visible = _is_province_zoom_active()
 	province_boundary_nodes.append(node)
+	_create_province_labels(features)
+	_refresh_globe_label_visibility()
 	status_label.text = "%s  ·  %d STATES / PROVINCES" % [focused_country_name.to_upper(), features.size()]
 	return true
 
@@ -644,6 +655,167 @@ func _clear_province_boundaries() -> void:
 		if is_instance_valid(node):
 			node.queue_free()
 	province_boundary_nodes.clear()
+	for label in province_label_nodes:
+		if is_instance_valid(label):
+			label.queue_free()
+	province_label_nodes.clear()
+
+
+func _create_country_labels(features: Array) -> void:
+	for label in country_label_nodes:
+		if is_instance_valid(label):
+			label.queue_free()
+	country_label_nodes.clear()
+	for item in features:
+		if not item is Dictionary:
+			continue
+		var feature: Dictionary = item
+		var properties: Dictionary = feature.get("properties", {})
+		var country_name := str(properties.get("NAME", properties.get("ADMIN", ""))).strip_edges()
+		if country_name.is_empty():
+			continue
+		if not properties.has("LABEL_X") or not properties.has("LABEL_Y"):
+			continue
+		var longitude := float(properties.get("LABEL_X", 0.0))
+		var latitude := float(properties.get("LABEL_Y", 0.0))
+		var label := _make_globe_label(country_name, longitude, latitude, 1.025, 34, 0.00155)
+		label.set_meta("natural_earth_label_rank", int(properties.get("LABELRANK", 7)))
+		label.name = "CountryName_" + str(properties.get("ADM0_A3", country_name)).replace(" ", "_")
+		country_label_nodes.append(label)
+
+
+func _create_province_labels(features: Array) -> void:
+	for label in province_label_nodes:
+		if is_instance_valid(label):
+			label.queue_free()
+	province_label_nodes.clear()
+	for item in features:
+		if not item is Dictionary:
+			continue
+		var feature: Dictionary = item
+		var properties: Dictionary = feature.get("properties", {})
+		var region_name := _administrative_feature_name(properties)
+		if region_name.is_empty():
+			continue
+		var geometry: Dictionary = feature.get("geometry", {})
+		var label_point := _administrative_label_point(properties, geometry)
+		if label_point.x < -180.0 or label_point.x > 180.0 or label_point.y < -90.0 or label_point.y > 90.0:
+			continue
+		var label := _make_globe_label(region_name, label_point.x, label_point.y, 1.033, 28, 0.00145)
+		label.name = "ProvinceName_" + str(province_label_nodes.size() + 1)
+		province_label_nodes.append(label)
+
+
+func _administrative_feature_name(properties: Dictionary) -> String:
+	for key in ["shapeName", "name", "NAME_1", "name_1", "NAME", "admin", "region"]:
+		if properties.has(key):
+			var value := str(properties[key]).strip_edges()
+			if not value.is_empty():
+				return value
+	return ""
+
+
+func _administrative_label_point(properties: Dictionary, geometry: Dictionary) -> Vector2:
+	var longitude_keys := ["label_x", "LABEL_X", "longitude", "LONGITUDE"]
+	var latitude_keys := ["label_y", "LABEL_Y", "latitude", "LATITUDE"]
+	for index in range(longitude_keys.size()):
+		var lon_key: String = longitude_keys[index]
+		var lat_key: String = latitude_keys[index]
+		if properties.has(lon_key) and properties.has(lat_key):
+			return Vector2(float(properties[lon_key]), float(properties[lat_key]))
+	return _geometry_label_point(geometry)
+
+
+func _geometry_label_point(geometry: Dictionary) -> Vector2:
+	var geometry_type := str(geometry.get("type", ""))
+	var coordinates: Variant = geometry.get("coordinates", [])
+	var best_center := Vector2.ZERO
+	var best_area := -1.0
+	if geometry_type == "Polygon":
+		var polygon_result := _polygon_label_centroid(coordinates)
+		return polygon_result.get("center", Vector2.ZERO)
+	if geometry_type == "MultiPolygon" and coordinates is Array:
+		for polygon in coordinates:
+			var polygon_result := _polygon_label_centroid(polygon)
+			var area := float(polygon_result.get("area", 0.0))
+			if area > best_area:
+				best_area = area
+				best_center = polygon_result.get("center", Vector2.ZERO)
+	return best_center
+
+
+func _polygon_label_centroid(polygon: Variant) -> Dictionary:
+	if not polygon is Array or polygon.is_empty():
+		return {}
+	var rings: Array = polygon
+	var outer_ring: Variant = rings[0]
+	if not outer_ring is Array or outer_ring.size() < 4:
+		return {}
+	var twice_area := 0.0
+	var centroid_x := 0.0
+	var centroid_y := 0.0
+	var average := Vector2.ZERO
+	var point_count := 0
+	for index in range(outer_ring.size() - 1):
+		var current: Array = outer_ring[index]
+		var next: Array = outer_ring[index + 1]
+		if current.size() < 2 or next.size() < 2:
+			continue
+		var x0 := float(current[0])
+		var y0 := float(current[1])
+		var x1 := float(next[0])
+		var y1 := float(next[1])
+		var cross := x0 * y1 - x1 * y0
+		twice_area += cross
+		centroid_x += (x0 + x1) * cross
+		centroid_y += (y0 + y1) * cross
+		average += Vector2(x0, y0)
+		point_count += 1
+	if absf(twice_area) < 0.000001:
+		if point_count == 0:
+			return {}
+		return {"center": average / float(point_count), "area": 0.0}
+	var center := Vector2(centroid_x / (3.0 * twice_area), centroid_y / (3.0 * twice_area))
+	return {"center": center, "area": absf(twice_area) * 0.5}
+
+
+func _make_globe_label(label_text: String, longitude: float, latitude: float, radius: float, font_size: int, pixel_size: float) -> Label3D:
+	var label := Label3D.new()
+	label.text = label_text
+	label.font_size = font_size
+	label.pixel_size = pixel_size
+	label.outline_size = 7
+	label.outline_modulate = Color("#07111F")
+	label.modulate = Color("#F1F7FF")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = _geo_to_sphere(longitude, latitude, radius)
+	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	planet_root.add_child(label)
+	return label
+
+
+func _refresh_globe_label_visibility() -> void:
+	if not is_instance_valid(camera) or not is_instance_valid(planet_root):
+		return
+	var camera_direction := planet_root.to_local(camera.global_position).normalized()
+	var country_rank_limit := 5
+	if target_distance <= 2.85:
+		country_rank_limit = 7
+	if target_distance <= 2.15:
+		country_rank_limit = 10
+	for label in country_label_nodes:
+		if not is_instance_valid(label):
+			continue
+		var rank := int(label.get_meta("natural_earth_label_rank", 7))
+		var on_front := label.position.normalized().dot(camera_direction) > 0.06
+		label.visible = on_front and rank <= country_rank_limit
+	var show_provinces := _is_province_zoom_active()
+	for label in province_label_nodes:
+		if not is_instance_valid(label):
+			continue
+		label.visible = show_provinces and label.position.normalized().dot(camera_direction) > 0.035
 
 
 func _add_boundary_mesh(geojson: Dictionary, color: Color, radius: float, node_name: String) -> MeshInstance3D:
