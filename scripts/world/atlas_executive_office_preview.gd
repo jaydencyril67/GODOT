@@ -36,6 +36,8 @@ var move_touch_index := -1
 var mouse_move_active := false
 var mouse_look_active := false
 var office_bounds := AABB()
+var walkable_floor_found := false
+var fallback_floor_created := false
 
 
 func _ready() -> void:
@@ -43,6 +45,9 @@ func _ready() -> void:
 	if not _load_office_asset():
 		return
 	_build_office_collision()
+	# Let the physics server register the imported room collision before
+	# selecting a floor point for the player spawn.
+	await get_tree().physics_frame
 	_build_first_person_player()
 	_build_touch_controls()
 	set_process_input(true)
@@ -163,8 +168,9 @@ func _build_office_collision() -> void:
 
 
 func _find_spawn_transform() -> Dictionary:
-	var entrance_position := Vector3.ZERO
-	var found_entrance := false
+	var preferred_position := Vector3(0.0, 0.035, office_bounds.size.z * 0.28)
+	var preferred_forward := Vector3(0.0, 0.0, -1.0)
+	var has_entrance := false
 
 	for candidate in office_instance.find_children("*", "Node3D", true, false):
 		var node_3d := candidate as Node3D
@@ -173,25 +179,106 @@ func _find_spawn_transform() -> Dictionary:
 		var node_name := str(node_3d.name).to_lower()
 		if not node_name.contains("entrance") or not node_name.contains("door"):
 			continue
-		entrance_position = to_local(node_3d.global_position)
-		if Vector2(entrance_position.x, entrance_position.z).length() > 0.75:
-			found_entrance = true
-			break
-
-	if found_entrance:
+		var entrance_position := to_local(node_3d.global_position)
 		var inward := Vector3(-entrance_position.x, 0.0, -entrance_position.z)
-		if inward.length_squared() > 0.1:
-			inward = inward.normalized()
-			return {
-				"position": entrance_position + inward * 1.35 + Vector3.UP * 0.035,
-				"forward": inward
-			}
+		if inward.length_squared() <= 0.1:
+			continue
+		preferred_forward = inward.normalized()
+		preferred_position = entrance_position + preferred_forward * 1.35
+		has_entrance = true
+		break
 
-	var fallback_position := Vector3(0.0, 0.035, office_bounds.size.z * 0.28)
+	var candidate_points: Array[Vector2] = [
+		Vector2(preferred_position.x, preferred_position.z),
+		Vector2.ZERO
+	]
+	var margin := minf(0.45, minf(office_bounds.size.x * 0.15, office_bounds.size.z * 0.15))
+	var min_x := office_bounds.position.x + margin
+	var max_x := office_bounds.position.x + office_bounds.size.x - margin
+	var min_z := office_bounds.position.z + margin
+	var max_z := office_bounds.position.z + office_bounds.size.z - margin
+	for x_index in range(7):
+		for z_index in range(7):
+			var point := Vector2(
+				lerpf(min_x, max_x, float(x_index) / 6.0),
+				lerpf(min_z, max_z, float(z_index) / 6.0)
+			)
+			if not candidate_points.has(point):
+				candidate_points.append(point)
+
+	var space_state := get_world_3d().direct_space_state
+	for point in candidate_points:
+		var floor_hit := _query_walkable_floor(space_state, point)
+		if floor_hit.is_empty():
+			continue
+		var floor_position: Vector3 = floor_hit["position"]
+		if not _has_player_clearance(space_state, point, floor_position.y):
+			continue
+		walkable_floor_found = true
+		return {
+			"position": Vector3(point.x, floor_position.y + 0.05, point.y),
+			"forward": preferred_forward
+		}
+
+	# Some exported rooms have incomplete floor triangles. Keep the player
+	# inside the room bounds instead of letting the character fall forever.
+	_build_fallback_floor_collision()
+	fallback_floor_created = true
 	return {
-		"position": fallback_position,
-		"forward": Vector3(0.0, 0.0, -1.0)
+		"position": Vector3(preferred_position.x, 0.05, preferred_position.z),
+		"forward": preferred_forward if has_entrance else Vector3(0.0, 0.0, -1.0)
 	}
+
+
+func _query_walkable_floor(space_state: PhysicsDirectSpaceState3D, point: Vector2) -> Dictionary:
+	var query := PhysicsRayQueryParameters3D.create(
+		Vector3(point.x, 0.55, point.y),
+		Vector3(point.x, -0.25, point.y)
+	)
+	query.collision_mask = 1
+	query.hit_back_faces = true
+	var hit := space_state.intersect_ray(query)
+	if hit.is_empty():
+		return {}
+	var hit_position: Vector3 = hit["position"]
+	var hit_normal: Vector3 = hit["normal"]
+	if absf(hit_normal.y) < 0.65 or hit_position.y < -0.15 or hit_position.y > 0.22:
+		return {}
+	return hit
+
+
+func _has_player_clearance(space_state: PhysicsDirectSpaceState3D, point: Vector2, floor_height: float) -> bool:
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = PLAYER_CAPSULE_RADIUS * 0.9
+	capsule.height = PLAYER_CAPSULE_HEIGHT * 0.92
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = capsule
+	query.transform = Transform3D(
+		Basis(),
+		Vector3(point.x, floor_height + 0.05 + capsule.height * 0.5, point.y)
+	)
+	query.collision_mask = 1
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.margin = 0.02
+	return space_state.intersect_shape(query, 8).is_empty()
+
+
+func _build_fallback_floor_collision() -> void:
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "AtlasOfficeFallbackFloor"
+	var floor_shape_node := CollisionShape3D.new()
+	floor_shape_node.name = "AtlasOfficeFallbackFloorShape"
+	var floor_shape := BoxShape3D.new()
+	floor_shape.size = Vector3(
+		maxf(office_bounds.size.x, 2.0),
+		0.2,
+		maxf(office_bounds.size.z, 2.0)
+	)
+	floor_shape_node.shape = floor_shape
+	floor_shape_node.position = Vector3(0.0, -0.1, 0.0)
+	floor_body.add_child(floor_shape_node)
+	add_child(floor_body)
 
 
 func _build_environment() -> void:
