@@ -254,50 +254,7 @@ func _build_planet() -> void:
 	earth_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(earth_instance)
 
-	var cloud_noise := FastNoiseLite.new()
-	cloud_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	cloud_noise.frequency = 0.9
-	cloud_noise.fractal_octaves = 5
-	cloud_noise.fractal_gain = 0.50
-	var noise_texture := NoiseTexture2D.new()
-	noise_texture.width = 1024
-	noise_texture.height = 512
-	noise_texture.seamless = true
-	noise_texture.noise = cloud_noise
-
-	cloud_shell = MeshInstance3D.new()
-	cloud_shell.name = "ProceduralCloudDeck"
-	var cloud_mesh := SphereMesh.new()
-	cloud_mesh.radius = 1.014
-	cloud_mesh.height = 2.028
-	cloud_mesh.radial_segments = 128
-	cloud_mesh.rings = 64
-	cloud_shell.mesh = cloud_mesh
-	var cloud_material := ShaderMaterial.new()
-	var cloud_shader := Shader.new()
-	cloud_shader.code = CLOUD_SHADER
-	cloud_material.shader = cloud_shader
-	cloud_material.set_shader_parameter("cloud_noise", noise_texture)
-	cloud_shell.material_override = cloud_material
-	cloud_shell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	planet_root.add_child(cloud_shell)
-
-	var atmosphere := MeshInstance3D.new()
-	atmosphere.name = "BlueAtmosphericRim"
-	var atmosphere_mesh := SphereMesh.new()
-	atmosphere_mesh.radius = 1.037
-	atmosphere_mesh.height = 2.074
-	atmosphere_mesh.radial_segments = 96
-	atmosphere_mesh.rings = 48
-	atmosphere.mesh = atmosphere_mesh
-	var atmosphere_material := ShaderMaterial.new()
-	var atmosphere_shader := Shader.new()
-	atmosphere_shader.code = ATMOSPHERE_SHADER
-	atmosphere_material.shader = atmosphere_shader
-	atmosphere.material_override = atmosphere_material
-	atmosphere.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	planet_root.add_child(atmosphere)
-	_debug_event("3D geometry ready: lit Earth sphere, cloud shell, and atmosphere.")
+	_debug_event("3D Earth surface ready.") atmosphere.")
 
 
 func _build_sphere_mesh(radius: float, longitude_segments: int, latitude_segments: int) -> ArrayMesh:
