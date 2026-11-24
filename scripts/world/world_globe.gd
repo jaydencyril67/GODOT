@@ -9,40 +9,44 @@ const MAX_DISTANCE := 7.0
 const ADMIN_ZOOM_DISTANCE := 3.05
 const GEOBOUNDARIES_ROOT := "https://www.geoboundaries.org/api/current/gbOpen"
 const NASA_WMS_ROOT := "https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi"
-const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=2048&height=1024"
+const OVERVIEW_URL := NASA_WMS_ROOT + "?service=WMS&request=GetMap&version=1.1.1&layers=BlueMarble_ShadedRelief_Bathymetry&styles=default&format=image/jpeg&srs=EPSG:4326&bbox=-180,-90,180,90&width=2048&height=1024&time=default"
 const CACHE_ROOT := "user://digitalworld/globe"
 
 const EARTH_SHADER := """
 shader_type spatial;
 render_mode cull_back;
-uniform sampler2D earth_map : source_color;
+uniform sampler2D earth_map : source_color, filter_linear_mipmap, repeat_enable;
 void fragment() {
 	vec3 surface = texture(earth_map, UV).rgb;
 	ALBEDO = surface;
-	ROUGHNESS = 0.92;
+	ROUGHNESS = 0.88;
+	SPECULAR = 0.12;
+	EMISSION = surface * 0.035;
 }
 """
 
 const CLOUD_SHADER := """
 shader_type spatial;
-render_mode blend_mix, depth_draw_never, cull_disabled, unshaded;
-uniform sampler2D cloud_noise : source_color;
+render_mode blend_mix, depth_draw_never, cull_back, unshaded;
+uniform sampler2D cloud_noise : source_color, filter_linear_mipmap, repeat_enable;
 void fragment() {
-	vec2 drift = vec2(TIME * 0.0008, 0.0);
-	float density = texture(cloud_noise, UV * vec2(2.5, 1.65) + drift).r;
-	float cloud = smoothstep(0.54, 0.73, density);
+	vec2 drift = vec2(TIME * 0.00035, 0.0);
+	float broad = texture(cloud_noise, UV * vec2(1.8, 1.0) + drift).r;
+	float detail = texture(cloud_noise, UV * vec2(3.6, 2.0) - drift * 0.35).r;
+	float density = broad * 0.84 + detail * 0.16;
+	float cloud = smoothstep(0.56, 0.74, density);
 	ALBEDO = vec3(0.91, 0.95, 1.0);
-	ALPHA = cloud * 0.20;
+	ALPHA = cloud * 0.13;
 }
 """
 
 const ATMOSPHERE_SHADER := """
 shader_type spatial;
-render_mode blend_add, depth_draw_never, cull_disabled, unshaded;
+render_mode blend_add, depth_draw_never, cull_back, unshaded;
 void fragment() {
-	float rim = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.2);
+	float rim = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.8);
 	ALBEDO = vec3(0.12, 0.42, 0.92);
-	ALPHA = rim * 0.42;
+	ALPHA = rim * 0.28;
 }
 """
 
@@ -160,8 +164,8 @@ func _build_space_environment() -> void:
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color("#030711")
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#66758C")
-	environment.ambient_light_energy = 0.20
+	environment.ambient_light_color = Color("#8292A8")
+	environment.ambient_light_energy = 0.30
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world_environment.environment = environment
 	add_child(world_environment)
@@ -179,7 +183,7 @@ func _build_space_environment() -> void:
 	sunlight.name = "SolarKeyLight"
 	sunlight.rotation_degrees = Vector3(-24.0, -34.0, 0.0)
 	sunlight.light_color = Color("#FFF2D6")
-	sunlight.light_energy = 1.35
+	sunlight.light_energy = 1.55
 	sunlight.shadow_enabled = false
 	add_child(sunlight)
 
@@ -236,12 +240,12 @@ func _build_planet() -> void:
 
 	var cloud_noise := FastNoiseLite.new()
 	cloud_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	cloud_noise.frequency = 1.8
-	cloud_noise.fractal_octaves = 4
-	cloud_noise.fractal_gain = 0.48
+	cloud_noise.frequency = 0.9
+	cloud_noise.fractal_octaves = 5
+	cloud_noise.fractal_gain = 0.50
 	var noise_texture := NoiseTexture2D.new()
-	noise_texture.width = 512
-	noise_texture.height = 256
+	noise_texture.width = 1024
+	noise_texture.height = 512
 	noise_texture.seamless = true
 	noise_texture.noise = cloud_noise
 
@@ -293,11 +297,11 @@ func _build_sphere_mesh(radius: float, longitude_segments: int, latitude_segment
 			var p10 := _geo_to_sphere(rad_to_deg(lon_left), rad_to_deg(lat_bottom), radius)
 			var p11 := _geo_to_sphere(rad_to_deg(lon_right), rad_to_deg(lat_bottom), radius)
 			_add_surface_vertex(surface, p00, Vector2(float(lon_index) / longitude_segments, float(lat_index) / latitude_segments))
-			_add_surface_vertex(surface, p10, Vector2(float(lon_index) / longitude_segments, float(lat_index + 1) / latitude_segments))
-			_add_surface_vertex(surface, p01, Vector2(float(lon_index + 1) / longitude_segments, float(lat_index) / latitude_segments))
 			_add_surface_vertex(surface, p01, Vector2(float(lon_index + 1) / longitude_segments, float(lat_index) / latitude_segments))
 			_add_surface_vertex(surface, p10, Vector2(float(lon_index) / longitude_segments, float(lat_index + 1) / latitude_segments))
+			_add_surface_vertex(surface, p01, Vector2(float(lon_index + 1) / longitude_segments, float(lat_index) / latitude_segments))
 			_add_surface_vertex(surface, p11, Vector2(float(lon_index + 1) / longitude_segments, float(lat_index + 1) / latitude_segments))
+			_add_surface_vertex(surface, p10, Vector2(float(lon_index) / longitude_segments, float(lat_index + 1) / latitude_segments))
 	surface.index()
 	return surface.commit()
 
@@ -477,8 +481,7 @@ func _load_overview_map() -> void:
 	var cache_path := CACHE_ROOT + "/earth_overview.jpg"
 	if FileAccess.file_exists(cache_path):
 		var cached_image := Image.load_from_file(cache_path)
-		if cached_image != null and not cached_image.is_empty():
-			_apply_overview_image(cached_image)
+		if cached_image != null and not cached_image.is_empty() and _apply_overview_image(cached_image):
 			status_label.text = "CACHED EARTH IMAGERY  ·  CHECKING FOR AN UPDATE"
 	_request_bytes(OVERVIEW_URL, cache_path, 12 * 1024 * 1024, func(result: int, response_code: int, body: PackedByteArray) -> void:
 		if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
@@ -486,18 +489,26 @@ func _load_overview_map() -> void:
 				status_label.text = "NASA MAP UNAVAILABLE  ·  CHECK YOUR CONNECTION"
 			return
 		var image := Image.new()
-		if image.load_jpg_from_buffer(body) != OK:
+		if image.load_jpg_from_buffer(body) != OK or image.get_width() < 512 or image.get_height() < 256:
 			if overview_texture == null:
-				status_label.text = "NASA MAP COULD NOT BE DECODED"
+				status_label.text = "NASA MAP RESPONSE IS INVALID  ·  CHECK YOUR CONNECTION"
 			return
-		_apply_overview_image(image)
+		if not _apply_overview_image(image):
+			if overview_texture == null:
+				status_label.text = "NASA MAP COULD NOT BE APPLIED"
+			return
 		status_label.text = "NASA BLUE MARBLE  ·  DRAG TO ROTATE  ·  PINCH TO ZOOM"
 	, true)
 
 
-func _apply_overview_image(image: Image) -> void:
-	overview_texture = ImageTexture.create_from_image(image)
+func _apply_overview_image(image: Image) -> bool:
+	if image.is_empty() or image.get_width() < 512 or image.get_height() < 256:
+		return false
+	var prepared_image := image.duplicate()
+	prepared_image.generate_mipmaps()
+	overview_texture = ImageTexture.create_from_image(prepared_image)
 	earth_material.set_shader_parameter("earth_map", overview_texture)
+	return true
 
 
 func _update_admin_visibility() -> void:
@@ -704,9 +715,9 @@ func _update_state_marker(label_text: String, center: Vector2) -> void:
 	selected_state_marker = Label3D.new()
 	selected_state_marker.name = "SelectedAdministrativeLabel"
 	selected_state_marker.text = label_text.to_upper()
-	selected_state_marker.font_size = 25
-	selected_state_marker.pixel_size = 0.003
-	selected_state_marker.outline_size = 5
+	selected_state_marker.font_size = 20
+	selected_state_marker.pixel_size = 0.002
+	selected_state_marker.outline_size = 3
 	selected_state_marker.modulate = Color("#E8F4FF")
 	selected_state_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	selected_state_marker.position = _geo_to_sphere(center.x, center.y, 1.026)
@@ -870,7 +881,9 @@ func _apply_detail_patch(image: Image, west: float, east: float, south: float, n
 	var shader := Shader.new()
 	shader.code = PATCH_SHADER
 	detail_material.shader = shader
-	detail_material.set_shader_parameter("detail_map", ImageTexture.create_from_image(image))
+	var detail_image := image.duplicate()
+	detail_image.generate_mipmaps()
+	detail_material.set_shader_parameter("detail_map", ImageTexture.create_from_image(detail_image))
 	detail_patch.material_override = detail_material
 	detail_patch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	planet_root.add_child(detail_patch)
@@ -894,11 +907,11 @@ func _build_geo_patch(west: float, east: float, south: float, north: float, radi
 			var p10 := _geo_to_sphere(lon0, lat1, radius)
 			var p11 := _geo_to_sphere(lon1, lat1, radius)
 			_add_surface_vertex(surface, p00, Vector2(u0, v0))
-			_add_surface_vertex(surface, p10, Vector2(u0, v1))
-			_add_surface_vertex(surface, p01, Vector2(u1, v0))
 			_add_surface_vertex(surface, p01, Vector2(u1, v0))
 			_add_surface_vertex(surface, p10, Vector2(u0, v1))
+			_add_surface_vertex(surface, p01, Vector2(u1, v0))
 			_add_surface_vertex(surface, p11, Vector2(u1, v1))
+			_add_surface_vertex(surface, p10, Vector2(u0, v1))
 	surface.index()
 	return surface.commit()
 

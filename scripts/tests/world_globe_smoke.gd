@@ -26,6 +26,13 @@ func _run_test() -> void:
 	if earth == null or earth.mesh == null or earth.mesh.get_surface_count() == 0:
 		_fail("The globe is missing its rendered Earth sphere.")
 		return
+	if not _has_godot_clockwise_front_faces(earth.mesh):
+		_fail("Earth surface triangles are wound backwards and will be culled from outside.")
+		return
+	var detail_mesh := globe.call("_build_geo_patch", -20.0, 20.0, -12.0, 12.0, 1.0045, 12, 8) as ArrayMesh
+	if detail_mesh == null or not _has_godot_clockwise_front_faces(detail_mesh):
+		_fail("Zoomed regional texture patches are wound backwards and will be culled.")
+		return
 	if clouds == null or clouds.mesh == null:
 		_fail("The separate cloud shell is missing.")
 		return
@@ -46,6 +53,28 @@ func _run_test() -> void:
 	await process_frame
 	print("WORLD_GLOBE_SMOKE_TEST: PASS")
 	quit()
+
+
+func _has_godot_clockwise_front_faces(mesh: ArrayMesh) -> bool:
+	if mesh.get_surface_count() == 0:
+		return false
+	var arrays: Array = mesh.surface_get_arrays(0)
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	if vertices.is_empty() or indices.size() < 3 or indices.size() % 3 != 0:
+		return false
+	var clockwise_faces := 0
+	var counterclockwise_faces := 0
+	for offset in range(0, indices.size(), 3):
+		var a: Vector3 = vertices[indices[offset]]
+		var b: Vector3 = vertices[indices[offset + 1]]
+		var c: Vector3 = vertices[indices[offset + 2]]
+		var face_direction := (b - a).cross(c - a).dot((a + b + c) / 3.0)
+		if face_direction < -0.0000001:
+			clockwise_faces += 1
+		elif face_direction > 0.0000001:
+			counterclockwise_faces += 1
+	return clockwise_faces > 0 and counterclockwise_faces == 0
 
 
 func _fail(message: String) -> void:
