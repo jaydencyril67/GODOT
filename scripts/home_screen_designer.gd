@@ -6,16 +6,16 @@ const LOCK_ICON_PATH := "res://assets/lock-screen/aosp/SVG/ic_lock_locked.svg"
 
 const HOME_PAGE_APP_IDS := [
 	[
-		"instagram", "facebook", "telegram", "tiktok",
-		"keep", "docs", "earth", "netflix",
-		"discord", "snapchat", "twitter", "shazam",
-		"spotify_client", "chrome", "drive", "photos"
+		"discord", "facebook", "fbmessenger", "instagram",
+		"linkedin", "reddit", "signal", "snapchat",
+		"telegram", "tiktok", "twitter", "whatsapp",
+		"gemini", "chrome", "clock", "drive"
 	],
 	[
-		"sheets", "slides", "classroom", "translate",
-		"amazon_store", "ebay", "paypal", "uber_driver",
-		"airbnb", "duolingo", "minecraft", "roblox",
-		"pubg", "brawl_stars", "cash_app", "notion"
+		"gmail", "photos", "play", "translate",
+		"maps", "adobe_reader", "dropbox", "duolingo",
+		"microsoft_excel", "microsoft_word", "docs", "sheets",
+		"cash_app", "paypal", "tradingview", "wallet"
 	]
 ]
 const DOCK_APP_IDS := ["whatsapp", "gmail", "spotify_client", "youtube"]

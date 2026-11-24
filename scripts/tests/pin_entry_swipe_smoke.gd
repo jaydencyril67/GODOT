@@ -1,6 +1,7 @@
 extends SceneTree
 
 const LockScreenDesignerScript = preload("res://scripts/lock_screen_designer.gd")
+const AppIconLibrary = preload("res://scripts/app_icon_library.gd")
 const WorksiteScript = preload("res://scripts/os_creation_worksite.gd")
 const PIN_BACKSPACE_PATH := "res://assets/system-ui/godot/pin-entry/pin_backspace.svg"
 const LOCK_TO_UNLOCK_ANIMATION := "res://assets/lock-screen/aosp/Animations/lock_to_unlock.json"
@@ -143,8 +144,8 @@ func _run_test() -> void:
 	if lock_screen.visible or bool(lock_screen.call("is_pin_entry_visible")):
 		_fail("The lock screen or PIN overlay remained visible after successful unlock.")
 		return
-	if int(home_screen.call("get_loaded_app_count")) < 140:
-		_fail("The unlocked home screen did not load the app icon collection.")
+	if int(home_screen.call("get_loaded_app_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
+		_fail("The unlocked home screen did not load exactly 50 Papirus app icons.")
 
 	# Horizontal swipes move between launcher pages; an upward swipe opens
 	# the all-apps drawer, and a downward swipe from its top closes it.

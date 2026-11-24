@@ -2,6 +2,7 @@ extends SceneTree
 
 const LockScreenDesignerScript = preload("res://scripts/lock_screen_designer.gd")
 const HomeScreenDesignerScript = preload("res://scripts/home_screen_designer.gd")
+const AppIconLibrary = preload("res://scripts/app_icon_library.gd")
 
 
 func _initialize() -> void:
@@ -75,8 +76,8 @@ func _run_test() -> void:
 			_fail("A dock app icon failed to load.")
 			return
 
-	if int(home_screen.call("get_loaded_app_count")) != 200:
-		_fail("The app drawer did not load all 200 entries from the Papirus icon manifest.")
+	if int(home_screen.call("get_loaded_app_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
+		_fail("The app drawer did not load all 50 entries from the Papirus icon manifest.")
 		return
 	if int(home_screen.call("get_home_page_count")) != 2 or int(home_screen.call("get_home_icon_count")) != 36:
 		_fail("The launcher home pages and dock do not expose the expected curated app selection.")
@@ -100,11 +101,11 @@ func _run_test() -> void:
 		return
 	home_screen.call("open_app_drawer")
 	await process_frame
-	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) != 200:
-		_fail("The swipe-up app drawer did not expose all 200 Papirus apps.")
+	if not bool(home_screen.call("is_app_drawer_visible")) or int(home_screen.call("get_app_drawer_result_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
+		_fail("The swipe-up app drawer did not expose all 50 Papirus apps.")
 		return
 	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != 200:
-		_fail("The app drawer did not render all 200 Papirus SVG textures.")
+		_fail("The app drawer did not render all 50 Papirus SVG textures.")
 		return
 	var drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
 	if not _grid_is_horizontally_centered(drawer_grid):

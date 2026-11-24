@@ -3,6 +3,7 @@ extends SceneTree
 const WorksiteScript = preload("res://scripts/os_creation_worksite.gd")
 const LockScreenAssetLibrary = preload("res://scripts/lock_screen_asset_library.gd")
 const ClockFaceAssetLibrary = preload("res://scripts/ui/xmorph_clock_face_asset_library.gd")
+const AppIconLibrary = preload("res://scripts/app_icon_library.gd")
 
 func _initialize() -> void:
 	call_deferred("_run_test")
@@ -41,14 +42,14 @@ func _run_test() -> void:
 			worksite_child.show()
 
 	var home_screen := worksite.find_child("OneUIHomeScreenPreview", true, false)
-	if home_screen == null or int(home_screen.call("get_loaded_app_count")) != 200:
-		_fail("The OS Worksite did not preload all 200 Papirus apps.")
+	if home_screen == null or int(home_screen.call("get_loaded_app_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
+		_fail("The OS Worksite did not preload all 50 Papirus apps.")
 		return
 	var app_drawer_grid := home_screen.find_child("AppDrawerIconGrid", true, false) as GridContainer
-	if app_drawer_grid == null or app_drawer_grid.get_child_count() != 200:
-		_fail("The 200-app drawer was not fully built before startup preparation completed.")
+	if app_drawer_grid == null or app_drawer_grid.get_child_count() != AppIconLibrary.EXPECTED_APP_COUNT:
+		_fail("The 50-app drawer was not fully built before startup preparation completed.")
 		return
-	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != 200:
+	if int(home_screen.call("get_app_drawer_loaded_icon_count")) != AppIconLibrary.EXPECTED_APP_COUNT:
 		_fail("Some of the 200 prebuilt app drawer SVG textures did not load.")
 
 	if not is_equal_approx(float(worksite.call("get_boot_sequence_duration_seconds")), 10.0):

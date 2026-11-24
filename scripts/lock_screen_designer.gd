@@ -21,10 +21,10 @@ const MEDIA_PLAYER_MIN_SLOT_HEIGHT := 0.175
 const NOTIFICATION_PRESETS := [
 	{"app": "WHATSAPP", "icon": "res://assets/app_icons/papirus/social/apps_whatsapp.svg", "title": "You have a new message", "body": "A new conversation is waiting for you."},
 	{"app": "GMAIL", "icon": "res://assets/app_icons/papirus/google_essential/google_gmail.svg", "title": "A new email arrived", "body": "Your inbox has a fresh update."},
-	{"app": "GOOGLE KEEP", "icon": "res://assets/app_icons/papirus/google_essential/google_keep.svg", "title": "Reminder", "body": "A saved note is ready for review."},
-	{"app": "TODOIST", "icon": "res://assets/app_icons/papirus/productivity_education/apps_todoist.svg", "title": "Task due today", "body": "One item is still on your list."},
-	{"app": "CLASSROOM", "icon": "res://assets/app_icons/papirus/productivity_education/google_classroom.svg", "title": "New class update", "body": "Your learning feed has changed."},
-	{"app": "SECURITY", "icon": "res://assets/app_icons/papirus/google_essential/google_auth.svg", "title": "Security check complete", "body": "Your account protection is up to date."}
+	{"app": "GOOGLE KEEP", "icon": "res://assets/app_icons/papirus/productivity_education/google_docs.svg", "title": "Reminder", "body": "A saved note is ready for review."},
+	{"app": "TODOIST", "icon": "res://assets/app_icons/papirus/productivity_education/apps_duolingo.svg", "title": "Task due today", "body": "One item is still on your list."},
+	{"app": "CLASSROOM", "icon": "res://assets/app_icons/papirus/productivity_education/google_docs.svg", "title": "New class update", "body": "Your learning feed has changed."},
+	{"app": "SECURITY", "icon": "res://assets/app_icons/papirus/browsers_security/apps_browser_brave.svg", "title": "Security check complete", "body": "Your account protection is up to date."}
 ]
 
 const MEDIA_ARTWORK := [

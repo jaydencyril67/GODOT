@@ -1,6 +1,11 @@
 extends RefCounted
 
 const MANIFEST_PATH := "res://assets/app_icons/papirus/manifest.json"
+const EXPECTED_APP_COUNT := 50
+
+
+static func get_expected_app_count() -> int:
+	return EXPECTED_APP_COUNT
 
 
 static func get_apps() -> Array[Dictionary]:
