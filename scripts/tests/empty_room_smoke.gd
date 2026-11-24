@@ -41,8 +41,35 @@ func _run_test() -> void:
 		return
 
 	var room_colliders := room_preview.find_children("*", "StaticBody3D", true, false)
-	if room_colliders.size() < 6:
-		_fail("The floor, four walls and ceiling must have collision bodies.")
+	if room_colliders.size() < 9:
+		_fail("The floor, walls, ceiling and closed glass exit door must have collision bodies.")
+		return
+
+	var floor_material := room_mesh.get_surface_override_material(0) as StandardMaterial3D
+	var wall_material := room_mesh.get_surface_override_material(1) as StandardMaterial3D
+	if floor_material == null or floor_material.albedo_texture == null:
+		_fail("The room floor is missing its subtle procedural texture.")
+		return
+	if wall_material == null or wall_material.albedo_texture == null:
+		_fail("The room walls are missing their subtle plaster texture.")
+		return
+
+	var glass_door := room_preview.find_child("GlassExitDoorPane", true, false) as MeshInstance3D
+	if glass_door == null or glass_door.mesh == null:
+		_fail("The room is missing its glass exit door pane.")
+		return
+	var glass_material := glass_door.material_override as StandardMaterial3D
+	if glass_material == null or glass_material.transparency != BaseMaterial3D.TRANSPARENCY_ALPHA:
+		_fail("The exit door pane must use a translucent glass material.")
+		return
+	if room_preview.find_child("GlassExitDoorFrameLeft", true, false) == null or room_preview.find_child("ExitDoorPullHandle", true, false) == null:
+		_fail("The glass exit door is missing its frame or pull handle.")
+		return
+	if room_preview.find_child("ExitSignText", true, false) == null:
+		_fail("The glass door is missing its EXIT sign.")
+		return
+	if room_preview.find_child("GlassExitDoorCollision", true, false) == null:
+		_fail("The closed glass exit door must block the player until it is opened.")
 		return
 
 	if room_preview.find_child("MovementJoystickBase", true, false) == null:
