@@ -58,7 +58,12 @@ func _run_test() -> void:
 	for frame_index in range(60):
 		await physics_frame
 	if not player.is_on_floor():
-		_fail("The first-person player is not grounded after 60 physics frames. Y=%s velocity=%s mask=%s floor_position=%s floor_disabled=%s" % [player.global_position.y, player.velocity, player.collision_mask, safety_floor.global_position, safety_floor_shape.disabled])
+		var contact_summary := "none"
+		if player.get_slide_collision_count() > 0:
+			var last_contact := player.get_last_slide_collision()
+			contact_summary = "collider=%s normal=%s" % [last_contact.get_collider().name, last_contact.get_normal()]
+		var capsule_node := player.find_child("PlayerCapsule", true, false) as CollisionShape3D
+		_fail("The first-person player is not grounded after 60 physics frames. Y=%s velocity=%s mask=%s capsule_global=%s capsule_height=%s floor_position=%s floor_disabled=%s ray_normal=%s ray_position=%s contacts=%s" % [player.global_position.y, player.velocity, player.collision_mask, capsule_node.global_position, (capsule_node.shape as CapsuleShape3D).height, safety_floor.global_position, safety_floor_shape.disabled, floor_hit.get("normal"), floor_hit.get("position"), contact_summary])
 		return
 	if player.global_position.y < -0.02:
 		_fail("The first-person player fell below the safety floor. Y=%s velocity=%s mesh_floor=%s" % [player.global_position.y, player.velocity, walkable_floor_found])
