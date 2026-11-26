@@ -12,7 +12,6 @@ const ResearchManagerScript = preload("res://scripts/digitalworld_research_manag
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
 const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
-const GaussianSplatOfficeScene: PackedScene = preload("res://scenes/gaussian_splat_office.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
@@ -39,7 +38,6 @@ var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var world_globe: Node3D
-var gaussian_splat_office_preview: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
@@ -115,7 +113,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "camera_research_allocation", "office", "splat_office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "camera_research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -323,9 +321,6 @@ func _clear_world() -> void:
 	if is_instance_valid(world_globe):
 		world_globe.queue_free()
 	world_globe = null
-	if is_instance_valid(gaussian_splat_office_preview):
-		gaussian_splat_office_preview.queue_free()
-	gaussian_splat_office_preview = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -459,11 +454,10 @@ func _show_menu() -> void:
 	menu.add_child(menu_rule)
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
-	var room_preview_button := _add_action_button(menu, "SPLAT OFFICE", false, _show_gaussian_splat_office)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, room_preview_button, continue_game, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -488,16 +482,6 @@ func _show_world_globe() -> void:
 	world_globe.name = "Standalone_Earth_Globe"
 	world_globe.connect("back_requested", Callable(self, "_show_menu"))
 	add_child(world_globe)
-
-
-func _show_gaussian_splat_office() -> void:
-	current_screen = "splat_office"
-	_clear_world()
-	_new_screen()
-	gaussian_splat_office_preview = GaussianSplatOfficeScene.instantiate() as Node3D
-	gaussian_splat_office_preview.name = "Standalone_Gaussian_Splat_Office"
-	gaussian_splat_office_preview.connect("back_requested", Callable(self, "_show_menu"))
-	add_child(gaussian_splat_office_preview)
 
 
 func _animate_landing_menu(root: Control, welcome: Control, command_area: Control, command_panel: Control, buttons: Array[Button]) -> void:
