@@ -34,7 +34,7 @@ func _run_test() -> void:
 		_fail("The campus HUD and touch controls could not be revealed after startup preparation.")
 		return
 	var career_status := campus.find_child("CampusCareerStatusBar", true, false) as HBoxContainer
-	if career_status == null or career_status.get_theme_stylebox("panel") != null:
+	if career_status == null or career_status.has_theme_stylebox_override("panel"):
 		_fail("The campus career HUD must be a transparent layout with no shared background card.")
 		return
 	for card_name in ["CampusCompanyInsigniaFrame", "CampusCompanyIdentityCard", "CampusBalanceCard", "CampusDateCard", "CampusGameClockCard"]:
