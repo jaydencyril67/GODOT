@@ -1,6 +1,5 @@
 extends Node3D
 
-const HeadquartersPreviewScript = preload("res://scripts/world/digitalworld_headquarters.gd")
 const PhoneCreationWorksiteScene: PackedScene = preload("res://scenes/phone_creation_worksite.tscn")
 const OSCreationWorksiteScene: PackedScene = preload("res://scenes/os_creation_worksite.tscn")
 const ProcessorCreationWorksiteScene: PackedScene = preload("res://scenes/processor_creation_worksite.tscn")
@@ -36,7 +35,6 @@ var ui_layer: CanvasLayer
 var ui_root: Control
 var create_ui_layer: CanvasLayer
 var create_ui_root: Control
-var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var company_campus: Node3D
 var campus_phone_return_active := false
@@ -52,7 +50,6 @@ var research_dashboard_return_to_worksite := false
 var research_dashboard_return_to_camera_worksite := false
 var research_dashboard_return_to_processor_worksite := false
 var worksite_research_overlay_layer: CanvasLayer
-var home_navigation_layer: CanvasLayer
 var home_company_label: Label
 var home_date_label: Label
 var home_balance_label: Label
@@ -68,8 +65,6 @@ var game_date_unix := GAME_START_DATE_UNIX
 var game_clock_paused := false
 var last_saved_game_day := -1
 var career: Dictionary = {}
-var upgrade_level := 0
-var selected_upgrade := 1
 var current_screen := "menu"
 var full_name_input: LineEdit
 var company_name_input: LineEdit
@@ -93,7 +88,7 @@ var loading_progress_bar: ProgressBar
 var loading_percent_label: Label
 var loading_progress_tween: Tween
 var loading_accent_tween: Tween
-var headquarters_loading_finish_started := false
+var campus_loading_finish_started := false
 var graphics_quality := "High"
 var sound_enabled := true
 
@@ -116,7 +111,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "camera_research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite", "company_campus"]:
+	if current_screen not in ["company_campus", "create", "research", "research_allocation", "camera_research_allocation", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite", "os_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -180,40 +175,8 @@ func _get_game_month_key(timestamp: float) -> String:
 
 func _process_pending_monthly_expenses() -> void:
 	var month_key := _get_game_month_key(game_date_unix)
-	if month_key != str(career.get("last_rent_billed_month", month_key)):
-		_process_monthly_headquarters_rent(month_key)
 	if month_key != str(career.get("last_payroll_billed_month", month_key)):
 		_process_monthly_staff_payroll(month_key)
-
-
-func _process_monthly_headquarters_rent(month_key: String) -> void:
-	if month_key == str(career.get("last_rent_billed_month", "")):
-		return
-	if upgrade_level <= 0:
-		career["last_rent_billed_month"] = month_key
-		_save_career()
-		return
-	var monthly_rent := float(HeadquartersPreviewScript.get_monthly_rent(upgrade_level))
-	var current_balance := float(career.get("balance", 10000000.0))
-	career["last_rent_billed_month"] = month_key
-	if monthly_rent <= 0.0:
-		_save_career()
-		return
-	if current_balance < monthly_rent:
-		_save_career()
-		_show_notice("MONTHLY RENT DUE", "Your Level %d headquarters requires %s in monthly rent, but your balance is only %s. Rent was not deducted." % [upgrade_level, _format_balance(monthly_rent), _format_balance(current_balance)])
-		return
-	career["balance"] = current_balance - monthly_rent
-	if not _save_career():
-		career["balance"] = current_balance
-		career["last_rent_billed_month"] = _get_game_month_key(game_date_unix - 86400.0)
-		_show_notice("RENT PAYMENT NOT SAVED", "Your monthly headquarters rent could not be saved. Your balance has not changed.")
-		return
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
-	_update_home_status_bar()
-	_update_staff_office_balance()
-	_show_finance_toast(-monthly_rent, "HEADQUARTERS RENT")
 
 
 func _notification(what: int) -> void:
@@ -235,7 +198,6 @@ func _load_career() -> bool:
 	var config := ConfigFile.new()
 	if config.load(SAVE_PATH) != OK:
 		career = {}
-		upgrade_level = 0
 		return false
 	career = {
 		"full_name": str(config.get_value("career", "full_name", "")),
@@ -249,7 +211,6 @@ func _load_career() -> bool:
 		"balance": float(config.get_value("career", "balance", 10000000.0)),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
-		"last_rent_billed_month": str(config.get_value("career", "last_rent_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
 		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
 		"staff_candidates": config.get_value("career", "staff_candidates", []),
 		"staff_employees": config.get_value("career", "staff_employees", []),
@@ -268,7 +229,6 @@ func _load_career() -> bool:
 	game_date_unix = float(career.get("game_date_unix", GAME_START_DATE_UNIX))
 	game_clock_paused = bool(career.get("game_clock_paused", false))
 	last_saved_game_day = floori(game_date_unix / 86400.0)
-	upgrade_level = clampi(int(config.get_value("career", "upgrade_level", 0)), 0, 10)
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
 	return not str(career.get("company_name", "")).is_empty()
@@ -294,11 +254,9 @@ func _save_career() -> bool:
 	config.set_value("career", "fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", true)))
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
-	config.set_value("career", "upgrade_level", upgrade_level)
 	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
-	config.set_value("career", "last_rent_billed_month", str(career.get("last_rent_billed_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "last_payroll_billed_month", str(career.get("last_payroll_billed_month", _get_game_month_key(game_date_unix))))
 	config.set_value("career", "staff_candidates", career.get("staff_candidates", []))
 	config.set_value("career", "staff_employees", career.get("staff_employees", []))
@@ -315,9 +273,6 @@ func _save_career() -> bool:
 	return error == OK
 
 func _clear_world() -> void:
-	if is_instance_valid(world_root):
-		world_root.queue_free()
-	world_root = null
 	if is_instance_valid(landing_world):
 		landing_world.queue_free()
 	landing_world = null
@@ -461,10 +416,9 @@ func _show_menu() -> void:
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
-	var explore_campus := _add_action_button(menu, "EXPLORE CAMPUS", false, _open_company_campus)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, explore_campus, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -481,19 +435,6 @@ func _show_menu() -> void:
 	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, command_area, command_panel, landing_buttons))
 
 
-func _open_company_campus() -> void:
-	current_screen = "company_campus"
-	_clear_world()
-	_new_screen() # Release the landing-page controls before opening the walkable campus.
-	company_campus = CompanyCampusScene.instantiate() as Node3D
-	company_campus.name = "Company_Campus_World"
-	company_campus.connect("back_requested", Callable(self, "_show_menu"))
-	company_campus.connect("worksite_launch_requested", Callable(self, "_open_worksite_from_campus"))
-	company_campus.connect("research_launch_requested", Callable(self, "_open_research_from_campus"))
-	company_campus.connect("staff_launch_requested", Callable(self, "_open_staff_from_campus"))
-	add_child(company_campus)
-
-
 func _suspend_company_campus_for_phone_app() -> void:
 	if not is_instance_valid(company_campus):
 		return
@@ -503,7 +444,7 @@ func _suspend_company_campus_for_phone_app() -> void:
 	for child in company_campus.get_children():
 		if child is CanvasLayer:
 			child.hide()
-	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+	for layer in [ui_layer, create_ui_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
 			layer.hide()
 
@@ -519,8 +460,6 @@ func _resume_company_campus_after_phone_app() -> bool:
 	ui_root = null
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.hide()
 	_close_staff_overlay()
@@ -530,7 +469,51 @@ func _resume_company_campus_after_phone_app() -> bool:
 		if child is CanvasLayer:
 			child.show()
 	current_screen = "company_campus"
+	_update_home_status_bar()
 	return true
+
+
+func _show_home_scene() -> void:
+	if is_instance_valid(company_campus):
+		if _resume_company_campus_after_phone_app():
+			return
+		company_campus.process_mode = Node.PROCESS_MODE_INHERIT
+		company_campus.show()
+		current_screen = "company_campus"
+		return
+
+	current_screen = "company_campus"
+	_clear_world()
+	await get_tree().process_frame
+	_refresh_staff_market_on_startup()
+	_prepare_phone_creation_worksite()
+	_prepare_processor_creation_worksite()
+
+	var campus := CompanyCampusScene.instantiate() as Node3D
+	if not is_instance_valid(campus):
+		push_error("The company campus scene could not be generated.")
+		_show_notice("CAMPUS GENERATION FAILED", "The company campus could not be created. Please restart the game.")
+		return
+	campus.name = "Company_Campus_World"
+	campus.call(
+		"configure_career_hud",
+		str(career.get("company_name", "YOUR COMPANY")),
+		_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)),
+		_format_balance(float(career.get("balance", 10000000.0))),
+		_format_game_date(game_date_unix),
+		game_clock_paused
+	)
+	campus.connect("setup_progress", Callable(self, "_update_campus_loading"))
+	campus.connect("setup_completed", Callable(self, "_on_company_campus_setup_completed"))
+	campus.connect("back_requested", Callable(self, "_show_menu"))
+	campus.connect("game_clock_toggle_requested", Callable(self, "_toggle_game_clock"))
+	campus.connect("worksite_launch_requested", Callable(self, "_open_worksite_from_campus"))
+	campus.connect("research_launch_requested", Callable(self, "_open_research_from_campus"))
+	campus.connect("staff_launch_requested", Callable(self, "_open_staff_from_campus"))
+	campus.connect("legacy_app_launch_requested", Callable(self, "_open_legacy_app_from_campus"))
+	campus.visible = false
+	company_campus = campus
+	add_child(company_campus)
 
 
 func _open_worksite_from_campus(worksite_id: String) -> void:
@@ -596,6 +579,13 @@ func _open_staff_from_campus(staff_screen_id: String) -> void:
 	_suspend_company_campus_for_phone_app()
 	_ensure_staff_data()
 	_open_staff_screen("market" if staff_screen_id == "market" else "management")
+
+
+func _open_legacy_app_from_campus(app_id: String) -> void:
+	if app_id != "create" or not is_instance_valid(company_campus):
+		return
+	_suspend_company_campus_for_phone_app()
+	_show_create_scene()
 
 
 func _show_world_globe() -> void:
@@ -789,8 +779,6 @@ func _reset_saved_game_and_start() -> void:
 func _begin_fresh_game() -> void:
 	# Clear every in-memory value that belongs to the previous career as well.
 	career = {}
-	upgrade_level = 0
-	selected_upgrade = 1
 	selected_logo_id = 1
 	game_date_unix = GAME_START_DATE_UNIX
 	game_clock_paused = false
@@ -1397,20 +1385,25 @@ func _create_company() -> void:
 	if not career.has("game_clock_paused"):
 		game_clock_paused = false
 		career["game_clock_paused"] = false
-	if not career.has("last_rent_billed_month"):
-		career["last_rent_billed_month"] = _get_game_month_key(game_date_unix)
 	if not career.has("last_payroll_billed_month"):
 		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix)
 	_ensure_staff_data()
 	ResearchManagerScript.ensure_state(career)
 	if str(career.get("created_at", "")).is_empty():
 		career["created_at"] = Time.get_datetime_string_from_system(true)
-	upgrade_level = 0
-	career["upgrade_level"] = upgrade_level
 	if not _save_career():
 		profile_status.text = "The company could not be saved. Check device storage."
 		return
 	_show_city()
+
+func _show_city() -> void:
+	# Generate the campus from the initial career preparation screen.
+	campus_loading_finish_started = false
+	_show_campus_loading_screen()
+	await RenderingServer.frame_post_draw
+	_process_pending_monthly_expenses()
+	_show_home_scene()
+
 
 func _load_game_pressed() -> void:
 	# _ready() already loaded the save before presenting the landing page.
@@ -1420,171 +1413,6 @@ func _load_game_pressed() -> void:
 		_show_notice("NO SAVED COMPANY", "No saved Digital World Mobiles company was found on this device. Choose NEW GAME to establish one.")
 		return
 	_show_city()
-
-func _show_city() -> void:
-	# Display the loading screen in a completed render frame before doing any
-	# save processing, market refresh, or headquarters construction.
-	upgrade_level = clampi(upgrade_level, 0, 10)
-	selected_upgrade = maxi(upgrade_level, 1)
-	headquarters_loading_finish_started = false
-	_show_headquarters_loading_screen()
-	await RenderingServer.frame_post_draw
-	_process_pending_monthly_expenses()
-	_show_home_scene()
-
-
-func _show_home_scene() -> void:
-	# A live headquarters is created only by the loading-screen entry path.
-	# If a caller reaches this function while it already exists, restore that
-	# same scene instead of constructing the compound again.
-	if is_instance_valid(world_root):
-		push_warning("Headquarters already exists; restoring the existing company scene.")
-		_restore_home_after_standalone_screen()
-		return
-
-	current_screen = "home"
-	_clear_world()
-	# The loading layer was shown by _show_city() before any synchronous work.
-	# Keep it visible and give it a rendered frame before refreshing/generating HQ.
-	# Let the HQ preparation screen render before refreshing the market and generating buildings.
-	await get_tree().process_frame
-	_refresh_staff_market_on_startup()
-	var headquarters: DigitalWorldHeadquarters = HeadquartersPreviewScript.new()
-	headquarters.name = "DigitalWorld_Home_Scene"
-	headquarters.home_mode = true
-	headquarters.preview_level = clampi(upgrade_level, 1, 10)
-	headquarters.owned_level = clampi(upgrade_level, 0, 10)
-	headquarters.company_name = str(career.get("company_name", "YOUR COMPANY"))
-	headquarters.company_balance = float(career.get("balance", 10000000.0))
-	headquarters.preview_level_changed.connect(_on_headquarters_preview_level_changed)
-	headquarters.back_requested.connect(_return_home_from_headquarters)
-	headquarters.upgrade_requested.connect(_upgrade_headquarters)
-	headquarters.downgrade_requested.connect(_downgrade_headquarters)
-	headquarters.staff_market_requested.connect(func(): _open_staff_screen("market"))
-	headquarters.staff_management_requested.connect(func(): _open_staff_screen("management"))
-	headquarters.setup_progress.connect(_update_headquarters_loading)
-	headquarters.setup_completed.connect(_on_headquarters_setup_completed)
-	# Build the 3D scene off-screen. It must not render behind the preparation UI.
-	headquarters.visible = false
-	world_root = headquarters
-	# Fully prepare both creation workspaces under the existing initialization screen.
-	# The Processor Worksite builds and caches all 15 SoC models here; opening it later
-	# only reveals the prepared scene and switching designs only toggles visibility.
-	_prepare_phone_creation_worksite()
-	_prepare_processor_creation_worksite()
-	add_child(world_root)
-
-
-func _show_headquarters_preview() -> void:
-	# Office always reuses the headquarters created by the company loading screen.
-	# A missing scene is a lifecycle error, never a reason to rebuild during navigation.
-	if not is_instance_valid(world_root):
-		push_error("Office cannot open because the loading-screen headquarters scene is missing.")
-		return
-
-	_close_staff_overlay()
-	current_screen = "headquarters"
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-		home_navigation_layer.queue_free()
-	home_navigation_layer = null
-	ui_layer = null
-	ui_root = null
-
-	# Change the HQ mode before making the world visible, so the new camera and
-	# interface are ready together rather than exposing a partially rebuilt frame.
-	world_root.set_home_mode(false)
-	world_root.set_preview_active(true)
-
-
-func _return_home_from_headquarters() -> void:
-	current_screen = "home"
-	if is_instance_valid(world_root) and world_root.has_method("set_home_mode"):
-		world_root.set_home_mode(true)
-		world_root.set_preview_active(true)
-	_show_home_navigation()
-
-
-func _upgrade_headquarters(level: int) -> void:
-	var requested_level := clampi(level, 1, 10)
-	if requested_level <= upgrade_level:
-		return
-	var is_first_purchase := upgrade_level <= 0 and requested_level == 1
-	var upgrade_cost := float(HeadquartersPreviewScript.get_upgrade_cost(requested_level))
-	var previous_balance := float(career.get("balance", 10000000.0))
-	if previous_balance < upgrade_cost:
-		_show_notice("INSUFFICIENT BALANCE", "You need %s to purchase Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
-		return
-	var confirmation_title := "PURCHASE HEADQUARTERS" if is_first_purchase else "UPGRADE HEADQUARTERS"
-	var confirmation_message := "Purchase your first headquarters (Level %d)?\n\nPurchase price: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)] if is_first_purchase else "Upgrade your headquarters to Level %d?\n\nCost: %s\nAvailable balance: %s" % [requested_level, _format_balance(upgrade_cost), _format_balance(previous_balance)]
-	var confirmation_action := "PURCHASE" if is_first_purchase else "UPGRADE"
-	_show_confirmation(confirmation_title, confirmation_message, confirmation_action, Callable(self, "_apply_headquarters_upgrade").bind(requested_level))
-
-
-func _apply_headquarters_upgrade(requested_level: int) -> void:
-	if requested_level <= upgrade_level:
-		return
-	var upgrade_cost := float(HeadquartersPreviewScript.get_upgrade_cost(requested_level))
-	var previous_balance := float(career.get("balance", 10000000.0))
-	if previous_balance < upgrade_cost:
-		_show_notice("INSUFFICIENT BALANCE", "You need %s to relocate to Headquarters Level %d. Your available balance is %s." % [_format_balance(upgrade_cost), requested_level, _format_balance(previous_balance)])
-		return
-	var previous_level := upgrade_level
-	upgrade_level = requested_level
-	career["upgrade_level"] = upgrade_level
-	career["balance"] = previous_balance - upgrade_cost
-	if not _save_career():
-		upgrade_level = previous_level
-		career["upgrade_level"] = previous_level
-		career["balance"] = previous_balance
-		_show_notice("UPGRADE NOT SAVED", "Your headquarters upgrade and payment could not be saved. No money was deducted. Please try again.")
-		return
-	if is_instance_valid(world_root):
-		if world_root.has_method("set_owned_level"):
-			world_root.set_owned_level(upgrade_level)
-		if world_root.has_method("set_company_balance"):
-			world_root.set_company_balance(float(career["balance"]))
-	# The staff pages are prebuilt before purchase. Refresh both cached screens
-	# now so their hire buttons receive the newly purchased office capacity.
-	_refresh_staff_screen_data()
-	_update_home_status_bar()
-	_show_finance_toast(-upgrade_cost, "HEADQUARTERS UPGRADE")
-
-func _downgrade_headquarters(level: int, refund_percent: int) -> void:
-	var requested_level := clampi(level, 1, 10)
-	if requested_level >= upgrade_level:
-		return
-	var previous_level := upgrade_level
-	var safe_refund_percent := clampi(refund_percent, 50, 60)
-	var amount_paid := float(HeadquartersPreviewScript.get_upgrade_cost(previous_level))
-	var refund_amount := amount_paid * float(safe_refund_percent) / 100.0
-	_show_confirmation("DOWNGRADE HEADQUARTERS", "Downgrade your headquarters to Level %d?\n\nEstimated refund: %s (%d%%)." % [requested_level, _format_balance(refund_amount), safe_refund_percent], "DOWNGRADE", Callable(self, "_apply_headquarters_downgrade").bind(requested_level, safe_refund_percent))
-
-
-func _apply_headquarters_downgrade(requested_level: int, refund_percent: int) -> void:
-	if requested_level >= upgrade_level:
-		return
-	var previous_level := upgrade_level
-	var previous_balance := float(career.get("balance", 10000000.0))
-	var safe_refund_percent := clampi(refund_percent, 50, 60)
-	var amount_paid := float(HeadquartersPreviewScript.get_upgrade_cost(previous_level))
-	var refund_amount := amount_paid * float(safe_refund_percent) / 100.0
-	upgrade_level = requested_level
-	career["upgrade_level"] = upgrade_level
-	career["balance"] = previous_balance + refund_amount
-	if not _save_career():
-		upgrade_level = previous_level
-		career["upgrade_level"] = previous_level
-		career["balance"] = previous_balance
-		_show_notice("DOWNGRADE NOT SAVED", "Your headquarters downgrade and refund could not be saved. Your building and balance have not changed.")
-		return
-	if is_instance_valid(world_root):
-		if world_root.has_method("set_owned_level"):
-			world_root.set_owned_level(upgrade_level)
-		if world_root.has_method("set_company_balance"):
-			world_root.set_company_balance(float(career["balance"]))
-	_update_home_status_bar()
-	_show_finance_toast(refund_amount, "HEADQUARTERS REFUND")
 
 func _apply_home_bold_typography(control: Control, font_size: int) -> void:
 	var stix_font := FontVariation.new()
@@ -1602,327 +1430,6 @@ func _apply_home_button_typography(button: Control, font_size: int) -> void:
 	stix_font.variation_embolden = 0.7
 	button.add_theme_font_override("font", stix_font)
 	button.add_theme_font_size_override("font_size", font_size)
-
-
-func _show_home_navigation() -> void:
-	# Home navigation must always sit over the same scene created at game entry.
-	# Missing world state is reported instead of silently starting another build.
-	if not is_instance_valid(world_root):
-		push_error("Cannot show Home navigation: the loading-screen headquarters scene is missing.")
-		return
-
-	# Home UI is a transparent overlay: it frames the live headquarters without
-	# placing a tint, backdrop, or panel over the 3D building.
-	var root := _new_screen()
-	ui_layer.layer = 30
-	home_navigation_layer = ui_layer
-
-	var viewport_size := get_viewport().get_visible_rect().size
-	var compact := viewport_size.x < 1180.0 or viewport_size.y < 640.0
-
-	_build_home_status_bar(root, compact, viewport_size.x < 640.0 or viewport_size.x < viewport_size.y * 1.1)
-
-	# A floating command dock uses the graphite-and-amber interface styling
-	# while leaving the building visible through the centre of the screen.
-	var bottom_panel := PanelContainer.new()
-	bottom_panel.name = "Home_Bottom_Navigation"
-	bottom_panel.anchor_left = 0.0
-	bottom_panel.anchor_top = 1.0
-	bottom_panel.anchor_right = 1.0
-	bottom_panel.anchor_bottom = 1.0
-	bottom_panel.offset_left = 18.0 if not compact else 10.0
-	bottom_panel.offset_top = -88.0 if not compact else -78.0
-	bottom_panel.offset_right = -18.0 if not compact else -10.0
-	bottom_panel.offset_bottom = -12.0 if not compact else -10.0
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.025, 0.028, 0.030, 0.86)
-	panel_style.border_color = Color(0.58, 0.46, 0.29, 0.72)
-	panel_style.set_border_width_all(1)
-	panel_style.border_width_top = 2
-	panel_style.set_corner_radius_all(17)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.52)
-	panel_style.shadow_size = 16
-	panel_style.shadow_offset = Vector2(0.0, 5.0)
-	panel_style.anti_aliasing = true
-	panel_style.content_margin_left = 8.0
-	panel_style.content_margin_right = 8.0
-	panel_style.content_margin_top = 6.0
-	panel_style.content_margin_bottom = 6.0
-	bottom_panel.add_theme_stylebox_override("panel", panel_style)
-	root.add_child(bottom_panel)
-
-	var row := HBoxContainer.new()
-	row.name = "Home_Navigation_Buttons_Row"
-	row.add_theme_constant_override("separation", 6)
-	bottom_panel.add_child(row)
-
-	var nav_items := [
-		{"name": "Create", "index": "01"},
-		{"name": "Products", "index": "02"},
-		{"name": "Research", "index": "03"},
-		{"name": "Marketing", "index": "04"},
-		{"name": "Media", "index": "05"},
-		{"name": "Office", "index": "06"},
-		{"name": "Statistics", "index": "07"}
-	]
-	for item in nav_items:
-		var button_name := str(item["name"])
-		var button := Button.new()
-		button.name = button_name + "_Button"
-		button.text = "%s   %s" % [str(item["index"]), button_name.to_upper()]
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 48.0 if compact else 54.0)
-		button.focus_mode = Control.FOCUS_NONE
-		_style_landing_command_button(button, false)
-		_apply_home_bold_typography(button, 12 if compact else 15)
-		row.add_child(button)
-
-		if button_name == "Create":
-			button.pressed.connect(_show_create_scene)
-		elif button_name == "Research":
-			button.pressed.connect(_show_research_scene)
-		elif button_name == "Office":
-			button.pressed.connect(_show_office_hub)
-
-	# Home is shown fully formed immediately after the loading layer is removed.
-
-
-func _build_home_status_bar(root: Control, compact: bool = false, stacked: bool = false) -> void:
-	var header: Control
-	if stacked:
-		var stacked_header := VBoxContainer.new()
-		header = stacked_header
-		stacked_header.add_theme_constant_override("separation", 8)
-		stacked_header.offset_left = 14.0
-		stacked_header.offset_top = 12.0
-		stacked_header.offset_right = -14.0
-		stacked_header.offset_bottom = 146.0
-	else:
-		var aligned_header := HBoxContainer.new()
-		header = aligned_header
-		aligned_header.add_theme_constant_override("separation", 14 if compact else 18)
-		aligned_header.offset_left = 14.0 if compact else 26.0
-		aligned_header.offset_top = 12.0 if compact else 18.0
-		aligned_header.offset_right = -14.0 if compact else -26.0
-		aligned_header.offset_bottom = 88.0 if compact else 100.0
-
-	header.name = "Home_Premium_Header"
-	header.anchor_left = 0.0
-	header.anchor_top = 0.0
-	header.anchor_right = 1.0
-	header.anchor_bottom = 0.0
-	root.add_child(header)
-
-	var identity := _make_home_identity_card(compact, stacked)
-	header.add_child(identity)
-
-	if not compact and not stacked:
-		var spacer := Control.new()
-		spacer.name = "Home_Header_Flexible_Spacer"
-		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		header.add_child(spacer)
-
-	var metrics := HBoxContainer.new()
-	metrics.name = "Home_Status_Metrics"
-	metrics.add_theme_constant_override("separation", 8)
-	metrics.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
-	header.add_child(metrics)
-
-	home_balance_label = _make_home_metric_card(
-		metrics, "Company_Balance_Card", "AVAILABLE BALANCE", 166.0, 18, Color("#f0c36a"), compact
-	)
-	home_date_label = _make_home_metric_card(
-		metrics, "Game_Date_Card", "IN-GAME DATE", 148.0, 16, Color("#f4f6fa"), compact
-	)
-
-	var clock_card := _make_home_status_glass_card("Game_Clock_Card")
-	clock_card.custom_minimum_size = Vector2(0.0 if compact else 126.0, 60.0 if compact else 76.0)
-	clock_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
-	metrics.add_child(clock_card)
-
-	var clock_content := VBoxContainer.new()
-	clock_content.add_theme_constant_override("separation", 2)
-	clock_content.alignment = BoxContainer.ALIGNMENT_CENTER
-	clock_card.add_child(clock_content)
-	clock_content.add_child(_label("GAME CLOCK", 9, Color("#C8BCA9"), HORIZONTAL_ALIGNMENT_CENTER))
-
-	home_time_button = Button.new()
-	home_time_button.name = "Game_Time_Control"
-	home_time_button.custom_minimum_size = Vector2(0.0, 32.0)
-	home_time_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_time_button.focus_mode = Control.FOCUS_NONE
-	home_time_button.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	_apply_home_bold_typography(home_time_button, 15)
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var clock_style := StyleBoxFlat.new()
-		clock_style.bg_color = Color(0.34, 0.22, 0.09, 0.92)
-		clock_style.border_color = Color(0.66, 0.52, 0.31, 0.78)
-		clock_style.set_border_width_all(1)
-		clock_style.set_corner_radius_all(9)
-		clock_style.content_margin_left = 7
-		clock_style.content_margin_right = 7
-		clock_style.content_margin_top = 4
-		clock_style.content_margin_bottom = 4
-		clock_style.anti_aliasing = true
-		home_time_button.add_theme_stylebox_override(state, clock_style)
-	home_time_button.add_theme_color_override("font_color", Color("#f5f8fc"))
-	home_time_button.add_theme_color_override("font_hover_color", Color("#f5f8fc"))
-	home_time_button.add_theme_color_override("font_pressed_color", Color("#f5f8fc"))
-	home_time_button.add_theme_color_override("font_focus_color", Color("#f5f8fc"))
-	home_time_button.add_theme_color_override("font_disabled_color", Color("#f5f8fc"))
-	home_time_button.pressed.connect(_toggle_game_clock)
-	clock_content.add_child(home_time_button)
-
-	_update_home_status_bar()
-
-
-func _make_home_identity_card(compact: bool, stacked: bool) -> Control:
-	# Keep the company name in its own guaranteed-width label beside the mark.
-	# No nested panel container can consume the label's horizontal space.
-	var identity := HBoxContainer.new()
-	identity.name = "Company_Identity_Block"
-	identity.custom_minimum_size = Vector2(0.0 if compact else 340.0, 64.0 if compact else 76.0)
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL if stacked else Control.SIZE_SHRINK_BEGIN
-	identity.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	identity.add_theme_constant_override("separation", 12)
-
-	var insignia_frame := PanelContainer.new()
-	insignia_frame.name = "Home_Insignia_Frame"
-	insignia_frame.custom_minimum_size = Vector2(54.0, 54.0)
-	insignia_frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	insignia_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var insignia_style := StyleBoxFlat.new()
-	insignia_style.bg_color = Color(0.18, 0.16, 0.13, 0.66)
-	insignia_style.border_color = Color(0.68, 0.53, 0.31, 0.72)
-	insignia_style.set_border_width_all(1)
-	insignia_style.set_corner_radius_all(14)
-	insignia_style.content_margin_left = 5
-	insignia_style.content_margin_right = 5
-	insignia_style.content_margin_top = 5
-	insignia_style.content_margin_bottom = 5
-	insignia_frame.add_theme_stylebox_override("panel", insignia_style)
-	identity.add_child(insignia_frame)
-
-	var insignia := TextureRect.new()
-	insignia.name = "Home_Company_Insignia"
-	insignia.texture = _company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50))
-	insignia.custom_minimum_size = Vector2(42.0, 42.0)
-	insignia.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	insignia.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	insignia_frame.add_child(insignia)
-
-	var accent := ColorRect.new()
-	accent.name = "Identity_Amber_Accent"
-	accent.custom_minimum_size = Vector2(3.0, 48.0)
-	accent.color = Color("#C58A3A")
-	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	identity.add_child(accent)
-
-	var copy := VBoxContainer.new()
-	copy.name = "Company_Identity_Copy"
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	copy.add_theme_constant_override("separation", 2)
-	copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	identity.add_child(copy)
-
-	var brand_line := _label("DIGITAL WORLD MOBILES  /  POWERED BY KINGSHALL", 9, Color("#D2A15C"))
-	brand_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	brand_line.clip_text = true
-	_apply_shared_page_typography(brand_line, 10)
-	copy.add_child(brand_line)
-
-	home_company_label = Label.new()
-	home_company_label.name = "Company_Name"
-	home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
-	home_company_label.custom_minimum_size = Vector2(180.0, 30.0)
-	home_company_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	home_company_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	home_company_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	home_company_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	home_company_label.clip_text = true
-	home_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	home_company_label.tooltip_text = home_company_label.text
-	_apply_home_bold_typography(home_company_label, 25 if not compact else 22)
-	home_company_label.add_theme_color_override("font_color", Color("#ffffff"))
-	home_company_label.add_theme_color_override("font_outline_color", Color("#080A0A"))
-	home_company_label.add_theme_constant_override("outline_size", 2)
-	copy.add_child(home_company_label)
-
-	var founder_name := str(career.get("full_name", "FOUNDER")).strip_edges()
-	if founder_name.is_empty():
-		founder_name = "FOUNDER"
-	var office_detail := "NO HEADQUARTERS OWNED" if upgrade_level <= 0 else "HEADQUARTERS  /  LEVEL %02d" % upgrade_level
-	var detail := _label("%s   •   FOUNDER: %s" % [office_detail, founder_name], 8, Color("#C8BFB1"))
-	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	detail.clip_text = true
-	copy.add_child(detail)
-
-	return identity
-
-
-func _make_home_metric_card(
-	parent: Control,
-	card_name: String,
-	caption: String,
-	width: float,
-	value_font_size: int,
-	value_color: Color,
-	compact: bool
-) -> Label:
-	var card := _make_home_status_glass_card(card_name)
-	card.custom_minimum_size = Vector2(0.0 if compact else width, 60.0 if compact else 76.0)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL if compact else Control.SIZE_SHRINK_END
-	parent.add_child(card)
-
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 2)
-	content.alignment = BoxContainer.ALIGNMENT_CENTER
-	card.add_child(content)
-
-	var caption_label := _label(caption, 8, Color("#C8BCA9"), HORIZONTAL_ALIGNMENT_CENTER)
-	caption_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	caption_label.clip_text = true
-	content.add_child(caption_label)
-
-	var value_label := Label.new()
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value_label.custom_minimum_size = Vector2(0.0, 26.0)
-	value_label.clip_text = true
-	value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_apply_home_bold_typography(value_label, value_font_size if not compact else mini(value_font_size, 14))
-	value_label.add_theme_color_override("font_color", value_color)
-	value_label.add_theme_color_override("font_outline_color", Color("#080A0A"))
-	value_label.add_theme_constant_override("outline_size", 1)
-	content.add_child(value_label)
-	return value_label
-
-
-func _make_home_status_glass_card(card_name: String) -> PanelContainer:
-	var card := PanelContainer.new()
-	card.name = card_name
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.039, 0.041, 0.90)
-	style.border_color = Color(0.58, 0.46, 0.29, 0.68)
-	style.set_border_width_all(1)
-	style.border_width_top = 2
-	style.set_corner_radius_all(14)
-	style.shadow_color = Color(0.0, 0.025, 0.008, 0.40)
-	style.shadow_size = 10
-	style.shadow_offset = Vector2(0.0, 4.0)
-	style.anti_aliasing = true
-	style.content_margin_left = 9.0
-	style.content_margin_right = 9.0
-	style.content_margin_top = 6.0
-	style.content_margin_bottom = 6.0
-	card.add_theme_stylebox_override("panel", style)
-	return card
 
 
 func _format_game_date(timestamp: float) -> String:
@@ -1959,29 +1466,29 @@ func _format_balance(amount: float) -> String:
 
 
 func _update_home_status_bar() -> void:
+	var company_name := str(career.get("company_name", "YOUR COMPANY"))
+	var balance_text := _format_balance(float(career.get("balance", 10000000.0)))
+	var date_text := _format_game_date(game_date_unix)
 	if is_instance_valid(home_date_label):
-		home_date_label.text = _format_game_date(game_date_unix)
+		home_date_label.text = date_text
 	if is_instance_valid(home_balance_label):
-		home_balance_label.text = _format_balance(float(career.get("balance", 10000000.0)))
+		home_balance_label.text = balance_text
 	if is_instance_valid(home_company_label):
-		home_company_label.text = str(career.get("company_name", "YOUR COMPANY"))
-		home_company_label.tooltip_text = home_company_label.text
+		home_company_label.text = company_name
+		home_company_label.tooltip_text = company_name
 	if is_instance_valid(home_time_button):
 		home_time_button.text = "▶  PLAY" if game_clock_paused else "Ⅱ  PAUSE"
+	if is_instance_valid(company_campus):
+		company_campus.call("update_career_hud", company_name, balance_text, date_text, game_clock_paused)
 
 
 func _show_finance_toast(amount: float, activity: String) -> void:
 	# Attach the floating text to whichever balance display is currently visible:
-	# the Home status card or the headquarters finance panel.
+	# the Home status card or the campus balance display.
 	var toast_parent: Control
 	var toast_y := 68.0
 	if is_instance_valid(home_balance_label) and home_balance_label.is_visible_in_tree():
 		toast_parent = home_balance_label.get_parent() as Control
-	elif is_instance_valid(world_root):
-		var hq_balance_label := world_root.get("available_balance_label") as Control
-		if is_instance_valid(hq_balance_label) and hq_balance_label.is_visible_in_tree():
-			toast_parent = hq_balance_label
-			toast_y = 22.0
 	if not is_instance_valid(toast_parent):
 		return
 	if is_instance_valid(home_finance_toast_tween):
@@ -2032,7 +1539,7 @@ func _toggle_game_clock() -> void:
 	_update_home_status_bar()
 
 
-func _show_headquarters_loading_screen() -> void:
+func _show_campus_loading_screen() -> void:
 	var root := _new_screen()
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Keep the preparation screen fully visible on its very first rendered frame.
@@ -2045,7 +1552,7 @@ func _show_headquarters_loading_screen() -> void:
 	# The preparation page uses the graphite atmosphere and subtle warm-metal
 	# accent shared by the landing and company setup screens.
 	var background := ColorRect.new()
-	background.name = "Headquarters_Preparation_Background"
+	background.name = "Campus_Preparation_Background"
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var background_shader := Shader.new()
@@ -2069,13 +1576,13 @@ void fragment() {
 	root.add_child(background)
 
 	var center := CenterContainer.new()
-	center.name = "Headquarters_Preparation_Center"
+	center.name = "Campus_Preparation_Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(center)
 
 	var content := VBoxContainer.new()
-	content.name = "Headquarters_Preparation_Content"
+	content.name = "Campus_Preparation_Content"
 	content.custom_minimum_size = Vector2(content_width, 0.0)
 	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -2105,7 +1612,7 @@ void fragment() {
 
 	var title := Label.new()
 	title.name = "Preparation_Title"
-	title.text = "PREPARING YOUR HEADQUARTERS"
+	title.text = "PREPARING YOUR CAMPUS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.custom_minimum_size = Vector2(0.0, 58.0 if compact else 70.0)
@@ -2210,7 +1717,7 @@ void fragment() {
 	loading_accent_tween.tween_property(accent, "modulate:a", 1.0, 0.95).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-func _update_headquarters_loading(message: String, progress: float) -> void:
+func _update_campus_loading(message: String, progress: float) -> void:
 	var safe_progress := clampf(progress, 0.0, 100.0)
 	var stage_changed := is_instance_valid(loading_status_label) and loading_status_label.text != message
 	if stage_changed:
@@ -2236,19 +1743,13 @@ func _update_headquarters_loading(message: String, progress: float) -> void:
 		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
-func _finish_headquarters_loading() -> void:
-	# A single guarded completion path prevents duplicate reveal sequences.
-	if headquarters_loading_finish_started:
+func _finish_campus_loading() -> void:
+	if campus_loading_finish_started:
 		return
-	headquarters_loading_finish_started = true
-
-	# This callback is connected to the OS Worksite's setup_completed signal.
-	# It fires only after the headquarters, handset, lock screen, homepage,
-	# asset indexes and complete 200-icon drawer are ready to reveal together.
-	if not is_instance_valid(world_root):
-		headquarters_loading_finish_started = false
+	campus_loading_finish_started = true
+	if not is_instance_valid(company_campus):
+		campus_loading_finish_started = false
 		return
-
 	if loading_progress_tween != null and loading_progress_tween.is_running():
 		loading_progress_tween.kill()
 	loading_progress_tween = null
@@ -2256,10 +1757,6 @@ func _finish_headquarters_loading() -> void:
 		loading_accent_tween.kill()
 	loading_accent_tween = null
 
-	# Queue the loading layer for removal, then construct Home in this same
-	# frame. Godot removes the queued loading layer at frame end, revealing
-	# the already-created Home and headquarters together—no empty green frame,
-	# progress-bar wait, timer, crossfade, or extra process-frame pause.
 	var preparation_layer := ui_layer
 	ui_layer = null
 	ui_root = null
@@ -2269,22 +1766,19 @@ func _finish_headquarters_loading() -> void:
 	if is_instance_valid(preparation_layer):
 		preparation_layer.queue_free()
 
-	world_root.visible = true
-	_show_home_navigation()
-
-	# Prepare staff pages after Home is already on screen so their setup cannot
-	# create a blank gap between the loading screen and the Home page.
+	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
+	company_campus.visible = true
+	home_company_label = company_campus.find_child("CampusCompanyName", true, false) as Label
+	home_balance_label = company_campus.find_child("CampusBalanceValue", true, false) as Label
+	home_date_label = company_campus.find_child("CampusDateValue", true, false) as Label
+	home_time_button = company_campus.find_child("CampusGameClockControl", true, false) as Button
+	_update_home_status_bar()
+	current_screen = "company_campus"
 	call_deferred("_prepare_staff_scenes")
 
 
 func _show_create_scene() -> void:
 	current_screen = "create"
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-		home_navigation_layer.queue_free()
-	home_navigation_layer = null
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 
 	# Reuse the product page when returning from a product editor.
 	if is_instance_valid(create_ui_layer) and is_instance_valid(create_ui_root):
@@ -2295,7 +1789,7 @@ func _show_create_scene() -> void:
 		ui_layer.show()
 		return
 
-	# Keep the already-built headquarters resident but inactive behind this page.
+	# Keep the generated campus resident but inactive behind this app.
 	# It is restored directly when the player returns to Home.
 	var root := _new_screen()
 	root.name = "CreateProductScreen"
@@ -2441,12 +1935,6 @@ void fragment() {
 
 func _show_research_scene() -> void:
 	current_screen = "research"
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-		home_navigation_layer.queue_free()
-	home_navigation_layer = null
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 
 	# Keep the already-built headquarters resident but inactive behind this page.
 	# It is restored directly when the player returns to Home.
@@ -2612,25 +2100,18 @@ func _return_home_from_research() -> void:
 
 
 func _restore_home_after_standalone_screen() -> void:
-	# Create and Research only hide the persistent world. Returning to Home
-	# restores its visibility and navigation without replaying the loading screen.
-	if not is_instance_valid(world_root):
-		push_error("Cannot return Home: the original loading-screen headquarters scene is missing.")
+	if _resume_company_campus_after_phone_app():
 		return
-
-	if is_instance_valid(create_ui_layer):
-		create_ui_layer.hide()
-	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
-		ui_layer.hide()
-		ui_layer.queue_free()
-	ui_layer = null
-	ui_root = null
-
-	current_screen = "home"
-	if not world_root.home_mode:
-		world_root.set_home_mode(true)
-	world_root.set_preview_active(true)
-	_show_home_navigation()
+	if not is_instance_valid(company_campus):
+		push_error("Cannot return to the career campus because it is not available.")
+		return
+	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
+	company_campus.show()
+	for child in company_campus.get_children():
+		if child is CanvasLayer:
+			child.show()
+	current_screen = "company_campus"
+	_update_home_status_bar()
 
 
 func _open_research_from_phone_creation_worksite() -> void:
@@ -3075,19 +2556,19 @@ func _on_create_category_pressed(category: String) -> void:
 	_show_notice("PRODUCT STUDIO", category.capitalize() + " creation will be available here.")
 
 
-func _on_headquarters_setup_completed() -> void:
+func _on_company_campus_setup_completed() -> void:
 	# Home is not revealed until the OS Worksite is also completely prepared.
 	if is_instance_valid(os_creation_worksite):
 		if bool(os_creation_worksite.get("setup_complete")):
-			_finish_headquarters_loading()
+			_finish_campus_loading()
 		return
-	_update_headquarters_loading("Preparing OS Creation Worksite", 0.0)
+	_update_campus_loading("Preparing OS Creation Worksite", 0.0)
 	_prepare_os_creation_worksite()
 
 
 func _on_os_worksite_setup_failed(message: String) -> void:
 	push_error("OS Creation Worksite startup preparation failed: " + message)
-	_update_headquarters_loading("OS Worksite setup failed: " + message, 0.0)
+	_update_campus_loading("OS Worksite setup failed: " + message, 0.0)
 
 
 func _prepare_os_creation_worksite() -> void:
@@ -3102,8 +2583,8 @@ func _prepare_os_creation_worksite() -> void:
 	os_creation_worksite.set_company_logo_texture(_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
-	os_creation_worksite.connect("setup_progress", Callable(self, "_update_headquarters_loading"))
-	os_creation_worksite.connect("setup_completed", Callable(self, "_finish_headquarters_loading"))
+	os_creation_worksite.connect("setup_progress", Callable(self, "_update_campus_loading"))
+	os_creation_worksite.connect("setup_completed", Callable(self, "_finish_campus_loading"))
 	os_creation_worksite.connect("setup_failed", Callable(self, "_on_os_worksite_setup_failed"))
 	os_creation_worksite.hide()
 	add_child(os_creation_worksite)
@@ -3119,7 +2600,7 @@ func _show_os_creation_worksite() -> void:
 		push_error("OS Creation Worksite cannot open before startup preparation is complete.")
 		_show_notice("OS WORKSITE NOT READY", "The operating-system workspace has not finished preparing. Return to Home and try again after startup completes.")
 		return
-	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+	for layer in [ui_layer, create_ui_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
 			layer.hide()
 	if is_instance_valid(phone_creation_worksite):
@@ -3134,8 +2615,6 @@ func _show_os_creation_worksite() -> void:
 		for child in processor_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 	ui_layer = null
 	ui_root = null
 	current_screen = "os_creation_worksite"
@@ -3220,7 +2699,7 @@ func _activate_camera_creation_worksite() -> void:
 	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 
-	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+	for layer in [ui_layer, create_ui_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
 			layer.hide()
 	for worksite in [phone_creation_worksite, processor_creation_worksite, os_creation_worksite]:
@@ -3230,8 +2709,6 @@ func _activate_camera_creation_worksite() -> void:
 			for child in worksite.get_children():
 				if child is CanvasLayer:
 					child.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 
 	ui_layer = null
 	ui_root = null
@@ -3316,7 +2793,7 @@ func _activate_processor_creation_worksite() -> void:
 
 	# Make this a single-owner screen transition: no previous page or worksite
 	# may remain visible or continue processing behind the Processor Worksite.
-	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+	for layer in [ui_layer, create_ui_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
 			layer.hide()
 	if is_instance_valid(phone_creation_worksite):
@@ -3325,8 +2802,6 @@ func _activate_processor_creation_worksite() -> void:
 		for child in phone_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 
 	ui_layer = null
 	ui_root = null
@@ -3453,12 +2928,8 @@ func _show_phone_creation_worksite() -> void:
 		ui_layer.hide()
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.hide()
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.hide()
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
 
 	ui_layer = null
 	ui_root = null
@@ -3486,11 +2957,6 @@ func _return_from_phone_creation_worksite() -> void:
 
 
 
-func _on_headquarters_preview_level_changed(level: int) -> void:
-	# Preview selection is temporary; owned progress is saved independently.
-	selected_upgrade = clampi(level, 1, 10)
-
-
 func _process_monthly_staff_payroll(month_key: String) -> void:
 	if month_key == str(career.get("last_payroll_billed_month", "")):
 		return
@@ -3512,8 +2978,6 @@ func _process_monthly_staff_payroll(month_key: String) -> void:
 		career["last_payroll_billed_month"] = _get_game_month_key(game_date_unix - 86400.0)
 		_show_notice("PAYROLL NOT SAVED", "Monthly staff payroll could not be saved. Your balance has not changed.")
 		return
-	if is_instance_valid(world_root) and world_root.has_method("set_company_balance"):
-		world_root.set_company_balance(float(career["balance"]))
 	_update_home_status_bar()
 	_update_staff_office_balance()
 	_show_finance_toast(-payroll, "MONTHLY PAYROLL")
@@ -3660,7 +3124,7 @@ func _refresh_staff_screen_data() -> void:
 	# Rebuild cached page contents only when staff data changes, never on page opening.
 	var candidates: Array = career.get("staff_candidates", [])
 	var employees: Array = career.get("staff_employees", [])
-	var capacity := HeadquartersPreviewScript.get_staff_capacity(upgrade_level)
+	var capacity := -1
 	var business_name := str(career.get("company_name", "YOUR COMPANY"))
 	var balance := float(career.get("balance", 0.0))
 	if is_instance_valid(staff_market_screen):
@@ -3672,10 +3136,6 @@ func _refresh_staff_screen_data() -> void:
 func _update_staff_office_balance() -> void:
 	if is_instance_valid(staff_screen):
 		staff_screen.update_balance(float(career.get("balance", 0.0)))
-
-
-func _show_office_hub() -> void:
-	_show_headquarters_preview()
 
 
 func _prepare_staff_scenes() -> void:
@@ -3690,14 +3150,14 @@ func _prepare_staff_scenes() -> void:
 	staff_market_screen.name = "Prepared_Staff_Market"
 	staff_ui_layer.add_child(staff_market_screen)
 	_connect_staff_screen_signals(staff_market_screen)
-	staff_market_screen.open("market", career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_market_screen.open("market", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
 	staff_market_screen.hide()
 
 	staff_management_screen = StaffMarketScene.instantiate()
 	staff_management_screen.name = "Prepared_Staff_Management"
 	staff_ui_layer.add_child(staff_management_screen)
 	_connect_staff_screen_signals(staff_management_screen)
-	staff_management_screen.open("management", career.get("staff_candidates", []), career.get("staff_employees", []), HeadquartersPreviewScript.get_staff_capacity(upgrade_level), str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_management_screen.open("management", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
 	staff_management_screen.hide()
 
 
@@ -3710,12 +3170,6 @@ func _connect_staff_screen_signals(screen: Control) -> void:
 func _open_staff_screen(screen_mode: String) -> void:
 	current_screen = "staff_market" if screen_mode == "market" else "staff_management"
 	# Staff is a standalone page, not a translucent layer over the HQ scene.
-	if is_instance_valid(world_root) and world_root.has_method("set_preview_active"):
-		world_root.set_preview_active(false)
-	if is_instance_valid(home_navigation_layer):
-		home_navigation_layer.hide()
-		home_navigation_layer.queue_free()
-	home_navigation_layer = null
 	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
 		ui_layer.hide()
 		ui_layer.queue_free()
@@ -3743,18 +3197,12 @@ func _return_home_from_staff() -> void:
 	_close_staff_overlay()
 	if _resume_company_campus_after_phone_app():
 		return
-	_show_headquarters_preview()
+	_restore_home_after_standalone_screen()
 
 
 func _hire_staff_candidate(candidate_id: String) -> void:
-	if upgrade_level <= 0:
-		_show_notice("OFFICE REQUIRED", "Purchase an office building before hiring employees. Your company must own an office to employ staff.")
-		return
 	var market: Array = career.get("staff_candidates", [])
 	var team: Array = career.get("staff_employees", [])
-	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
-		_show_notice("HEADQUARTERS FULL", "Your current headquarters can hold %d employees. Upgrade your headquarters to expand staff capacity." % HeadquartersPreviewScript.get_staff_capacity(upgrade_level))
-		return
 	for candidate_value in market:
 		if not (candidate_value is Dictionary):
 			continue
@@ -3770,14 +3218,8 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 func _apply_staff_hire_candidate(candidate_id: String) -> void:
 	# Re-check ownership after the confirmation dialog too, so a stale hire
 	# confirmation can never bypass the office requirement.
-	if upgrade_level <= 0:
-		_show_notice("OFFICE REQUIRED", "Purchase an office building before hiring employees. Your company must own an office to employ staff.")
-		return
 	var market: Array = career.get("staff_candidates", [])
 	var team: Array = career.get("staff_employees", [])
-	if team.size() >= HeadquartersPreviewScript.get_staff_capacity(upgrade_level):
-		_show_notice("HEADQUARTERS FULL", "Your current headquarters can hold %d employees. Upgrade your headquarters to expand staff capacity." % HeadquartersPreviewScript.get_staff_capacity(upgrade_level))
-		return
 	var candidate_index := -1
 	for index in range(market.size()):
 		if str(market[index].get("id", "")) == candidate_id:
