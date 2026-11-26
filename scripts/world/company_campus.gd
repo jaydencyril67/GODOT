@@ -17,7 +17,8 @@ const PHONE_BUTTON_SIZE := Vector2(54.0, 54.0)
 const PHONE_BODY_ASPECT_RATIO := 1.45 / 2.92
 const PHONE_BODY_HEIGHT_RATIO := 0.98
 const PHONE_BODY_EDGE_MARGIN := 4.0
-const PHONE_BODY_BUTTON_GAP := 18.0
+const PHONE_BODY_BUTTON_GAP := 26.0
+const PHONE_BUTTON_STACK_GAP := 10.0
 const PHONE_BODY_LEFT_CLEARANCE := 230.0
 const GRASS_INSTANCE_COUNT := 7600
 const MAINTAINED_GRASS_RATIO := 0.72
@@ -56,6 +57,7 @@ var player_camera: Camera3D
 var movement_joystick: Control
 var overlay_root: Control
 var phone_button: Button
+var phone_control_buttons: Array[Button] = []
 var phone_device: SubViewportContainer
 var phone_viewport: SubViewport
 var phone_model: Node3D
@@ -924,18 +926,25 @@ func _build_overlay() -> void:
 
 
 func _build_phone_controls(root: Control) -> void:
-	phone_button = Button.new()
-	phone_button.name = "PhoneButton"
-	phone_button.text = ""
-	phone_button.focus_mode = Control.FOCUS_NONE
-	phone_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	phone_button.custom_minimum_size = PHONE_BUTTON_SIZE
-	phone_button.size = PHONE_BUTTON_SIZE
+	phone_control_buttons.clear()
+
+	var first_action_button := _create_phone_control_button(root, "PhoneActionButton1", "···")
+	var second_action_button := _create_phone_control_button(root, "PhoneActionButton2", "···")
+	phone_button = _create_phone_control_button(root, "PhoneButton", "")
+	var fourth_action_button := _create_phone_control_button(root, "PhoneActionButton4", "···")
+
+	first_action_button.set_meta("functionless", true)
+	second_action_button.set_meta("functionless", true)
+	fourth_action_button.set_meta("functionless", true)
 	phone_button.tooltip_text = "Open phone"
-	_style_phone_button(phone_button)
+	phone_button.set_meta("phone_toggle", true)
 	_build_phone_button_icon(phone_button)
 	phone_button.pressed.connect(_toggle_phone)
-	root.add_child(phone_button)
+
+	phone_control_buttons.append(first_action_button)
+	phone_control_buttons.append(second_action_button)
+	phone_control_buttons.append(phone_button)
+	phone_control_buttons.append(fourth_action_button)
 
 	# Use the actual OS Worksite handset model, not a hand-drawn UI substitute.
 	# The worksite model supplies its own fixed front-facing camera, metal chassis,
@@ -971,6 +980,22 @@ func _build_phone_controls(root: Control) -> void:
 	phone_viewport.add_child(phone_model)
 	phone_model.call("build", _create_phone_off_texture())
 	phone_model.rotation = Vector3.ZERO
+
+
+func _create_phone_control_button(root: Control, button_name: String, button_text: String) -> Button:
+	var button := Button.new()
+	button.name = button_name
+	button.text = button_text
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.custom_minimum_size = PHONE_BUTTON_SIZE
+	button.size = PHONE_BUTTON_SIZE
+	button.tooltip_text = "Reserved control" if button_name != "PhoneButton" else "Open phone"
+	_style_phone_button(button)
+	if not button_text.is_empty():
+		button.add_theme_font_size_override("font_size", 17)
+	root.add_child(button)
+	return button
 
 
 func _create_phone_off_texture() -> Texture2D:
@@ -1032,7 +1057,7 @@ func _make_phone_style(
 
 
 func _layout_phone_controls() -> void:
-	if not is_instance_valid(overlay_root) or not is_instance_valid(phone_button) or not is_instance_valid(phone_device):
+	if not is_instance_valid(overlay_root) or phone_control_buttons.size() != 4 or not is_instance_valid(phone_device):
 		return
 
 	var viewport_size := overlay_root.size
@@ -1050,19 +1075,30 @@ func _layout_phone_controls() -> void:
 	var phone_width := minf(desired_phone_width, available_phone_width)
 	phone_height = phone_width / PHONE_BODY_ASPECT_RATIO
 
-	phone_button.size = PHONE_BUTTON_SIZE
-	phone_button.position = Vector2(
-		viewport_size.x - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN,
-		viewport_size.y - PHONE_BUTTON_SIZE.y - PHONE_BODY_EDGE_MARGIN
+	var button_column_x := viewport_size.x - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN
+	var stack_gap := minf(
+		PHONE_BUTTON_STACK_GAP,
+		maxf(0.0, (viewport_size.y - PHONE_BUTTON_SIZE.y * 4.0 - PHONE_BODY_EDGE_MARGIN * 2.0) / 3.0)
 	)
+	var stack_height := PHONE_BUTTON_SIZE.y * 4.0 + stack_gap * 3.0
+	var stack_top := (viewport_size.y - stack_height) * 0.5
+	for button_index in range(phone_control_buttons.size()):
+		var control_button := phone_control_buttons[button_index]
+		control_button.size = PHONE_BUTTON_SIZE
+		control_button.position = Vector2(
+			button_column_x,
+			stack_top + float(button_index) * (PHONE_BUTTON_SIZE.y + stack_gap)
+		)
 
 	phone_device.size = Vector2(phone_width, phone_height)
 	phone_device.position = Vector2(
-		viewport_size.x - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN - PHONE_BODY_BUTTON_GAP - phone_width,
+		button_column_x - PHONE_BODY_BUTTON_GAP - phone_width,
 		(viewport_size.y - phone_height) * 0.5
 	)
 	phone_device.set_meta("phone_aspect_ratio", PHONE_BODY_ASPECT_RATIO)
 	phone_device.set_meta("screen_height_ratio", phone_height / viewport_size.y)
+	phone_device.set_meta("phone_left_of_control_stack", true)
+	phone_device.set_meta("control_button_count", phone_control_buttons.size())
 
 
 func _toggle_phone() -> void:
