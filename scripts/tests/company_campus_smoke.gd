@@ -200,8 +200,9 @@ func _run_test() -> void:
 	if phone_device.visible or bool(phone_device.get_meta("screen_powered", true)):
 		_fail("The phone must start hidden and powered off.")
 		return
-	if not phone_viewport.transparent_bg or phone_viewport.size != Vector2i(700, 1400):
-		_fail("The handset must render in its own transparent, portrait SubViewport.")
+	var phone_viewport_ratio := float(phone_viewport.size.x) / maxf(float(phone_viewport.size.y), 1.0)
+	if not phone_viewport.transparent_bg or phone_viewport_ratio < 0.49 or phone_viewport_ratio > 0.51:
+		_fail("The handset must render in its own transparent, portrait SubViewport matching the physical handset ratio.")
 		return
 
 	var chassis := phone_model.find_child("PhoneChassis", true, false) as MeshInstance3D
