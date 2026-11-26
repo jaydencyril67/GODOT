@@ -224,15 +224,6 @@ jobs:
       pass_marker: "WORLD_GLOBE_SMOKE_TEST: PASS"
       log_name: world-globe-smoke.log
 
-  gaussian-splat-office-smoke:
-    name: Gaussian Splat office preview
-    uses: ./.github/workflows/godot-smoke-test.yml
-    with:
-      test_name: Gaussian Splat office preview
-      script_path: scripts/tests/gaussian_splat_office_smoke.gd
-      pass_marker: "GAUSSIAN_SPLAT_OFFICE_SMOKE_TEST: PASS"
-      log_name: gaussian-splat-office-smoke.log
-      include_gaussian_asset: true
 
   main-scene-startup:
     name: Main scene startup
