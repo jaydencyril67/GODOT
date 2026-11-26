@@ -849,8 +849,10 @@ func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "PlayerCharacter"
 	player.position = Vector3(-366.0, 0.0, 266.0)
+	player.collision_layer = 1
+	player.collision_mask = 1
 	player.floor_snap_length = 0.28
-	player.safe_margin = 0.04
+	player.safe_margin = 0.06
 
 	var collision := CollisionShape3D.new()
 	collision.name = "Humanoid_Collision"
