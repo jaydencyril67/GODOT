@@ -14,6 +14,9 @@ const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
 const GRASS_INSTANCE_COUNT := 5600
 const MAINTAINED_GRASS_RATIO := 0.72
+const NEAR_PLAYER_GRASS_COUNT := 700
+const NEAR_PLAYER_GRASS_RADIUS := 6.5
+const NEAR_PLAYER_GRASS_UPDATE_DISTANCE := 1.25
 
 var player: CharacterBody3D
 var player_camera: Camera3D
@@ -24,6 +27,8 @@ var left_leg_pivot: Node3D
 var right_leg_pivot: Node3D
 var body_visual: Node3D
 var head_visual: Node3D
+var near_player_grass: MultiMeshInstance3D
+var near_player_grass_center := Vector3.INF
 
 var camera_yaw := PI * 0.25
 var camera_pitch := 0.0
@@ -75,6 +80,7 @@ func _physics_process(delta: float) -> void:
 	player.move_and_slide()
 	player.global_position.x = clampf(player.global_position.x, -HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
 	player.global_position.z = clampf(player.global_position.z, -HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
+	_update_near_player_grass()
 
 	player.rotation.y = -camera_yaw
 	var is_walking := input_strength > 0.08 and move_direction.length_squared() > 0.01
@@ -291,6 +297,65 @@ func _add_grass_instances() -> void:
 	grass.set_meta("maintained_core_instance_count", maintained_count)
 	grass.set_meta("natural_edge_instance_count", GRASS_INSTANCE_COUNT - maintained_count)
 	add_child(grass)
+
+	near_player_grass = MultiMeshInstance3D.new()
+	near_player_grass.name = "NearPlayer_Grass"
+	var near_multi := MultiMesh.new()
+	near_multi.transform_format = MultiMesh.TRANSFORM_3D
+	near_multi.use_colors = true
+	near_multi.mesh = _create_near_grass_mesh(blade_material)
+	near_multi.instance_count = NEAR_PLAYER_GRASS_COUNT
+	near_player_grass.multimesh = near_multi
+	near_player_grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	near_player_grass.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	near_player_grass.set_meta("follows_player", true)
+	add_child(near_player_grass)
+	_update_near_player_grass(true)
+
+func _create_near_grass_mesh(material: Material) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(material)
+	for angle in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
+		var direction := Vector3(cos(angle), 0.0, sin(angle))
+		var half_width := 0.027
+		var height := 0.27
+		var a := -direction * half_width
+		var b := direction * half_width
+		var c := b + Vector3.UP * height
+		var d := a + Vector3.UP * height
+		surface.add_vertex(a)
+		surface.add_vertex(b)
+		surface.add_vertex(c)
+		surface.add_vertex(a)
+		surface.add_vertex(c)
+		surface.add_vertex(d)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _update_near_player_grass(force: bool = false) -> void:
+	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
+		return
+	var player_position := player.global_position
+	var flat_position := Vector3(player_position.x, 0.0, player_position.z)
+	if not force and near_player_grass_center != Vector3.INF and near_player_grass_center.distance_to(flat_position) < NEAR_PLAYER_GRASS_UPDATE_DISTANCE:
+		return
+	near_player_grass_center = flat_position
+	var multi := near_player_grass.multimesh
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 871203
+	for index in range(NEAR_PLAYER_GRASS_COUNT):
+		var angle := rng.randf_range(0.0, TAU)
+		var radius := sqrt(rng.randf_range(0.45 * 0.45, NEAR_PLAYER_GRASS_RADIUS * NEAR_PLAYER_GRASS_RADIUS))
+		var x := flat_position.x + cos(angle) * radius
+		var z := flat_position.z + sin(angle) * radius
+		var scale_value := rng.randf_range(0.78, 1.28)
+		var basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
+		multi.set_instance_transform(index, Transform3D(basis, Vector3(x, 0.008, z)))
+		var shade := rng.randf_range(0.82, 1.08)
+		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
+
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
