@@ -237,8 +237,8 @@ func _run_test() -> void:
 		_fail("The imported XMorph notification widget did not render its card, category icon, and count badge.")
 		return
 
-	if LockScreenAssetLibrary.get_analog_clock_count() != 41:
-		_fail("The existing analog clock collection changed during the digital refactor.")
+	if LockScreenAssetLibrary.get_analog_clock_count() != 15:
+		_fail("The analog clock library must expose exactly 15 retained artwork assets.")
 		return
 
 	digital_clock.free()
