@@ -25,6 +25,14 @@ func _run_test() -> void:
 	if not bool(campus.get_meta("career_home_scene", false)) or not bool(campus.get_meta("campus_generation_complete", false)):
 		_fail("The campus did not complete its generated career-home setup.")
 		return
+	var campus_controls_layer := campus.get_node_or_null("Campus_Controls_Layer") as CanvasLayer
+	if campus_controls_layer == null or campus_controls_layer.visible:
+		_fail("Campus HUD and touch controls must remain hidden while startup preparation is active.")
+		return
+	campus.call("set_career_home_overlay_visible", true)
+	if not campus_controls_layer.visible:
+		_fail("The campus HUD and touch controls could not be revealed after startup preparation.")
+		return
 	var career_status := campus.find_child("CampusCareerStatusBar", true, false) as HBoxContainer
 	if career_status == null or career_status.get_theme_stylebox("panel") != null:
 		_fail("The campus career HUD must be a transparent layout with no shared background card.")
