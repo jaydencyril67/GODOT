@@ -29,7 +29,8 @@ func _run_test() -> void:
 		_fail("The startup test did not keep the OS Worksite hidden and process-disabled through preparation.")
 		return
 	var prepared_lock_screen := worksite.find_child("AutonomousLockScreenDesignerPreview", true, false)
-	var prepared_digital_clock := prepared_lock_screen.find_child("DigitalClock", true, false) as Control if prepared_lock_screen != null else null
+	var prepared_clock_component := prepared_lock_screen.find_child("GeneratedLockScreenClockComponent", true, false) as Control if prepared_lock_screen != null else null
+	var prepared_digital_clock := prepared_clock_component.find_child("DigitalClock", true, false) as Control if prepared_clock_component != null else null
 	if prepared_digital_clock == null or not bool(prepared_digital_clock.call("are_all_styles_normalized")):
 		_fail("OS startup reported completion before every one of the 41 digital clock styles was normalized.")
 		return
