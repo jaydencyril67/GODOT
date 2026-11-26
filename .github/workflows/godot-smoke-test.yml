@@ -27,19 +27,15 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
       - name: Install GDGS Gaussian Splat addon
         shell: bash
         run: bash .github/scripts/install-gdgs-addon.sh
 
       - name: Exclude Gaussian PLY files for unrelated tests
-        if: ${{ !inputs.include_gaussian_asset }}
         shell: bash
         run: |
           set -euo pipefail
-          for asset in \
-            assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply \
-; do
+          for asset in assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply; do
             if [[ -f "$asset" ]]; then
               mv "$asset" "/tmp/$(basename "$asset")"
             fi
