@@ -41,6 +41,13 @@ func _run_test() -> void:
 	if int(grass.get_meta("maintained_core_instance_count", 0)) != 4032 or int(grass.get_meta("natural_edge_instance_count", 0)) != 1568:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
+	var near_grass := campus.get_node_or_null("NearPlayer_Grass") as MultiMeshInstance3D
+	if near_grass == null or near_grass.multimesh == null:
+		_fail("The near-player grass layer is missing.")
+		return
+	if near_grass.multimesh.instance_count != 700 or not bool(near_grass.get_meta("follows_player", false)):
+		_fail("The near-player grass layer is not configured to follow the player.")
+		return
 	var player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
 		_fail("The first playable humanoid character or its collision body is missing.")
