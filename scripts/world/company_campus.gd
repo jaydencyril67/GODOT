@@ -12,9 +12,9 @@ const WALK_SPEED := 1.5
 const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
-const GRASS_INSTANCE_COUNT := 5600
+const GRASS_INSTANCE_COUNT := 7600
 const MAINTAINED_GRASS_RATIO := 0.72
-const NEAR_PLAYER_GRASS_COUNT := 700
+const NEAR_PLAYER_GRASS_COUNT := 900
 const NEAR_PLAYER_GRASS_RADIUS := 6.5
 const NEAR_PLAYER_GRASS_UPDATE_DISTANCE := 1.25
 
@@ -172,7 +172,7 @@ func _build_terrain() -> void:
 	var grass_material := StandardMaterial3D.new()
 	grass_material.albedo_texture = _create_grass_texture()
 	grass_material.roughness = 1.0
-	grass_material.uv1_scale = Vector3(1.0, 1.0, 1.0)
+	grass_material.uv1_scale = Vector3(42.0, 1.0, 32.0)
 	grass_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	terrain.material_override = grass_material
 	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -190,36 +190,52 @@ func _build_terrain() -> void:
 	add_child(ground_body)
 
 	_add_grass_instances()
+	_build_campus_trees()
 
 
 func _create_grass_texture() -> Texture2D:
 	var image := Image.create(512, 512, false, Image.FORMAT_RGB8)
 	var broad_noise := FastNoiseLite.new()
 	broad_noise.seed = 4817
-	broad_noise.frequency = 0.009
+	broad_noise.frequency = 0.012
 	broad_noise.fractal_octaves = 4
 	var mid_noise := FastNoiseLite.new()
 	mid_noise.seed = 9127
-	mid_noise.frequency = 0.055
-	mid_noise.fractal_octaves = 2
+	mid_noise.frequency = 0.075
+	mid_noise.fractal_octaves = 3
 	var fine_noise := FastNoiseLite.new()
 	fine_noise.seed = 7319
-	fine_noise.frequency = 0.22
+	fine_noise.frequency = 0.34
 	for y in range(512):
 		for x in range(512):
 			var broad := broad_noise.get_noise_2d(float(x), float(y))
 			var mid := mid_noise.get_noise_2d(float(x), float(y))
 			var fine := fine_noise.get_noise_2d(float(x), float(y))
-			var patch := clampf(0.52 + broad * 0.24 + mid * 0.12, 0.0, 1.0)
-			var grain := fine * 0.035
-			var dry_tone := maxf(0.0, mid - 0.28) * 0.10
-			var green := 0.205 + patch * 0.105 + grain - dry_tone * 0.35
+			var patch := clampf(0.54 + broad * 0.23 + mid * 0.14, 0.0, 1.0)
+			var dry_tone := maxf(0.0, mid - 0.18) * 0.08
+			var micro := fine * 0.025
 			var color := Color(
-				0.105 + patch * 0.055 + dry_tone * 0.50 + grain * 0.55,
-				green,
-				0.052 + patch * 0.038 + grain * 0.25
+				0.075 + patch * 0.050 + dry_tone * 0.55 + micro * 0.42,
+				0.175 + patch * 0.115 - dry_tone * 0.16 + micro,
+				0.038 + patch * 0.040 + dry_tone * 0.16 + micro * 0.25
 			)
 			image.set_pixel(x, y, color)
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 490217
+	for blade_index in range(9000):
+		var start_x := rng.randi_range(0, 511)
+		var start_y := rng.randi_range(0, 511)
+		var blade_length := rng.randi_range(3, 11)
+		var drift := rng.randf_range(-1.5, 1.5)
+		var blade_tone := rng.randf_range(0.78, 1.22)
+		var light_blade := rng.randf() > 0.44
+		for step in range(blade_length):
+			var px := wrapi(start_x + roundi(drift * float(step) / float(blade_length)), 0, 512)
+			var py := wrapi(start_y + step, 0, 512)
+			var old_color := image.get_pixel(px, py)
+			var blade_color := Color(0.25, 0.38, 0.13) if light_blade else Color(0.08, 0.19, 0.035)
+			image.set_pixel(px, py, old_color.lerp(blade_color * blade_tone, 0.42))
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
 
@@ -230,25 +246,7 @@ func _add_grass_instances() -> void:
 	blade_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	blade_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_material(blade_material)
-	for angle in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
-		var direction := Vector3(cos(angle), 0.0, sin(angle))
-		var half_width := 0.032
-		var height := 0.14
-		var a := -direction * half_width
-		var b := direction * half_width
-		var c := b + Vector3.UP * height
-		var d := a + Vector3.UP * height
-		surface.add_vertex(a)
-		surface.add_vertex(b)
-		surface.add_vertex(c)
-		surface.add_vertex(a)
-		surface.add_vertex(c)
-		surface.add_vertex(d)
-	surface.generate_normals()
-	var blade_mesh := surface.commit()
+	var blade_mesh := _create_grass_clump_mesh(blade_material, 0.19, 8)
 
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
@@ -313,26 +311,55 @@ func _add_grass_instances() -> void:
 	_update_near_player_grass(true)
 
 func _create_near_grass_mesh(material: Material) -> ArrayMesh:
+	return _create_grass_clump_mesh(material, 0.30, 9)
+
+
+func _create_grass_clump_mesh(material: Material, max_height: float, blade_count: int) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(material)
-	for angle in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = blade_count * 731 + roundi(max_height * 1000.0)
+	for blade_index in range(blade_count):
+		var angle := TAU * float(blade_index) / float(blade_count) + rng.randf_range(-0.24, 0.24)
 		var direction := Vector3(cos(angle), 0.0, sin(angle))
-		var half_width := 0.027
-		var height := 0.27
-		var a := -direction * half_width
-		var b := direction * half_width
-		var c := b + Vector3.UP * height
-		var d := a + Vector3.UP * height
-		surface.add_vertex(a)
-		surface.add_vertex(b)
-		surface.add_vertex(c)
-		surface.add_vertex(a)
-		surface.add_vertex(c)
-		surface.add_vertex(d)
+		var side := Vector3(-direction.z, 0.0, direction.x)
+		var base := direction * rng.randf_range(0.0, 0.022)
+		var height := rng.randf_range(max_height * 0.62, max_height)
+		var bend := direction * rng.randf_range(0.025, 0.085) + side * rng.randf_range(-0.025, 0.025)
+		var width := rng.randf_range(0.010, 0.018)
+		var base_left := base - side * width
+		var base_right := base + side * width
+		var middle := base + bend * 0.42 + Vector3.UP * height * 0.56
+		var middle_width := width * 0.58
+		var middle_left := middle - side * middle_width
+		var middle_right := middle + side * middle_width
+		var tip := base + bend + Vector3.UP * height
+		var tip_left := tip - side * 0.0015
+		var tip_right := tip + side * 0.0015
+		var brightness := rng.randf_range(0.82, 1.16)
+		var root_color := Color(0.12, 0.25, 0.07, 1.0) * brightness
+		var middle_color := Color(0.31, 0.53, 0.15, 1.0) * brightness
+		var tip_color := Color(0.56, 0.68, 0.28, 1.0) * brightness
+		_add_grass_quad(surface, base_left, base_right, middle_right, middle_left, root_color, middle_color)
+		_add_grass_quad(surface, middle_left, middle_right, tip_right, tip_left, middle_color, tip_color)
 	surface.generate_normals()
 	return surface.commit()
 
+
+func _add_grass_quad(surface: SurfaceTool, left_base: Vector3, right_base: Vector3, right_top: Vector3, left_top: Vector3, base_color: Color, top_color: Color) -> void:
+	surface.set_color(base_color)
+	surface.add_vertex(left_base)
+	surface.set_color(base_color)
+	surface.add_vertex(right_base)
+	surface.set_color(top_color)
+	surface.add_vertex(right_top)
+	surface.set_color(base_color)
+	surface.add_vertex(left_base)
+	surface.set_color(top_color)
+	surface.add_vertex(right_top)
+	surface.set_color(top_color)
+	surface.add_vertex(left_top)
 
 func _update_near_player_grass(force: bool = false) -> void:
 	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
@@ -355,6 +382,169 @@ func _update_near_player_grass(force: bool = false) -> void:
 		multi.set_instance_transform(index, Transform3D(basis, Vector3(x, 0.008, z)))
 		var shade := rng.randf_range(0.82, 1.08)
 		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
+
+
+func _build_campus_trees() -> void:
+	var trunk_material := StandardMaterial3D.new()
+	trunk_material.albedo_color = Color("#60432e")
+	trunk_material.roughness = 0.96
+	trunk_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var leaf_material := StandardMaterial3D.new()
+	leaf_material.vertex_color_use_as_albedo = true
+	leaf_material.roughness = 0.92
+	leaf_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var trunk_mesh := _create_tree_trunk_mesh(trunk_material)
+	var canopy_mesh := _create_tree_canopy_mesh(leaf_material)
+	var positions: Array[Vector3] = []
+	for index in range(11):
+		var z := lerpf(-238.0, 238.0, float(index) / 10.0)
+		positions.append(Vector3(-354.0, 0.0, z))
+		positions.append(Vector3(354.0, 0.0, z))
+	for index in range(11):
+		var x := lerpf(-316.0, 316.0, float(index) / 10.0)
+		positions.append(Vector3(x, 0.0, -254.0))
+		positions.append(Vector3(x, 0.0, 254.0))
+
+	var trunk_multi := MultiMesh.new()
+	trunk_multi.transform_format = MultiMesh.TRANSFORM_3D
+	trunk_multi.mesh = trunk_mesh
+	trunk_multi.instance_count = positions.size()
+	var canopy_multi := MultiMesh.new()
+	canopy_multi.transform_format = MultiMesh.TRANSFORM_3D
+	canopy_multi.mesh = canopy_mesh
+	canopy_multi.instance_count = positions.size()
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 72519
+	for index in range(positions.size()):
+		var size_x := rng.randf_range(0.82, 1.18)
+		var size_y := rng.randf_range(0.88, 1.24)
+		var size_z := rng.randf_range(0.82, 1.18)
+		var yaw := rng.randf_range(0.0, TAU)
+		var basis := Basis(Vector3.UP, yaw).scaled(Vector3(size_x, size_y, size_z))
+		var transform := Transform3D(basis, positions[index])
+		trunk_multi.set_instance_transform(index, transform)
+		canopy_multi.set_instance_transform(index, transform)
+
+	var trunks := MultiMeshInstance3D.new()
+	trunks.name = "Campus_Tree_Trunks"
+	trunks.multimesh = trunk_multi
+	trunks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	trunks.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	trunks.set_meta("tree_count", positions.size())
+	add_child(trunks)
+
+	var canopies := MultiMeshInstance3D.new()
+	canopies.name = "Campus_Tree_Canopies"
+	canopies.multimesh = canopy_multi
+	canopies.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	canopies.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	canopies.set_meta("tree_count", positions.size())
+	add_child(canopies)
+
+
+func _create_tree_trunk_mesh(material: Material) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(material)
+	_append_tapered_branch(surface, Vector3.ZERO, Vector3(0.0, 4.35, 0.0), 0.22, 0.095, 9)
+	for branch_index in range(7):
+		var angle := TAU * float(branch_index) / 7.0
+		var start_height := 2.05 + float(branch_index % 3) * 0.40
+		var end_height := 3.45 + float(branch_index % 2) * 0.55
+		var end_position := Vector3(cos(angle) * rngless_branch_length(branch_index), end_height, sin(angle) * rngless_branch_length(branch_index))
+		_append_tapered_branch(surface, Vector3(0.0, start_height, 0.0), end_position, 0.095, 0.025, 6)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func rngless_branch_length(branch_index: int) -> float:
+	return 0.92 + float((branch_index * 37) % 5) * 0.10
+
+
+func _append_tapered_branch(surface: SurfaceTool, start: Vector3, finish: Vector3, start_radius: float, end_radius: float, side_count: int) -> void:
+	var axis := (finish - start).normalized()
+	var tangent := axis.cross(Vector3.UP)
+	if tangent.length_squared() < 0.001:
+		tangent = axis.cross(Vector3.RIGHT)
+	tangent = tangent.normalized()
+	var bitangent := axis.cross(tangent).normalized()
+	var start_ring: Array[Vector3] = []
+	var end_ring: Array[Vector3] = []
+	for side_index in range(side_count):
+		var angle := TAU * float(side_index) / float(side_count)
+		var radial := tangent * cos(angle) + bitangent * sin(angle)
+		start_ring.append(start + radial * start_radius)
+		end_ring.append(finish + radial * end_radius)
+	for side_index in range(side_count):
+		var next_index := (side_index + 1) % side_count
+		surface.add_vertex(start_ring[side_index])
+		surface.add_vertex(end_ring[side_index])
+		surface.add_vertex(end_ring[next_index])
+		surface.add_vertex(start_ring[side_index])
+		surface.add_vertex(end_ring[next_index])
+		surface.add_vertex(start_ring[next_index])
+
+
+func _create_tree_canopy_mesh(material: Material) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(material)
+	var centers := [
+		Vector3(0.0, 4.45, 0.0),
+		Vector3(0.83, 3.95, 0.22),
+		Vector3(-0.82, 4.02, -0.18),
+		Vector3(0.18, 4.12, 0.92),
+		Vector3(-0.12, 4.08, -0.95),
+		Vector3(0.72, 4.55, -0.58),
+		Vector3(-0.72, 4.48, 0.56)
+	]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 18731
+	for index in range(centers.size()):
+		var size := rng.randf_range(0.88, 1.12)
+		var radii := Vector3(1.12, 0.82, 1.06) * size
+		var green_variation := rng.randf_range(0.84, 1.12)
+		var leaf_color := Color(0.16, 0.34, 0.105, 1.0) * green_variation
+		_append_leaf_cluster(surface, centers[index], radii, leaf_color)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _append_leaf_cluster(surface: SurfaceTool, center: Vector3, radii: Vector3, base_color: Color) -> void:
+	const RINGS := 7
+	const SIDES := 12
+	var points: Array = []
+	for ring in range(RINGS + 1):
+		var row: Array[Vector3] = []
+		var latitude := PI * float(ring) / float(RINGS)
+		for side in range(SIDES):
+			var longitude := TAU * float(side) / float(SIDES)
+			var unit := Vector3(sin(latitude) * cos(longitude), cos(latitude), sin(latitude) * sin(longitude))
+			var wobble := 1.0 + sin(longitude * 3.0 + latitude * 4.0) * 0.035 + cos(longitude * 5.0 - latitude * 2.0) * 0.018
+			row.append(center + Vector3(unit.x * radii.x, unit.y * radii.y, unit.z * radii.z) * wobble)
+		points.append(row)
+	for ring in range(RINGS):
+		for side in range(SIDES):
+			var next_side := (side + 1) % SIDES
+			var brightness := 0.90 + float((ring * 7 + side * 3) % 9) * 0.025
+			var color := base_color * brightness
+			var a: Vector3 = points[ring][side]
+			var b: Vector3 = points[ring + 1][side]
+			var c: Vector3 = points[ring + 1][next_side]
+			var d: Vector3 = points[ring][next_side]
+			_add_colored_triangle(surface, a, b, c, color)
+			_add_colored_triangle(surface, a, c, d, color)
+
+
+func _add_colored_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, color: Color) -> void:
+	surface.set_color(color)
+	surface.add_vertex(a)
+	surface.set_color(color)
+	surface.add_vertex(b)
+	surface.set_color(color)
+	surface.add_vertex(c)
 
 
 func _build_player() -> void:
