@@ -9,6 +9,8 @@ const CAMPUS_DEPTH := 600.0
 const HALF_WIDTH := CAMPUS_WIDTH * 0.5
 const HALF_DEPTH := CAMPUS_DEPTH * 0.5
 const WALK_SPEED := 1.5
+const WALK_ACCELERATION := 4.5
+const WALK_DECELERATION := 3.5
 const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
@@ -47,12 +49,6 @@ const SECTION_GATE_WIDTH := 8.0
 var player: CharacterBody3D
 var player_camera: Camera3D
 var movement_joystick: Control
-var left_arm_pivot: Node3D
-var right_arm_pivot: Node3D
-var left_leg_pivot: Node3D
-var right_leg_pivot: Node3D
-var body_visual: Node3D
-var head_visual: Node3D
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -66,7 +62,7 @@ func _ready() -> void:
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
-	set_meta("camera_perspective", "first_person_hybrid")
+	set_meta("camera_perspective", "first_person_eye_only")
 	_build_environment()
 	_build_terrain()
 	_build_player()
@@ -95,8 +91,12 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length_squared() > 1.0:
 		move_direction = move_direction.normalized()
 
-	player.velocity.x = move_direction.x * WALK_SPEED * input_strength
-	player.velocity.z = move_direction.z * WALK_SPEED * input_strength
+	var target_horizontal_velocity := move_direction * WALK_SPEED * input_strength
+	var current_horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var movement_rate := WALK_ACCELERATION if input_strength > 0.05 else WALK_DECELERATION
+	current_horizontal_velocity = current_horizontal_velocity.move_toward(target_horizontal_velocity, movement_rate * delta)
+	player.velocity.x = current_horizontal_velocity.x
+	player.velocity.z = current_horizontal_velocity.z
 	if not player.is_on_floor():
 		player.velocity.y -= GRAVITY * delta
 	elif player.velocity.y < 0.0:
@@ -357,7 +357,6 @@ func _build_campus_sections() -> void:
 		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
 		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
 		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
-
 	var picket_material := StandardMaterial3D.new()
 	picket_material.albedo_color = Color("#a87549")
 	picket_material.roughness = 0.93
@@ -717,7 +716,6 @@ func _build_campus_trees() -> void:
 		var tree_instance_transform := Transform3D(tree_instance_basis, positions[index])
 		trunk_multi.set_instance_transform(index, tree_instance_transform)
 		canopy_multi.set_instance_transform(index, tree_instance_transform)
-
 	var trunks := MultiMeshInstance3D.new()
 	trunks.name = "Campus_Tree_Trunks"
 	trunks.multimesh = trunk_multi
@@ -855,63 +853,7 @@ func _build_player() -> void:
 	collision.shape = capsule
 	collision.position.y = 0.92
 	player.add_child(collision)
-
-	body_visual = Node3D.new()
-	body_visual.name = "HumanoidVisual"
-	player.add_child(body_visual)
-	_build_humanoid_visual()
 	add_child(player)
-
-
-func _build_humanoid_visual() -> void:
-	var skin := _material(Color("#76513b"), 0.92)
-	var shirt := _material(Color("#d1d2c5"), 0.88)
-	var trousers := _material(Color("#252e35"), 0.92)
-	var shoes := _material(Color("#171b1d"), 0.86)
-	var hair := _material(Color("#211b18"), 0.95)
-	var eyes := _material(Color("#171411"), 0.48)
-
-	_add_capsule(body_visual, "Torso", 0.245, 0.68, Vector3(0.0, 1.27, 0.20), shirt, 10)
-	_add_box(body_visual, "Waist", Vector3(0.43, 0.27, 0.29), Vector3(0.0, 0.91, 0.16), trousers)
-	head_visual = Node3D.new()
-	head_visual.name = "HeadVisual_FirstPersonHidden"
-	body_visual.add_child(head_visual)
-	_add_capsule(head_visual, "Neck", 0.075, 0.18, Vector3(0.0, 1.76, 0.0), skin, 8)
-	_add_sphere(head_visual, "Head", 0.17, Vector3(0.0, 1.94, 0.0), skin, 16)
-	var hair_mesh := _add_sphere(head_visual, "Hair", 0.176, Vector3(0.0, 2.025, 0.018), hair, 16)
-	hair_mesh.scale = Vector3(1.0, 0.55, 1.0)
-	_add_sphere(head_visual, "Left_Eye", 0.019, Vector3(-0.056, 1.958, -0.153), eyes, 10)
-	_add_sphere(head_visual, "Right_Eye", 0.019, Vector3(0.056, 1.958, -0.153), eyes, 10)
-	_add_sphere(head_visual, "Nose", 0.026, Vector3(0.0, 1.91, -0.168), skin, 10)
-	head_visual.visible = false
-
-	left_arm_pivot = Node3D.new()
-	left_arm_pivot.name = "Left_Arm_Pivot"
-	left_arm_pivot.position = Vector3(-0.29, 1.50, -0.04)
-	body_visual.add_child(left_arm_pivot)
-	_add_capsule(left_arm_pivot, "Left_Arm", 0.092, 0.70, Vector3(0.0, -0.34, 0.0), shirt, 8)
-	_add_sphere(left_arm_pivot, "Left_Hand", 0.09, Vector3(0.0, -0.70, 0.0), skin, 10)
-
-	right_arm_pivot = Node3D.new()
-	right_arm_pivot.name = "Right_Arm_Pivot"
-	right_arm_pivot.position = Vector3(0.29, 1.50, -0.04)
-	body_visual.add_child(right_arm_pivot)
-	_add_capsule(right_arm_pivot, "Right_Arm", 0.092, 0.70, Vector3(0.0, -0.34, 0.0), shirt, 8)
-	_add_sphere(right_arm_pivot, "Right_Hand", 0.09, Vector3(0.0, -0.70, 0.0), skin, 10)
-
-	left_leg_pivot = Node3D.new()
-	left_leg_pivot.name = "Left_Leg_Pivot"
-	left_leg_pivot.position = Vector3(-0.13, 0.86, 0.0)
-	body_visual.add_child(left_leg_pivot)
-	_add_capsule(left_leg_pivot, "Left_Leg", 0.12, 0.80, Vector3(0.0, -0.37, 0.0), trousers, 8)
-	_add_box(left_leg_pivot, "Left_Shoe", Vector3(0.23, 0.12, 0.38), Vector3(0.0, -0.77, -0.045), shoes)
-
-	right_leg_pivot = Node3D.new()
-	right_leg_pivot.name = "Right_Leg_Pivot"
-	right_leg_pivot.position = Vector3(0.13, 0.86, 0.0)
-	body_visual.add_child(right_leg_pivot)
-	_add_capsule(right_leg_pivot, "Right_Leg", 0.12, 0.80, Vector3(0.0, -0.37, 0.0), trousers, 8)
-	_add_box(right_leg_pivot, "Right_Shoe", Vector3(0.23, 0.12, 0.38), Vector3(0.0, -0.77, -0.045), shoes)
 
 
 func _build_camera() -> void:
