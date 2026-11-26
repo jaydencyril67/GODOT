@@ -32,8 +32,19 @@ func _run_test() -> void:
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
 		_fail("The first playable humanoid character or its collision body is missing.")
 		return
-	if (campus.get_node_or_null("PlayerCamera") as Camera3D) == null:
-		_fail("The third-person player camera is missing.")
+	var camera := campus.get_node_or_null("PlayerCamera") as Camera3D
+	if camera == null:
+		_fail("The first-person player camera is missing.")
+		return
+	if campus.get_meta("camera_perspective", "") != "first_person_hybrid":
+		_fail("The campus camera is not configured for hybrid first-person view.")
+		return
+	if not is_equal_approx(camera.global_position.y - player.global_position.y, 1.62):
+		_fail("The first-person camera is not positioned at eye height.")
+		return
+	var head_visual := player.get_node_or_null("HumanoidVisual/HeadVisual_FirstPersonHidden") as Node3D
+	if head_visual == null or head_visual.visible:
+		_fail("The first-person head mesh should be hidden to prevent camera clipping.")
 		return
 
 	var joystick := campus.find_child("MovementJoystick", true, false) as Control
