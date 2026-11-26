@@ -172,7 +172,7 @@ func _build_terrain() -> void:
 	var grass_material := StandardMaterial3D.new()
 	grass_material.albedo_texture = _create_grass_texture()
 	grass_material.roughness = 1.0
-	grass_material.uv1_scale = Vector3(42.0, 1.0, 32.0)
+	grass_material.uv1_scale = Vector3(42.0, 32.0, 1.0)
 	grass_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	terrain.material_override = grass_material
 	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
