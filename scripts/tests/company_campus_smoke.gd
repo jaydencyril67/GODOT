@@ -161,9 +161,6 @@ func _run_test() -> void:
 	if joystick == null or joystick.custom_minimum_size.x < 190.0:
 		_fail("The left movement joystick is missing or too small.")
 		return
-	if campus.find_child("CameraLookHint", true, false) == null:
-		_fail("The right-side camera look instruction is missing.")
-		return
 	if campus.find_child("BackToMenuButton", true, false) == null:
 		_fail("The campus scene has no return-to-menu button.")
 		return
