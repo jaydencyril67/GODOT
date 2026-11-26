@@ -47,18 +47,25 @@ func _run_test() -> void:
 		return
 	var fence_posts := fences.get_node_or_null("Fence_Posts") as MultiMeshInstance3D
 	var fence_rails := fences.get_node_or_null("Fence_Rails") as MultiMeshInstance3D
+	var fence_pickets := fences.get_node_or_null("Fence_Vertical_Pickets") as MultiMeshInstance3D
 	var fence_collisions := fences.get_node_or_null("Fence_Collisions") as StaticBody3D
-	if fence_posts == null or fence_rails == null or fence_collisions == null:
-		_fail("The wooden fence posts, rails, or collision body are missing.")
+	if fence_posts == null or fence_rails == null or fence_pickets == null or fence_collisions == null:
+		_fail("The hybrid wooden fence posts, rails, pickets, or collision body are missing.")
+		return
+	if fences.get_meta("fence_style", "") != "hybrid_post_rail_vertical_picket":
+		_fail("The campus fence is not the upgraded hybrid timber picket style.")
 		return
 	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
 		_fail("The wooden fence post instances are missing or incomplete.")
 		return
-	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 180:
+	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 120:
 		_fail("The wooden fence rail instances are missing or incomplete.")
 		return
-	if fence_collisions.get_child_count() < 32:
-		_fail("The wooden fence boundaries do not have enough collision segments.")
+	if fence_pickets.multimesh == null or fence_pickets.multimesh.instance_count < 20000:
+		_fail("The vertical wooden picket panels are missing or incomplete.")
+		return
+	if fence_collisions.get_child_count() < 32 or not bool(fence_collisions.get_meta("blocks_player", false)):
+		_fail("The wooden fence boundaries do not have complete player-blocking collision.")
 		return
 
 	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
@@ -117,6 +124,21 @@ func _run_test() -> void:
 	var player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
 		_fail("The first playable humanoid character or its collision body is missing.")
+		return
+	if player.collision_layer != 1 or player.collision_mask != 1:
+		_fail("The player collision layer and mask are not configured to collide with campus fences.")
+		return
+	await physics_frame
+	var fence_ray := PhysicsRayQueryParameters3D.create(
+		Vector3(-398.0, 0.80, 50.0),
+		Vector3(-390.0, 0.80, 50.0)
+	)
+	fence_ray.collision_mask = 1
+	fence_ray.collide_with_bodies = true
+	fence_ray.collide_with_areas = false
+	var fence_hit := campus.get_world_3d().direct_space_state.intersect_ray(fence_ray)
+	if fence_hit.is_empty() or fence_hit.get("collider") != fence_collisions:
+		_fail("A physics ray passed through a solid wooden fence section.")
 		return
 	var camera := campus.get_node_or_null("PlayerCamera") as Camera3D
 	if camera == null:
