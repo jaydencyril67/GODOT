@@ -3179,6 +3179,7 @@ func _prepare_staff_scenes() -> void:
 	staff_ui_layer.name = "DigitalWorld_Prepared_Staff_Layer"
 	staff_ui_layer.layer = 60
 	add_child(staff_ui_layer)
+	staff_ui_layer.hide()
 
 	staff_market_screen = StaffMarketScene.instantiate()
 	staff_market_screen.name = "Prepared_Staff_Market"
