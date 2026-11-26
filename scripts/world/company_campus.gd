@@ -1,6 +1,9 @@
 extends Node3D
 
 signal back_requested
+signal worksite_launch_requested(worksite_id: String)
+signal research_launch_requested(research_id: String)
+signal staff_launch_requested(staff_screen_id: String)
 
 const JoystickScript = preload("res://scripts/world/campus_joystick.gd")
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
@@ -76,6 +79,10 @@ var phone_home_view: Control
 var explore_app_view: Control
 var explore_status_label: Label
 var explore_section_buttons: Array[Button] = []
+var phone_app_views: Dictionary = {}
+var worksite_app_buttons: Array[Button] = []
+var research_app_buttons: Array[Button] = []
+var staffs_app_buttons: Array[Button] = []
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -1032,7 +1039,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 	phone_screen_ui.clip_contents = true
 	phone_screen_ui.z_index = 8
 	phone_screen_ui.set_meta("screen_powered", true)
-	phone_screen_ui.set_meta("home_app_count", 1)
+	phone_screen_ui.set_meta("home_app_count", 4)
 	phone_screen_ui.set_meta("active_app", "home")
 	phone_screen_ui.add_theme_stylebox_override(
 		"panel",
@@ -1050,9 +1057,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 	phone_home_view.offset_bottom = -8.0
 	phone_home_view.add_theme_constant_override("separation", 7)
 	phone_screen_ui.add_child(phone_home_view)
-
-	var home_status := _make_phone_status_bar("PhoneHomeStatusBar")
-	phone_home_view.add_child(home_status)
+	phone_home_view.add_child(_make_phone_status_bar("PhoneHomeStatusBar"))
 
 	var home_heading := Label.new()
 	home_heading.name = "PhoneHomeHeading"
@@ -1068,36 +1073,21 @@ func _build_phone_screen_ui(root: Control) -> void:
 	home_subtitle.add_theme_color_override("font_color", Color("#A9BAC8"))
 	phone_home_view.add_child(home_subtitle)
 
-	var app_space := CenterContainer.new()
-	app_space.name = "PhoneHomeAppArea"
-	app_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	app_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phone_home_view.add_child(app_space)
+	var app_grid := GridContainer.new()
+	app_grid.name = "PhoneHomeAppGrid"
+	app_grid.columns = 2
+	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_grid.add_theme_constant_override("h_separation", 7)
+	app_grid.add_theme_constant_override("v_separation", 5)
+	app_grid.add_theme_constant_override("margin_left", 2)
+	app_grid.add_theme_constant_override("margin_right", 2)
+	phone_home_view.add_child(app_grid)
 
-	var app_tile := VBoxContainer.new()
-	app_tile.name = "ExploreAppTile"
-	app_tile.alignment = BoxContainer.ALIGNMENT_CENTER
-	app_tile.add_theme_constant_override("separation", 5)
-	app_space.add_child(app_tile)
-
-	var explore_icon := Button.new()
-	explore_icon.name = "ExploreAppIcon"
-	explore_icon.text = "⌖"
-	explore_icon.custom_minimum_size = Vector2(60.0, 60.0)
-	explore_icon.focus_mode = Control.FOCUS_NONE
-	explore_icon.tooltip_text = "Open Explore"
-	_style_phone_app_icon(explore_icon)
-	explore_icon.add_theme_font_size_override("font_size", 29)
-	explore_icon.pressed.connect(_launch_explore_app)
-	app_tile.add_child(explore_icon)
-
-	var explore_caption := Label.new()
-	explore_caption.name = "ExploreAppLabel"
-	explore_caption.text = "Explore"
-	explore_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	explore_caption.add_theme_font_size_override("font_size", 11)
-	explore_caption.add_theme_color_override("font_color", Color("#F0F4F7"))
-	app_tile.add_child(explore_caption)
+	_add_phone_home_app(app_grid, "Explore", "ExploreAppIcon", "⌖", Callable(self, "_launch_explore_app"))
+	_add_phone_home_app(app_grid, "Worksite", "WorksiteAppIcon", "▦", Callable(self, "_launch_worksite_app"))
+	_add_phone_home_app(app_grid, "Research", "ResearchAppIcon", "◈", Callable(self, "_launch_research_app"))
+	_add_phone_home_app(app_grid, "Staffs", "StaffsAppIcon", "♙", Callable(self, "_launch_staffs_app"))
 
 	var home_footer := Label.new()
 	home_footer.name = "PhoneHomeFooter"
@@ -1107,81 +1097,28 @@ func _build_phone_screen_ui(root: Control) -> void:
 	home_footer.add_theme_color_override("font_color", Color("#778B9B"))
 	phone_home_view.add_child(home_footer)
 
-	explore_app_view = VBoxContainer.new()
-	explore_app_view.name = "ExploreAppScreen"
-	explore_app_view.visible = false
-	explore_app_view.mouse_filter = Control.MOUSE_FILTER_PASS
-	explore_app_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	explore_app_view.offset_left = 7.0
-	explore_app_view.offset_top = 7.0
-	explore_app_view.offset_right = -7.0
-	explore_app_view.offset_bottom = -7.0
-	explore_app_view.add_theme_constant_override("separation", 5)
+	var explore_page := _create_phone_app_page(
+		"ExploreAppScreen",
+		"Explore",
+		"Choose a campus section to travel there",
+		"ExploreBackToHomeButton"
+	)
+	explore_app_view = explore_page["page"]
 	phone_screen_ui.add_child(explore_app_view)
-
-	explore_app_view.add_child(_make_phone_status_bar("ExploreStatusBar"))
-
-	var app_header := HBoxContainer.new()
-	app_header.name = "ExploreAppHeader"
-	app_header.add_theme_constant_override("separation", 5)
-	explore_app_view.add_child(app_header)
-
-	var home_button := Button.new()
-	home_button.name = "ExploreBackToHomeButton"
-	home_button.text = "‹"
-	home_button.custom_minimum_size = Vector2(27.0, 28.0)
-	home_button.focus_mode = Control.FOCUS_NONE
-	_style_phone_small_button(home_button)
-	home_button.add_theme_font_size_override("font_size", 21)
-	home_button.pressed.connect(_return_to_phone_home)
-	app_header.add_child(home_button)
-
-	var app_title := Label.new()
-	app_title.name = "ExploreAppTitle"
-	app_title.text = "Explore"
-	app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	app_title.add_theme_font_size_override("font_size", 17)
-	app_title.add_theme_color_override("font_color", Color("#F4F7FA"))
-	app_header.add_child(app_title)
-
-	var app_description := Label.new()
-	app_description.name = "ExploreAppDescription"
-	app_description.text = "Choose a campus section to travel there"
-	app_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	app_description.add_theme_font_size_override("font_size", 9)
-	app_description.add_theme_color_override("font_color", Color("#A9BAC8"))
-	explore_app_view.add_child(app_description)
-
-	var section_scroll := ScrollContainer.new()
-	section_scroll.name = "ExploreSectionScroll"
-	section_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	section_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	section_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	explore_app_view.add_child(section_scroll)
-
-	var section_list := VBoxContainer.new()
-	section_list.name = "ExploreSectionList"
-	section_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section_list.add_theme_constant_override("separation", 4)
-	section_scroll.add_child(section_list)
-
+	phone_app_views["explore"] = explore_app_view
+	var explore_list: VBoxContainer = explore_page["list"]
 	explore_section_buttons.clear()
 	for section_index in range(CAMPUS_SECTION_NAMES.size()):
-		var section_button := Button.new()
-		section_button.name = "ExploreSectionButton_%02d" % (section_index + 1)
-		section_button.text = "%02d   %s" % [section_index + 1, CAMPUS_SECTION_SHORT_NAMES[section_index]]
+		var section_button := _create_phone_destination_button(
+			explore_list,
+			"ExploreSectionButton_%02d" % (section_index + 1),
+			"%02d   %s" % [section_index + 1, CAMPUS_SECTION_SHORT_NAMES[section_index]],
+			"",
+			Callable(self, "_transport_to_campus_section").bind(section_index)
+		)
 		section_button.tooltip_text = CAMPUS_SECTION_NAMES[section_index]
-		section_button.custom_minimum_size = Vector2(0.0, 34.0)
-		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		section_button.focus_mode = Control.FOCUS_NONE
-		section_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		section_button.custom_minimum_size.y = 34.0
 		section_button.set_meta("campus_section_index", section_index)
-		_style_phone_small_button(section_button)
-		section_button.add_theme_font_size_override("font_size", 9)
-		section_button.pressed.connect(_transport_to_campus_section.bind(section_index))
-		section_list.add_child(section_button)
 		explore_section_buttons.append(section_button)
 
 	explore_status_label = Label.new()
@@ -1192,6 +1129,195 @@ func _build_phone_screen_ui(root: Control) -> void:
 	explore_status_label.add_theme_font_size_override("font_size", 8)
 	explore_status_label.add_theme_color_override("font_color", Color("#8FD7D1"))
 	explore_app_view.add_child(explore_status_label)
+
+	var worksite_page := _create_phone_app_page(
+		"WorksiteAppScreen",
+		"Worksite",
+		"Choose a workspace to open",
+		"WorksiteBackToHomeButton"
+	)
+	phone_app_views["worksite"] = worksite_page["page"]
+	var worksite_list: VBoxContainer = worksite_page["list"]
+	worksite_app_buttons.clear()
+	var worksite_options := [
+		{"id": "phone", "name": "Phone Creation Worksite", "detail": "Design and build phones"},
+		{"id": "camera", "name": "Camera Worksite", "detail": "Create camera systems"},
+		{"id": "os", "name": "OS Worksite", "detail": "Design the operating system"},
+		{"id": "processor", "name": "Processor Worksite", "detail": "Build processor designs"}
+	]
+	for option in worksite_options:
+		var option_id := str(option["id"])
+		var worksite_button := _create_phone_destination_button(
+			worksite_list,
+			"WorksiteOption_" + option_id.capitalize(),
+			str(option["name"]),
+			str(option["detail"]),
+			Callable(self, "_request_worksite_launch").bind(option_id)
+		)
+		worksite_app_buttons.append(worksite_button)
+
+	var research_page := _create_phone_app_page(
+		"ResearchAppScreen",
+		"Research",
+		"Open a research workspace",
+		"ResearchBackToHomeButton"
+	)
+	phone_app_views["research"] = research_page["page"]
+	var research_list: VBoxContainer = research_page["list"]
+	research_app_buttons.clear()
+	var research_options := [
+		{"id": "hub", "name": "Research Hub", "detail": "Browse all research areas"},
+		{"id": "phone", "name": "Phone Research", "detail": "Phone technology and components"},
+		{"id": "camera", "name": "Camera Research", "detail": "Imaging and camera technology"},
+		{"id": "processor", "name": "Processor Research", "detail": "Chip and processor technology"}
+	]
+	for option in research_options:
+		var option_id := str(option["id"])
+		var research_button := _create_phone_destination_button(
+			research_list,
+			"ResearchOption_" + option_id.capitalize(),
+			str(option["name"]),
+			str(option["detail"]),
+			Callable(self, "_request_research_launch").bind(option_id)
+		)
+		research_app_buttons.append(research_button)
+
+	var staffs_page := _create_phone_app_page(
+		"StaffsAppScreen",
+		"Staffs",
+		"Choose a staff area to open",
+		"StaffsBackToHomeButton"
+	)
+	phone_app_views["staffs"] = staffs_page["page"]
+	var staffs_list: VBoxContainer = staffs_page["list"]
+	staffs_app_buttons.clear()
+	var staff_options := [
+		{"id": "market", "name": "Staff Market", "detail": "Find and recruit employees"},
+		{"id": "management", "name": "Staff Management", "detail": "Manage your employees"}
+	]
+	for option in staff_options:
+		var option_id := str(option["id"])
+		var staff_button := _create_phone_destination_button(
+			staffs_list,
+			"StaffsOption_" + option_id.capitalize(),
+			str(option["name"]),
+			str(option["detail"]),
+			Callable(self, "_request_staff_launch").bind(option_id)
+		)
+		staffs_app_buttons.append(staff_button)
+
+
+func _add_phone_home_app(parent: GridContainer, app_title: String, button_name: String, glyph: String, action: Callable) -> void:
+	var tile := VBoxContainer.new()
+	tile.name = app_title.replace(" ", "") + "Tile"
+	tile.alignment = BoxContainer.ALIGNMENT_CENTER
+	tile.add_theme_constant_override("separation", 3)
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	parent.add_child(tile)
+
+	var app_icon := Button.new()
+	app_icon.name = button_name
+	app_icon.text = glyph
+	app_icon.custom_minimum_size = Vector2(48.0, 48.0)
+	app_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	app_icon.focus_mode = Control.FOCUS_NONE
+	app_icon.tooltip_text = "Open " + app_title
+	_style_phone_app_icon(app_icon)
+	app_icon.add_theme_font_size_override("font_size", 24)
+	app_icon.pressed.connect(action)
+	tile.add_child(app_icon)
+
+	var caption := Label.new()
+	caption.name = button_name.replace("Icon", "Label")
+	caption.text = app_title
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.add_theme_font_size_override("font_size", 9)
+	caption.add_theme_color_override("font_color", Color("#F0F4F7"))
+	tile.add_child(caption)
+
+
+func _create_phone_app_page(page_name: String, title_text: String, description_text: String, back_button_name: String) -> Dictionary:
+	var page := VBoxContainer.new()
+	page.name = page_name
+	page.visible = false
+	page.mouse_filter = Control.MOUSE_FILTER_PASS
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page.offset_left = 7.0
+	page.offset_top = 7.0
+	page.offset_right = -7.0
+	page.offset_bottom = -7.0
+	page.add_theme_constant_override("separation", 5)
+	page.add_child(_make_phone_status_bar(page_name + "StatusBar"))
+
+	var header := HBoxContainer.new()
+	header.name = page_name + "Header"
+	header.add_theme_constant_override("separation", 5)
+	page.add_child(header)
+
+	var back_button := Button.new()
+	back_button.name = back_button_name
+	back_button.text = "‹"
+	back_button.custom_minimum_size = Vector2(27.0, 28.0)
+	back_button.focus_mode = Control.FOCUS_NONE
+	_style_phone_small_button(back_button)
+	back_button.add_theme_font_size_override("font_size", 21)
+	back_button.pressed.connect(_return_to_phone_home)
+	header.add_child(back_button)
+
+	var title := Label.new()
+	title.name = page_name + "Title"
+	title.text = title_text
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_color_override("font_color", Color("#F4F7FA"))
+	header.add_child(title)
+
+	var description := Label.new()
+	description.name = page_name + "Description"
+	description.text = description_text
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.add_theme_font_size_override("font_size", 9)
+	description.add_theme_color_override("font_color", Color("#A9BAC8"))
+	page.add_child(description)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = page_name + "Scroll"
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	page.add_child(scroll)
+
+	var options_list := VBoxContainer.new()
+	options_list.name = page_name + "Options"
+	options_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options_list.add_theme_constant_override("separation", 4)
+	scroll.add_child(options_list)
+	return {"page": page, "list": options_list}
+
+
+func _create_phone_destination_button(
+	parent: VBoxContainer,
+	button_name: String,
+	title_text: String,
+	detail_text: String,
+	action: Callable
+) -> Button:
+	var button := Button.new()
+	button.name = button_name
+	button.text = title_text if detail_text.is_empty() else title_text + "\n" + detail_text
+	button.custom_minimum_size = Vector2(0.0, 43.0)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.focus_mode = Control.FOCUS_NONE
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_phone_small_button(button)
+	button.add_theme_font_size_override("font_size", 9)
+	button.pressed.connect(action)
+	parent.add_child(button)
+	return button
 
 
 func _make_phone_status_bar(node_name: String) -> Control:
@@ -1256,22 +1382,76 @@ func _style_phone_small_button(button: Button) -> void:
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 
 
-func _launch_explore_app() -> void:
-	if not is_instance_valid(phone_home_view) or not is_instance_valid(explore_app_view):
+func _open_phone_app(app_id: String) -> void:
+	if not is_instance_valid(phone_home_view) or not is_instance_valid(phone_screen_ui):
 		return
 	phone_home_view.visible = false
-	explore_app_view.visible = true
-	phone_screen_ui.set_meta("active_app", "Explore")
+	for view_id in phone_app_views.keys():
+		var app_view := phone_app_views[view_id] as Control
+		if is_instance_valid(app_view):
+			app_view.visible = str(view_id) == app_id
+	phone_screen_ui.set_meta("active_app", app_id.capitalize())
+
+
+func _launch_explore_app() -> void:
+	_open_phone_app("explore")
 	if is_instance_valid(explore_status_label):
 		explore_status_label.text = "Select a section to travel there"
 
 
+func _launch_worksite_app() -> void:
+	_open_phone_app("worksite")
+
+
+func _launch_research_app() -> void:
+	_open_phone_app("research")
+
+
+func _launch_staffs_app() -> void:
+	_open_phone_app("staffs")
+
+
 func _return_to_phone_home() -> void:
-	if not is_instance_valid(phone_home_view) or not is_instance_valid(explore_app_view):
+	if not is_instance_valid(phone_home_view) or not is_instance_valid(phone_screen_ui):
 		return
-	explore_app_view.visible = false
+	for view_id in phone_app_views.keys():
+		var app_view := phone_app_views[view_id] as Control
+		if is_instance_valid(app_view):
+			app_view.visible = false
 	phone_home_view.visible = true
 	phone_screen_ui.set_meta("active_app", "home")
+
+
+func _close_phone_for_external_scene() -> void:
+	if is_instance_valid(phone_device):
+		phone_device.visible = false
+		phone_device.set_meta("phone_open", false)
+	if is_instance_valid(phone_screen_ui):
+		phone_screen_ui.visible = false
+	if is_instance_valid(phone_button):
+		phone_button.tooltip_text = "Open phone"
+		phone_button.set_meta("phone_open", false)
+
+
+func _request_worksite_launch(worksite_id: String) -> void:
+	if not ["phone", "camera", "os", "processor"].has(worksite_id):
+		return
+	_close_phone_for_external_scene()
+	worksite_launch_requested.emit(worksite_id)
+
+
+func _request_research_launch(research_id: String) -> void:
+	if not ["hub", "phone", "camera", "processor"].has(research_id):
+		return
+	_close_phone_for_external_scene()
+	research_launch_requested.emit(research_id)
+
+
+func _request_staff_launch(staff_screen_id: String) -> void:
+	if not ["market", "management"].has(staff_screen_id):
+		return
+	_close_phone_for_external_scene()
+	staff_launch_requested.emit(staff_screen_id)
 
 
 func _transport_to_campus_section(section_index: int) -> void:
