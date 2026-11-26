@@ -92,7 +92,9 @@ var career_insignia_texture: Texture2D
 var career_balance_text := "$10,000,000"
 var career_date_text := "1st Jan 2020"
 var career_clock_paused := false
+var career_overlay_requested_visible := false
 var career_company_label: Label
+var career_identity_card: PanelContainer
 var career_balance_label: Label
 var career_date_label: Label
 var career_clock_button: Button
@@ -132,6 +134,7 @@ func update_career_hud(
 	if is_instance_valid(career_company_label):
 		career_company_label.text = career_company_name
 		career_company_label.tooltip_text = career_company_name
+		_update_career_identity_card_width()
 	if is_instance_valid(career_balance_label):
 		career_balance_label.text = career_balance_text
 	if is_instance_valid(career_date_label):
@@ -170,6 +173,7 @@ func _ready() -> void:
 
 
 func set_career_home_overlay_visible(should_show: bool) -> void:
+	career_overlay_requested_visible = should_show
 	var layer := get_node_or_null("Campus_Controls_Layer") as CanvasLayer
 	if is_instance_valid(layer):
 		layer.visible = should_show
@@ -221,6 +225,13 @@ func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
 
 
 func _process(_delta: float) -> void:
+	# CanvasLayers do not inherit Node3D visibility. Keep the touch HUD alive
+	# whenever this campus is the active visible world, even if another screen
+	# accidentally hides the layer during a transition.
+	if career_overlay_requested_visible and visible:
+		var controls_layer := get_node_or_null("Campus_Controls_Layer") as CanvasLayer
+		if is_instance_valid(controls_layer) and not controls_layer.visible:
+			controls_layer.visible = true
 	_update_camera()
 
 
@@ -976,6 +987,22 @@ func _build_camera() -> void:
 	player_camera.make_current()
 
 
+func _career_company_identity_width(company_name: String) -> float:
+	var font: Font = ThemeDB.fallback_font
+	var name_width := font.get_string_size(company_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16).x
+	var brand_width := font.get_string_size("DIGITAL WORLD MOBILES", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 8).x
+	return clampf(maxf(name_width, brand_width) + 16.0, 118.0, 232.0)
+
+
+func _update_career_identity_card_width() -> void:
+	if not is_instance_valid(career_identity_card):
+		return
+	var card_width := _career_company_identity_width(career_company_name)
+	career_identity_card.custom_minimum_size = Vector2(card_width, 48.0)
+	if is_instance_valid(career_company_label):
+		career_company_label.custom_minimum_size = Vector2(card_width - 12.0, 0.0)
+
+
 func _build_career_hud(root: Control) -> void:
 	# This is only a transparent horizontal layout row. Each item below owns
 	# its own card so the campus remains visible between the HUD elements.
@@ -1009,18 +1036,18 @@ func _build_career_hud(root: Control) -> void:
 	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	insignia_frame.add_child(insignia)
 
-	var identity_card := PanelContainer.new()
-	identity_card.name = "CampusCompanyIdentityCard"
-	identity_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity_card.custom_minimum_size = Vector2(150.0, 48.0)
-	_apply_career_hud_card_style(identity_card)
-	row.add_child(identity_card)
+	career_identity_card = PanelContainer.new()
+	career_identity_card.name = "CampusCompanyIdentityCard"
+	career_identity_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	career_identity_card.custom_minimum_size = Vector2(_career_company_identity_width(career_company_name), 48.0)
+	_apply_career_hud_card_style(career_identity_card)
+	row.add_child(career_identity_card)
 
 	var identity := VBoxContainer.new()
 	identity.name = "CampusCompanyIdentity"
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	identity.add_theme_constant_override("separation", 1)
-	identity_card.add_child(identity)
+	career_identity_card.add_child(identity)
 
 	var brand := Label.new()
 	brand.text = "DIGITAL WORLD MOBILES"
@@ -1036,6 +1063,7 @@ func _build_career_hud(root: Control) -> void:
 	career_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	career_company_label.add_theme_font_size_override("font_size", 16)
 	career_company_label.add_theme_color_override("font_color", Color("#F4F7FA"))
+	career_company_label.custom_minimum_size = Vector2(career_identity_card.custom_minimum_size.x - 12.0, 0.0)
 	identity.add_child(career_company_label)
 
 	var balance_card := _make_career_metric_card("CampusBalanceCard", "BALANCE")
