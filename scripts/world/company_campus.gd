@@ -416,7 +416,7 @@ func _append_fence_side(
 		for picket_index in range(picket_count):
 			var picket_distance := minf(segment_length - 0.10, (float(picket_index) + 0.5) * segment_length / float(picket_count))
 			var picket_position := start + normalized_direction * (segment_start + picket_distance) + Vector3.UP * 0.76
-			var picket_basis := Basis(Vector3.UP, yaw).scaled(Vector3(1.0, 1.0, 1.0))
+			var picket_basis := Basis(Vector3.UP, yaw)
 			picket_transforms.append(Transform3D(picket_basis, picket_position))
 
 		var post_steps := maxi(1, ceili(segment_length / 3.4))
