@@ -215,6 +215,15 @@ jobs:
       pass_marker: "WORLD_GLOBE_SMOKE_TEST: PASS"
       log_name: world-globe-smoke.log
 
+  company-campus-smoke:
+    name: Empty walkable company campus
+    uses: ./.github/workflows/godot-smoke-test.yml
+    with:
+      test_name: Empty walkable company campus
+      script_path: scripts/tests/company_campus_smoke.gd
+      pass_marker: "COMPANY_CAMPUS_SMOKE_TEST: PASS"
+      log_name: company-campus-smoke.log
+
 
   main-scene-startup:
     name: Main scene startup

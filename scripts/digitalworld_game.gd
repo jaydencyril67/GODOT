@@ -11,6 +11,7 @@ const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/proce
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
+const CompanyCampusScene: PackedScene = preload("res://scenes/company_campus.tscn")
 const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
@@ -37,6 +38,7 @@ var create_ui_layer: CanvasLayer
 var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
+var company_campus: Node3D
 var world_globe: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
@@ -113,7 +115,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "camera_research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite"]:
+	if current_screen not in ["home", "headquarters", "create", "research", "research_allocation", "camera_research_allocation", "office", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite", "company_campus"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -321,6 +323,9 @@ func _clear_world() -> void:
 	if is_instance_valid(world_globe):
 		world_globe.queue_free()
 	world_globe = null
+	if is_instance_valid(company_campus):
+		company_campus.queue_free()
+	company_campus = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -455,9 +460,10 @@ func _show_menu() -> void:
 
 	var new_game := _add_action_button(menu, "NEW GAME", true, _start_new_game)
 	var continue_game := _add_action_button(menu, "CONTINUE", false, _load_game_pressed)
+	var explore_campus := _add_action_button(menu, "EXPLORE CAMPUS", false, _open_company_campus)
 	var settings := _add_action_button(menu, "SETTINGS", false, _show_settings)
 	var exit_game := _add_action_button(menu, "EXIT", false, _confirm_exit)
-	var landing_buttons: Array[Button] = [new_game, continue_game, settings, exit_game]
+	var landing_buttons: Array[Button] = [new_game, continue_game, explore_campus, settings, exit_game]
 	for button in landing_buttons:
 		button.custom_minimum_size = Vector2(0, 48 if compact else 56)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -472,6 +478,16 @@ func _show_menu() -> void:
 	menu.add_child(footer)
 
 	landing_world.connect("cinematic_reveal_finished", _animate_landing_menu.bind(root, welcome, command_area, command_panel, landing_buttons))
+
+
+func _open_company_campus() -> void:
+	current_screen = "company_campus"
+	_clear_world()
+	_new_screen() # Release the landing-page controls before opening the walkable campus.
+	company_campus = CompanyCampusScene.instantiate() as Node3D
+	company_campus.name = "Company_Campus_World"
+	company_campus.connect("back_requested", Callable(self, "_show_menu"))
+	add_child(company_campus)
 
 
 func _show_world_globe() -> void:
