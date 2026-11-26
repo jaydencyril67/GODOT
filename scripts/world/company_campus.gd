@@ -1,9 +1,13 @@
 extends Node3D
 
 signal back_requested
+signal setup_progress(message: String, progress: float)
+signal setup_completed
+signal game_clock_toggle_requested
 signal worksite_launch_requested(worksite_id: String)
 signal research_launch_requested(research_id: String)
 signal staff_launch_requested(staff_screen_id: String)
+signal legacy_app_launch_requested(app_id: String)
 
 const JoystickScript = preload("res://scripts/world/campus_joystick.gd")
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
@@ -83,6 +87,15 @@ var phone_app_views: Dictionary = {}
 var worksite_app_buttons: Array[Button] = []
 var research_app_buttons: Array[Button] = []
 var staffs_app_buttons: Array[Button] = []
+var career_company_name := "YOUR COMPANY"
+var career_insignia_texture: Texture2D
+var career_balance_text := "$10,000,000"
+var career_date_text := "1st Jan 2020"
+var career_clock_paused := false
+var career_company_label: Label
+var career_balance_label: Label
+var career_date_label: Label
+var career_clock_button: Button
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -92,18 +105,68 @@ var camera_touch_index := -1
 var mouse_look_active := false
 
 
+func configure_career_hud(
+	company_name: String,
+	insignia_texture: Texture2D,
+	balance_text: String,
+	date_text: String,
+	clock_paused: bool
+) -> void:
+	career_company_name = company_name
+	career_insignia_texture = insignia_texture
+	career_balance_text = balance_text
+	career_date_text = date_text
+	career_clock_paused = clock_paused
+
+
+func update_career_hud(
+	company_name: String,
+	balance_text: String,
+	date_text: String,
+	clock_paused: bool
+) -> void:
+	career_company_name = company_name
+	career_balance_text = balance_text
+	career_date_text = date_text
+	career_clock_paused = clock_paused
+	if is_instance_valid(career_company_label):
+		career_company_label.text = career_company_name
+		career_company_label.tooltip_text = career_company_name
+	if is_instance_valid(career_balance_label):
+		career_balance_label.text = career_balance_text
+	if is_instance_valid(career_date_label):
+		career_date_label.text = career_date_text
+	if is_instance_valid(career_clock_button):
+		career_clock_button.text = "▶  PLAY" if career_clock_paused else "Ⅱ  PAUSE"
+
+
 func _ready() -> void:
+	set_meta("career_home_scene", true)
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
 	set_meta("movement_response", "direct_analog_slide_no_acceleration_ramp")
 	set_meta("camera_perspective", "first_person_eye_only")
+
+	setup_progress.emit("Preparing campus environment", 0.0)
+	await get_tree().process_frame
 	_build_environment()
+	setup_progress.emit("Preparing campus environment", 100.0)
+
+	await get_tree().process_frame
+	setup_progress.emit("Generating campus grounds and landscaping", 0.0)
 	_build_terrain()
+	setup_progress.emit("Generating campus grounds and landscaping", 100.0)
+
+	await get_tree().process_frame
+	setup_progress.emit("Setting up first-person campus controls", 0.0)
 	_build_player()
 	_build_camera()
 	_build_overlay()
 	_update_camera()
+	setup_progress.emit("Setting up first-person campus controls", 100.0)
+	set_meta("campus_generation_complete", true)
+	setup_completed.emit()
 
 
 func _physics_process(delta: float) -> void:
@@ -907,6 +970,143 @@ func _build_camera() -> void:
 	player_camera.make_current()
 
 
+func _build_career_hud(root: Control) -> void:
+	var header := PanelContainer.new()
+	header.name = "CampusCareerStatusBar"
+	header.anchor_left = 0.0
+	header.anchor_top = 0.0
+	header.anchor_right = 1.0
+	header.anchor_bottom = 0.0
+	header.offset_left = 14.0
+	header.offset_top = 10.0
+	header.offset_right = -14.0
+	header.offset_bottom = 78.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.025, 0.035, 0.045, 0.88)
+	panel_style.border_color = Color(0.62, 0.49, 0.31, 0.72)
+	panel_style.set_border_width_all(1)
+	panel_style.border_width_bottom = 2
+	panel_style.set_corner_radius_all(13)
+	panel_style.content_margin_left = 10.0
+	panel_style.content_margin_right = 10.0
+	panel_style.content_margin_top = 5.0
+	panel_style.content_margin_bottom = 5.0
+	header.add_theme_stylebox_override("panel", panel_style)
+	root.add_child(header)
+
+	var row := HBoxContainer.new()
+	row.name = "CampusCareerStatusContents"
+	row.add_theme_constant_override("separation", 8)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(row)
+
+	var insignia_frame := PanelContainer.new()
+	insignia_frame.name = "CampusCompanyInsigniaFrame"
+	insignia_frame.custom_minimum_size = Vector2(48.0, 48.0)
+	var insignia_style := StyleBoxFlat.new()
+	insignia_style.bg_color = Color(0.12, 0.15, 0.17, 0.96)
+	insignia_style.border_color = Color("#B78C4E")
+	insignia_style.set_border_width_all(1)
+	insignia_style.set_corner_radius_all(10)
+	insignia_style.content_margin_left = 3.0
+	insignia_style.content_margin_right = 3.0
+	insignia_style.content_margin_top = 3.0
+	insignia_style.content_margin_bottom = 3.0
+	insignia_frame.add_theme_stylebox_override("panel", insignia_style)
+	row.add_child(insignia_frame)
+
+	var insignia := TextureRect.new()
+	insignia.name = "CampusCompanyInsignia"
+	insignia.texture = career_insignia_texture
+	insignia.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	insignia.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	insignia.custom_minimum_size = Vector2(40.0, 40.0)
+	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	insignia_frame.add_child(insignia)
+
+	var identity := VBoxContainer.new()
+	identity.name = "CampusCompanyIdentity"
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity.add_theme_constant_override("separation", 1)
+	row.add_child(identity)
+
+	var brand := Label.new()
+	brand.text = "DIGITAL WORLD MOBILES"
+	brand.add_theme_font_size_override("font_size", 8)
+	brand.add_theme_color_override("font_color", Color("#D2A15C"))
+	identity.add_child(brand)
+
+	career_company_label = Label.new()
+	career_company_label.name = "CampusCompanyName"
+	career_company_label.text = career_company_name
+	career_company_label.tooltip_text = career_company_name
+	career_company_label.clip_text = true
+	career_company_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	career_company_label.add_theme_font_size_override("font_size", 16)
+	career_company_label.add_theme_color_override("font_color", Color("#F4F7FA"))
+	identity.add_child(career_company_label)
+
+	var balance_card := _make_career_metric_card("CampusBalanceCard", "BALANCE")
+	row.add_child(balance_card)
+	career_balance_label = balance_card.find_child("Value", true, false) as Label
+	career_balance_label.name = "CampusBalanceValue"
+	career_balance_label.text = career_balance_text
+
+	var date_card := _make_career_metric_card("CampusDateCard", "DATE")
+	row.add_child(date_card)
+	career_date_label = date_card.find_child("Value", true, false) as Label
+	career_date_label.name = "CampusDateValue"
+	career_date_label.text = career_date_text
+
+	career_clock_button = Button.new()
+	career_clock_button.name = "CampusGameClockControl"
+	career_clock_button.custom_minimum_size = Vector2(84.0, 42.0)
+	career_clock_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	career_clock_button.focus_mode = Control.FOCUS_NONE
+	career_clock_button.text = "▶  PLAY" if career_clock_paused else "Ⅱ  PAUSE"
+	_style_overlay_button(career_clock_button)
+	career_clock_button.add_theme_font_size_override("font_size", 10)
+	career_clock_button.pressed.connect(func(): game_clock_toggle_requested.emit())
+	row.add_child(career_clock_button)
+
+
+func _make_career_metric_card(card_name: String, caption: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.name = card_name
+	card.custom_minimum_size = Vector2(104.0, 46.0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.055, 0.075, 0.088, 0.92)
+	style.border_color = Color(0.35, 0.43, 0.48, 0.72)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(9)
+	style.content_margin_left = 7.0
+	style.content_margin_right = 7.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	card.add_theme_stylebox_override("panel", style)
+
+	var content := VBoxContainer.new()
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 0)
+	card.add_child(content)
+	var caption_label := Label.new()
+	caption_label.text = caption
+	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption_label.add_theme_font_size_override("font_size", 7)
+	caption_label.add_theme_color_override("font_color", Color("#A9BAC8"))
+	content.add_child(caption_label)
+	var value_label := Label.new()
+	value_label.name = "Value"
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.clip_text = true
+	value_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	value_label.add_theme_font_size_override("font_size", 11)
+	value_label.add_theme_color_override("font_color", Color("#F4F7FA"))
+	content.add_child(value_label)
+	return card
+
+
 func _build_overlay() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Campus_Controls_Layer"
@@ -920,13 +1120,14 @@ func _build_overlay() -> void:
 	layer.add_child(root)
 	overlay_root = root
 	root.resized.connect(_layout_phone_controls)
+	_build_career_hud(root)
 
 	var back_button := Button.new()
 	back_button.name = "BackToMenuButton"
 	back_button.text = "‹  MENU"
-	back_button.position = Vector2(18.0, 18.0)
-	back_button.size = Vector2(128.0, 48.0)
-	back_button.custom_minimum_size = Vector2(128.0, 48.0)
+	back_button.position = Vector2(16.0, 88.0)
+	back_button.size = Vector2(108.0, 40.0)
+	back_button.custom_minimum_size = Vector2(108.0, 40.0)
 	back_button.focus_mode = Control.FOCUS_NONE
 	_style_overlay_button(back_button)
 	back_button.pressed.connect(_request_back)
@@ -1039,7 +1240,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 	phone_screen_ui.clip_contents = true
 	phone_screen_ui.z_index = 8
 	phone_screen_ui.set_meta("screen_powered", true)
-	phone_screen_ui.set_meta("home_app_count", 4)
+	phone_screen_ui.set_meta("home_app_count", 10)
 	phone_screen_ui.set_meta("active_app", "home")
 	phone_screen_ui.add_theme_stylebox_override(
 		"panel",
@@ -1055,52 +1256,53 @@ func _build_phone_screen_ui(root: Control) -> void:
 	phone_home_view.offset_top = 8.0
 	phone_home_view.offset_right = -9.0
 	phone_home_view.offset_bottom = -8.0
-	phone_home_view.add_theme_constant_override("separation", 7)
+	phone_home_view.add_theme_constant_override("separation", 5)
 	phone_screen_ui.add_child(phone_home_view)
 	phone_home_view.add_child(_make_phone_status_bar("PhoneHomeStatusBar"))
 
 	var home_heading := Label.new()
 	home_heading.name = "PhoneHomeHeading"
 	home_heading.text = "Campus"
-	home_heading.add_theme_font_size_override("font_size", 21)
+	home_heading.add_theme_font_size_override("font_size", 18)
 	home_heading.add_theme_color_override("font_color", Color("#F4F7FA"))
 	phone_home_view.add_child(home_heading)
 
 	var home_subtitle := Label.new()
 	home_subtitle.name = "PhoneHomeSubtitle"
-	home_subtitle.text = "Your campus, one tap away"
-	home_subtitle.add_theme_font_size_override("font_size", 10)
+	home_subtitle.text = career_company_name
+	home_subtitle.add_theme_font_size_override("font_size", 8)
 	home_subtitle.add_theme_color_override("font_color", Color("#A9BAC8"))
 	phone_home_view.add_child(home_subtitle)
 
 	var app_grid := GridContainer.new()
 	app_grid.name = "PhoneHomeAppGrid"
-	app_grid.columns = 2
+	app_grid.columns = 3
 	app_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	app_grid.add_theme_constant_override("h_separation", 7)
-	app_grid.add_theme_constant_override("v_separation", 5)
+	app_grid.add_theme_constant_override("h_separation", 5)
+	app_grid.add_theme_constant_override("v_separation", 3)
 	phone_home_view.add_child(app_grid)
 
 	_add_phone_home_app(app_grid, "Explore", "ExploreAppIcon", "⌖", Callable(self, "_launch_explore_app"))
 	_add_phone_home_app(app_grid, "Worksite", "WorksiteAppIcon", "▦", Callable(self, "_launch_worksite_app"))
 	_add_phone_home_app(app_grid, "Research", "ResearchAppIcon", "◈", Callable(self, "_launch_research_app"))
 	_add_phone_home_app(app_grid, "Staffs", "StaffsAppIcon", "♙", Callable(self, "_launch_staffs_app"))
+	_add_phone_home_app(app_grid, "Create", "CreateAppIcon", "✚", Callable(self, "_request_legacy_app_launch").bind("create"))
+	_add_phone_home_app(app_grid, "Products", "ProductsAppIcon", "▣", Callable(self, "_launch_phone_feature_app").bind("products"))
+	_add_phone_home_app(app_grid, "Marketing", "MarketingAppIcon", "↗", Callable(self, "_launch_phone_feature_app").bind("marketing"))
+	_add_phone_home_app(app_grid, "Media", "MediaAppIcon", "▧", Callable(self, "_launch_phone_feature_app").bind("media"))
+	_add_phone_home_app(app_grid, "Office", "OfficeAppIcon", "⌂", Callable(self, "_launch_office_shortcut"))
+	_add_phone_home_app(app_grid, "Statistics", "StatisticsAppIcon", "▥", Callable(self, "_launch_phone_feature_app").bind("statistics"))
 
 	var home_footer := Label.new()
 	home_footer.name = "PhoneHomeFooter"
 	home_footer.text = "DIGITALWORLD CAMPUS"
 	home_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	home_footer.add_theme_font_size_override("font_size", 8)
+	home_footer.add_theme_font_size_override("font_size", 7)
 	home_footer.add_theme_color_override("font_color", Color("#778B9B"))
 	phone_home_view.add_child(home_footer)
 
-	var explore_page := _create_phone_app_page(
-		"ExploreAppScreen",
-		"Explore",
-		"Choose a campus section to travel there",
-		"ExploreBackToHomeButton"
-	)
+	var explore_page := _create_phone_app_page("ExploreAppScreen", "Explore", "Choose a campus section to travel there", "ExploreBackToHomeButton")
 	explore_app_view = explore_page["page"]
 	phone_screen_ui.add_child(explore_app_view)
 	phone_app_views["explore"] = explore_app_view
@@ -1128,12 +1330,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 	explore_status_label.add_theme_color_override("font_color", Color("#8FD7D1"))
 	explore_app_view.add_child(explore_status_label)
 
-	var worksite_page := _create_phone_app_page(
-		"WorksiteAppScreen",
-		"Worksite",
-		"Choose a workspace to open",
-		"WorksiteBackToHomeButton"
-	)
+	var worksite_page := _create_phone_app_page("WorksiteAppScreen", "Worksite", "Choose a workspace to open", "WorksiteBackToHomeButton")
 	phone_screen_ui.add_child(worksite_page["page"])
 	phone_app_views["worksite"] = worksite_page["page"]
 	var worksite_list: VBoxContainer = worksite_page["list"]
@@ -1155,12 +1352,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		)
 		worksite_app_buttons.append(worksite_button)
 
-	var research_page := _create_phone_app_page(
-		"ResearchAppScreen",
-		"Research",
-		"Open a research workspace",
-		"ResearchBackToHomeButton"
-	)
+	var research_page := _create_phone_app_page("ResearchAppScreen", "Research", "Open a research workspace", "ResearchBackToHomeButton")
 	phone_screen_ui.add_child(research_page["page"])
 	phone_app_views["research"] = research_page["page"]
 	var research_list: VBoxContainer = research_page["list"]
@@ -1182,12 +1374,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		)
 		research_app_buttons.append(research_button)
 
-	var staffs_page := _create_phone_app_page(
-		"StaffsAppScreen",
-		"Staffs",
-		"Choose a staff area to open",
-		"StaffsBackToHomeButton"
-	)
+	var staffs_page := _create_phone_app_page("StaffsAppScreen", "Staffs", "Choose a staff area to open", "StaffsBackToHomeButton")
 	phone_screen_ui.add_child(staffs_page["page"])
 	phone_app_views["staffs"] = staffs_page["page"]
 	var staffs_list: VBoxContainer = staffs_page["list"]
@@ -1207,6 +1394,27 @@ func _build_phone_screen_ui(root: Control) -> void:
 		)
 		staffs_app_buttons.append(staff_button)
 
+	_add_phone_feature_page("ProductsAppScreen", "Products", "Company product catalogue", "ProductsBackToHomeButton", "Your product catalogue will appear here.")
+	_add_phone_feature_page("MarketingAppScreen", "Marketing", "Promote your company's products", "MarketingBackToHomeButton", "Marketing tools will appear here.")
+	_add_phone_feature_page("MediaAppScreen", "Media", "Company media and campaigns", "MediaBackToHomeButton", "Media tools will appear here.")
+	_add_phone_feature_page("StatisticsAppScreen", "Statistics", "Company performance overview", "StatisticsBackToHomeButton", "Company statistics will appear here.")
+
+
+func _add_phone_feature_page(page_name: String, title_text: String, description_text: String, back_button_name: String, message: String) -> void:
+	var page_data := _create_phone_app_page(page_name, title_text, description_text, back_button_name)
+	phone_screen_ui.add_child(page_data["page"])
+	phone_app_views[page_name.trim_suffix("AppScreen").to_lower()] = page_data["page"]
+	var status := Label.new()
+	status.name = page_name + "Status"
+	status.text = message
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status.add_theme_font_size_override("font_size", 9)
+	status.add_theme_color_override("font_color", Color("#A9BAC8"))
+	page_data["list"].add_child(status)
+
 
 func _add_phone_home_app(parent: GridContainer, app_title: String, button_name: String, glyph: String, action: Callable) -> void:
 	var tile := VBoxContainer.new()
@@ -1220,12 +1428,12 @@ func _add_phone_home_app(parent: GridContainer, app_title: String, button_name: 
 	var app_icon := Button.new()
 	app_icon.name = button_name
 	app_icon.text = glyph
-	app_icon.custom_minimum_size = Vector2(48.0, 48.0)
+	app_icon.custom_minimum_size = Vector2(40.0, 40.0)
 	app_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	app_icon.focus_mode = Control.FOCUS_NONE
 	app_icon.tooltip_text = "Open " + app_title
 	_style_phone_app_icon(app_icon)
-	app_icon.add_theme_font_size_override("font_size", 24)
+	app_icon.add_theme_font_size_override("font_size", 20)
 	app_icon.pressed.connect(action)
 	tile.add_child(app_icon)
 
@@ -1233,7 +1441,7 @@ func _add_phone_home_app(parent: GridContainer, app_title: String, button_name: 
 	caption.name = button_name.replace("Icon", "Label")
 	caption.text = app_title
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	caption.add_theme_font_size_override("font_size", 9)
+	caption.add_theme_font_size_override("font_size", 8)
 	caption.add_theme_color_override("font_color", Color("#F0F4F7"))
 	tile.add_child(caption)
 
@@ -1391,6 +1599,22 @@ func _open_phone_app(app_id: String) -> void:
 		if is_instance_valid(app_view):
 			app_view.visible = str(view_id) == app_id
 	phone_screen_ui.set_meta("active_app", app_id.capitalize())
+
+
+func _launch_phone_feature_app(app_id: String) -> void:
+	_open_phone_app(app_id)
+
+
+func _launch_office_shortcut() -> void:
+	_transport_to_campus_section(1)
+	_return_to_phone_home()
+
+
+func _request_legacy_app_launch(app_id: String) -> void:
+	if app_id != "create":
+		return
+	_close_phone_for_external_scene()
+	legacy_app_launch_requested.emit(app_id)
 
 
 func _launch_explore_app() -> void:
