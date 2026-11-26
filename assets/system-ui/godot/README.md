@@ -14,7 +14,7 @@ This folder contains Godot-importable SVG adaptations of the Android vector/draw
 - The music-player UI-kit screenshots remain visual references; they are not stretched into live notification cards.
 
 ## Clocks
-- Analog lock-screen styles load 41 images from `assets/lock-screen/clocks/analog/` through `scripts/lock_screen_asset_library.gd`.
+- Analog lock-screen styles load 15 images from `assets/lock-screen/clocks/analog/` through `scripts/lock_screen_asset_library.gd`.
 - Digital lock-screen faces are built from JSON definitions in `research/XMorphClock/Clock-Faces/Definitions/` and fonts in `research/XMorphClock/Fonts/Files/`.
 - XMorph widget layouts are loaded from `research/XMorphClock/Widgets/Definitions/` by `scripts/ui/xmorph_widget_asset_library.gd`.
 
