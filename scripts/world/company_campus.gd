@@ -10,7 +10,7 @@ const HALF_WIDTH := CAMPUS_WIDTH * 0.5
 const HALF_DEPTH := CAMPUS_DEPTH * 0.5
 const WALK_SPEED := 1.5
 const GRAVITY := 9.8
-const CAMERA_DISTANCE := 6.6
+const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
 const GRASS_INSTANCE_COUNT := 5600
 
@@ -22,6 +22,7 @@ var right_arm_pivot: Node3D
 var left_leg_pivot: Node3D
 var right_leg_pivot: Node3D
 var body_visual: Node3D
+var head_visual: Node3D
 
 var camera_yaw := PI * 0.25
 var camera_pitch := 0.16
@@ -34,6 +35,7 @@ func _ready() -> void:
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
+	set_meta("camera_perspective", "first_person_hybrid")
 	_build_environment()
 	_build_terrain()
 	_build_player()
@@ -73,10 +75,9 @@ func _physics_process(delta: float) -> void:
 	player.global_position.x = clampf(player.global_position.x, -HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
 	player.global_position.z = clampf(player.global_position.z, -HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
 
+	player.rotation.y = camera_yaw
 	var is_walking := input_strength > 0.08 and move_direction.length_squared() > 0.01
 	if is_walking:
-		var target_yaw := atan2(-move_direction.x, -move_direction.z)
-		player.rotation.y = lerp_angle(player.rotation.y, target_yaw, minf(1.0, delta * 9.0))
 		walking_phase += delta * 7.0 * input_strength
 	else:
 		walking_phase = lerpf(walking_phase, 0.0, minf(1.0, delta * 4.0))
@@ -112,10 +113,13 @@ func _rotate_camera(delta_position: Vector2) -> void:
 func _update_camera() -> void:
 	if not is_instance_valid(player_camera) or not is_instance_valid(player):
 		return
-	var behind := Vector3(-sin(camera_yaw), 0.0, cos(camera_yaw)) * CAMERA_DISTANCE
-	var camera_height := 2.25 + camera_pitch * 4.0
-	player_camera.global_position = player.global_position + behind + Vector3.UP * camera_height
-	player_camera.look_at(player.global_position + Vector3.UP * 1.18, Vector3.UP)
+	player_camera.global_position = player.global_position + Vector3.UP * FIRST_PERSON_EYE_HEIGHT
+	var look_direction := Vector3(
+		sin(camera_yaw) * cos(camera_pitch),
+		-sin(camera_pitch),
+		-cos(camera_yaw) * cos(camera_pitch)
+	)
+	player_camera.look_at(player_camera.global_position + look_direction, Vector3.UP)
 
 
 func _build_environment() -> void:
@@ -288,26 +292,30 @@ func _build_humanoid_visual() -> void:
 	var hair := _material(Color("#211b18"), 0.95)
 	var eyes := _material(Color("#171411"), 0.48)
 
-	_add_capsule(body_visual, "Torso", 0.245, 0.84, Vector3(0.0, 1.31, 0.0), shirt, 10)
-	_add_box(body_visual, "Waist", Vector3(0.43, 0.27, 0.29), Vector3(0.0, 0.91, 0.0), trousers)
-	_add_capsule(body_visual, "Neck", 0.075, 0.18, Vector3(0.0, 1.76, 0.0), skin, 8)
-	_add_sphere(body_visual, "Head", 0.17, Vector3(0.0, 1.94, 0.0), skin, 16)
-	var hair_mesh := _add_sphere(body_visual, "Hair", 0.176, Vector3(0.0, 2.025, 0.018), hair, 16)
+	_add_capsule(body_visual, "Torso", 0.245, 0.68, Vector3(0.0, 1.27, 0.20), shirt, 10)
+	_add_box(body_visual, "Waist", Vector3(0.43, 0.27, 0.29), Vector3(0.0, 0.91, 0.16), trousers)
+	head_visual = Node3D.new()
+	head_visual.name = "HeadVisual_FirstPersonHidden"
+	body_visual.add_child(head_visual)
+	_add_capsule(head_visual, "Neck", 0.075, 0.18, Vector3(0.0, 1.76, 0.0), skin, 8)
+	_add_sphere(head_visual, "Head", 0.17, Vector3(0.0, 1.94, 0.0), skin, 16)
+	var hair_mesh := _add_sphere(head_visual, "Hair", 0.176, Vector3(0.0, 2.025, 0.018), hair, 16)
 	hair_mesh.scale = Vector3(1.0, 0.55, 1.0)
-	_add_sphere(body_visual, "Left_Eye", 0.019, Vector3(-0.056, 1.958, -0.153), eyes, 10)
-	_add_sphere(body_visual, "Right_Eye", 0.019, Vector3(0.056, 1.958, -0.153), eyes, 10)
-	_add_sphere(body_visual, "Nose", 0.026, Vector3(0.0, 1.91, -0.168), skin, 10)
+	_add_sphere(head_visual, "Left_Eye", 0.019, Vector3(-0.056, 1.958, -0.153), eyes, 10)
+	_add_sphere(head_visual, "Right_Eye", 0.019, Vector3(0.056, 1.958, -0.153), eyes, 10)
+	_add_sphere(head_visual, "Nose", 0.026, Vector3(0.0, 1.91, -0.168), skin, 10)
+	head_visual.visible = false
 
 	left_arm_pivot = Node3D.new()
 	left_arm_pivot.name = "Left_Arm_Pivot"
-	left_arm_pivot.position = Vector3(-0.29, 1.55, 0.0)
+	left_arm_pivot.position = Vector3(-0.29, 1.50, -0.04)
 	body_visual.add_child(left_arm_pivot)
 	_add_capsule(left_arm_pivot, "Left_Arm", 0.092, 0.70, Vector3(0.0, -0.34, 0.0), shirt, 8)
 	_add_sphere(left_arm_pivot, "Left_Hand", 0.09, Vector3(0.0, -0.70, 0.0), skin, 10)
 
 	right_arm_pivot = Node3D.new()
 	right_arm_pivot.name = "Right_Arm_Pivot"
-	right_arm_pivot.position = Vector3(0.29, 1.55, 0.0)
+	right_arm_pivot.position = Vector3(0.29, 1.50, -0.04)
 	body_visual.add_child(right_arm_pivot)
 	_add_capsule(right_arm_pivot, "Right_Arm", 0.092, 0.70, Vector3(0.0, -0.34, 0.0), shirt, 8)
 	_add_sphere(right_arm_pivot, "Right_Hand", 0.09, Vector3(0.0, -0.70, 0.0), skin, 10)
@@ -345,7 +353,7 @@ func _update_character_animation(is_walking: bool, input_strength: float) -> voi
 func _build_camera() -> void:
 	player_camera = Camera3D.new()
 	player_camera.name = "PlayerCamera"
-	player_camera.fov = 68.0
+	player_camera.fov = 78.0
 	player_camera.near = 0.08
 	player_camera.far = 500.0
 	add_child(player_camera)
