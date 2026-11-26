@@ -24,6 +24,61 @@ func _run_test() -> void:
 		_fail("The campus area metadata is incorrect.")
 		return
 
+	var sections := campus.get_node_or_null("Campus_Sections") as Node3D
+	if sections == null or int(sections.get_meta("section_count", 0)) != 8:
+		_fail("The campus does not contain all eight planned sections.")
+		return
+	if sections.get_meta("layout", "") != "four_columns_two_rows":
+		_fail("The campus section layout is not the planned 4 by 2 arrangement.")
+		return
+	for section_index in range(1, 9):
+		var section := sections.get_node_or_null("Section_%02d" % section_index) as Node3D
+		if section == null or str(section.get_meta("section_name", "")).is_empty():
+			_fail("Campus section %d or its name metadata is missing." % section_index)
+			return
+		var section_sign := section.get_node_or_null("SectionSign/SectionName") as Label3D
+		if section_sign == null or section_sign.text.is_empty():
+			_fail("Campus section %d does not have a visible 3D sign." % section_index)
+			return
+
+	var fences := campus.get_node_or_null("Campus_Wooden_Fences") as Node3D
+	if fences == null or not bool(fences.get_meta("wooden_fence", false)):
+		_fail("The wooden campus fence system is missing.")
+		return
+	var fence_posts := fences.get_node_or_null("Fence_Posts") as MultiMeshInstance3D
+	var fence_rails := fences.get_node_or_null("Fence_Rails") as MultiMeshInstance3D
+	var fence_collisions := fences.get_node_or_null("Fence_Collisions") as StaticBody3D
+	if fence_posts == null or fence_rails == null or fence_collisions == null:
+		_fail("The wooden fence posts, rails, or collision body are missing.")
+		return
+	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
+		_fail("The wooden fence post instances are missing or incomplete.")
+		return
+	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 300:
+		_fail("The wooden fence rail instances are missing or incomplete.")
+		return
+	if fence_collisions.get_child_count() < 32:
+		_fail("The wooden fence boundaries do not have enough collision segments.")
+		return
+
+	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
+	if clouds == null or clouds.multimesh == null:
+		_fail("The campus 3D cloud layer is missing.")
+		return
+	if int(clouds.get_meta("cloud_cluster_count", 0)) != 22 or clouds.multimesh.instance_count < 120:
+		_fail("The campus cloud layer does not contain the expected instanced cloud formations.")
+		return
+	var world_environment := campus.get_node_or_null("Campus_World_Environment") as WorldEnvironment
+	if world_environment == null or world_environment.environment == null:
+		_fail("The campus sky environment did not load.")
+		return
+	if world_environment.environment.background_mode != Environment.BG_SKY or world_environment.environment.sky == null:
+		_fail("The campus does not have a sky background.")
+		return
+	if not (world_environment.environment.sky.sky_material is ProceduralSkyMaterial):
+		_fail("The campus sky is not using the upgraded procedural sky material.")
+		return
+
 	var terrain := campus.get_node_or_null("Terrain") as MeshInstance3D
 	if terrain == null or terrain.mesh == null:
 		_fail("The campus grass terrain did not load.")
