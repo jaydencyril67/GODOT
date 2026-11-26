@@ -49,6 +49,12 @@ const SECTION_GATE_WIDTH := 8.0
 var player: CharacterBody3D
 var player_camera: Camera3D
 var movement_joystick: Control
+var overlay_root: Control
+var phone_button: Button
+var phone_device: Panel
+var phone_screen: Panel
+var phone_earpiece: Panel
+var phone_camera_lens: Panel
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -877,6 +883,8 @@ func _build_overlay() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
+	overlay_root = root
+	root.resized.connect(_layout_phone_controls)
 
 	var back_button := Button.new()
 	back_button.name = "BackToMenuButton"
@@ -898,6 +906,173 @@ func _build_overlay() -> void:
 	movement_joystick.offset_bottom = -22.0
 	movement_joystick.custom_minimum_size = Vector2(196.0, 196.0)
 	root.add_child(movement_joystick)
+
+	_build_phone_controls(root)
+	_layout_phone_controls()
+	call_deferred("_layout_phone_controls")
+
+
+func _build_phone_controls(root: Control) -> void:
+	phone_button = Button.new()
+	phone_button.name = "PhoneButton"
+	phone_button.text = ""
+	phone_button.focus_mode = Control.FOCUS_NONE
+	phone_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	phone_button.custom_minimum_size = Vector2(54.0, 54.0)
+	phone_button.size = Vector2(54.0, 54.0)
+	phone_button.tooltip_text = "Open phone"
+	_style_phone_button(phone_button)
+	_build_phone_button_icon(phone_button)
+	phone_button.pressed.connect(_toggle_phone)
+	root.add_child(phone_button)
+
+	phone_device = Panel.new()
+	phone_device.name = "PhoneDevice"
+	phone_device.visible = false
+	phone_device.mouse_filter = Control.MOUSE_FILTER_STOP
+	phone_device.focus_mode = Control.FOCUS_NONE
+	phone_device.set_meta("phone_design", "portrait_handset")
+	phone_device.set_meta("screen_powered", false)
+	phone_device.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#171a1d"), Color("#666b70"), 2, 25)
+	)
+	root.add_child(phone_device)
+
+	phone_screen = Panel.new()
+	phone_screen.name = "PhoneScreen"
+	phone_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_screen.set_meta("screen_powered", false)
+	phone_screen.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color.BLACK, Color("#08090a"), 1, 17)
+	)
+	phone_device.add_child(phone_screen)
+
+	phone_earpiece = Panel.new()
+	phone_earpiece.name = "PhoneEarpiece"
+	phone_earpiece.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_earpiece.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#555a5f"), Color("#555a5f"), 0, 3)
+	)
+	phone_device.add_child(phone_earpiece)
+
+	phone_camera_lens = Panel.new()
+	phone_camera_lens.name = "PhoneCameraLens"
+	phone_camera_lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phone_camera_lens.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#343a40"), Color("#343a40"), 0, 5)
+	)
+	phone_device.add_child(phone_camera_lens)
+
+
+func _build_phone_button_icon(button: Button) -> void:
+	var icon_frame := Panel.new()
+	icon_frame.name = "PhoneButtonIcon"
+	icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_frame.position = Vector2(18.0, 11.0)
+	icon_frame.size = Vector2(18.0, 32.0)
+	icon_frame.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#171a1d"), Color("#e4e8e1"), 1, 4)
+	)
+	button.add_child(icon_frame)
+
+	var icon_screen := Panel.new()
+	icon_screen.name = "PhoneButtonIconScreen"
+	icon_screen.position = Vector2(3.0, 4.0)
+	icon_screen.size = Vector2(12.0, 23.0)
+	icon_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_screen.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#050606"), Color("#050606"), 0, 2)
+	)
+	icon_frame.add_child(icon_screen)
+
+
+func _style_phone_button(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.025, 0.035, 0.030, 0.84)
+		style.border_color = Color(0.86, 0.90, 0.84, 0.64)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(14)
+		if state == "hover":
+			style.bg_color = Color(0.12, 0.16, 0.13, 0.96)
+		elif state == "pressed":
+			style.bg_color = Color(0.20, 0.24, 0.19, 0.98)
+		button.add_theme_stylebox_override(state, style)
+
+
+func _make_phone_style(
+	background_color: Color,
+	border_color: Color,
+	border_width: int,
+	corner_radius: int
+) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background_color
+	style.border_color = border_color
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(corner_radius)
+	return style
+
+
+func _layout_phone_controls() -> void:
+	if not is_instance_valid(overlay_root) or not is_instance_valid(phone_button) or not is_instance_valid(phone_device):
+		return
+
+	var viewport_size := overlay_root.size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		viewport_size = get_viewport().get_visible_rect().size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		return
+
+	const PHONE_ASPECT_RATIO := 0.46
+	const BUTTON_SIZE := 54.0
+	const EDGE_MARGIN := 18.0
+	const PHONE_BUTTON_GAP := 18.0
+	const LEFT_CLEARANCE := 230.0
+
+	var phone_height := minf(viewport_size.y * 0.90, viewport_size.y - 12.0)
+	var desired_phone_width := phone_height * PHONE_ASPECT_RATIO
+	var available_phone_width := maxf(96.0, viewport_size.x - LEFT_CLEARANCE - BUTTON_SIZE - EDGE_MARGIN * 2.0 - PHONE_BUTTON_GAP)
+	var phone_width := minf(desired_phone_width, available_phone_width)
+	phone_height = phone_width / PHONE_ASPECT_RATIO
+
+	phone_button.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
+	phone_button.position = Vector2(
+		viewport_size.x - BUTTON_SIZE - EDGE_MARGIN,
+		viewport_size.y - BUTTON_SIZE - EDGE_MARGIN
+	)
+
+	phone_device.size = Vector2(phone_width, phone_height)
+	phone_device.position = Vector2(
+		viewport_size.x - BUTTON_SIZE - EDGE_MARGIN - PHONE_BUTTON_GAP - phone_width,
+		(viewport_size.y - phone_height) * 0.5
+	)
+	phone_device.set_meta("phone_aspect_ratio", PHONE_ASPECT_RATIO)
+	phone_device.set_meta("screen_height_ratio", phone_height / viewport_size.y)
+
+	var side_margin := phone_width * 0.075
+	var top_bezel := phone_height * 0.105
+	var bottom_bezel := phone_height * 0.055
+	phone_screen.position = Vector2(side_margin, top_bezel)
+	phone_screen.size = Vector2(phone_width - side_margin * 2.0, phone_height - top_bezel - bottom_bezel)
+	phone_earpiece.position = Vector2(phone_width * 0.405, phone_height * 0.047)
+	phone_earpiece.size = Vector2(phone_width * 0.15, maxf(2.0, phone_height * 0.008))
+	phone_camera_lens.position = Vector2(phone_width * 0.625, phone_height * 0.043)
+	phone_camera_lens.size = Vector2(5.0, 5.0)
+
+
+func _toggle_phone() -> void:
+	if not is_instance_valid(phone_device):
+		return
+	phone_device.visible = not phone_device.visible
+	phone_button.tooltip_text = "Close phone" if phone_device.visible else "Open phone"
+	phone_button.set_meta("phone_open", phone_device.visible)
 
 
 func _style_overlay_button(button: Button) -> void:
