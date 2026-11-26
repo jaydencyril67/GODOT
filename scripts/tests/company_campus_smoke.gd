@@ -319,7 +319,13 @@ func _run_test() -> void:
 	var phone_top_gap := phone_device.position.y
 	var phone_bottom_gap := campus_viewport_height - phone_device.position.y - phone_device.size.y
 	if phone_top_gap > 2.1 or phone_bottom_gap > 2.1 or float(phone_device.get_meta("screen_height_ratio", 0.0)) < 0.99:
-		_fail("The campus handset must nearly fill the landscape screen height with only a two-pixel top and bottom gap.")
+		var campus_overlay := campus.find_child("CampusOverlay", true, false) as Control
+		var overlay_size := campus_overlay.size if campus_overlay != null else Vector2.ZERO
+		_fail(
+			"The campus handset must nearly fill the landscape screen height with only a two-pixel top and bottom gap. "
+			+ "top=%.2f bottom=%.2f viewport_h=%.2f overlay_h=%.2f handset_y=%.2f handset_h=%.2f ratio=%.4f"
+			% [phone_top_gap, phone_bottom_gap, campus_viewport_height, overlay_size.y, phone_device.position.y, phone_device.size.y, float(phone_device.get_meta("screen_height_ratio", 0.0))]
+		)
 		return
 	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("The phone controls must capture their own touches without disabling the joystick.")
