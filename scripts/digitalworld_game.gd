@@ -452,9 +452,7 @@ func _suspend_company_campus_for_phone_app() -> void:
 	campus_phone_return_active = true
 	company_campus.process_mode = Node.PROCESS_MODE_DISABLED
 	company_campus.hide()
-	for child in company_campus.get_children():
-		if child is CanvasLayer:
-			child.hide()
+	company_campus.call("set_career_home_overlay_visible", false)
 	for layer in [ui_layer, create_ui_layer, staff_ui_layer]:
 		if is_instance_valid(layer):
 			layer.hide()
@@ -476,9 +474,7 @@ func _resume_company_campus_after_phone_app() -> bool:
 	_close_staff_overlay()
 	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
 	company_campus.show()
-	for child in company_campus.get_children():
-		if child is CanvasLayer:
-			child.show()
+	company_campus.call("set_career_home_overlay_visible", true)
 	current_screen = "company_campus"
 	_update_home_status_bar()
 	return true
@@ -490,6 +486,7 @@ func _show_home_scene() -> void:
 			return
 		company_campus.process_mode = Node.PROCESS_MODE_INHERIT
 		company_campus.show()
+		company_campus.call("set_career_home_overlay_visible", true)
 		current_screen = "company_campus"
 		return
 
@@ -2141,9 +2138,7 @@ func _restore_home_after_standalone_screen() -> void:
 		return
 	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
 	company_campus.show()
-	for child in company_campus.get_children():
-		if child is CanvasLayer:
-			child.show()
+	company_campus.call("set_career_home_overlay_visible", true)
 	current_screen = "company_campus"
 	_update_home_status_bar()
 
