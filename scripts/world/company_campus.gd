@@ -25,7 +25,7 @@ var body_visual: Node3D
 var head_visual: Node3D
 
 var camera_yaw := PI * 0.25
-var camera_pitch := 0.16
+var camera_pitch := 0.0
 var camera_touch_index := -1
 var mouse_look_active := false
 var walking_phase := 0.0
@@ -107,7 +107,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _rotate_camera(delta_position: Vector2) -> void:
 	camera_yaw += delta_position.x * CAMERA_SENSITIVITY
-	camera_pitch = clampf(camera_pitch + delta_position.y * CAMERA_SENSITIVITY * 0.72, -0.12, 0.52)
+	camera_pitch = clampf(camera_pitch + delta_position.y * CAMERA_SENSITIVITY * 0.72, -0.45, 1.25)
 
 
 func _update_camera() -> void:
