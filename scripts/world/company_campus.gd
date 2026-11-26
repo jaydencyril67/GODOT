@@ -971,48 +971,27 @@ func _build_camera() -> void:
 
 
 func _build_career_hud(root: Control) -> void:
-	var header := PanelContainer.new()
-	header.name = "CampusCareerStatusBar"
-	header.anchor_left = 0.0
-	header.anchor_top = 0.0
-	header.anchor_right = 1.0
-	header.anchor_bottom = 0.0
-	header.offset_left = 14.0
-	header.offset_top = 10.0
-	header.offset_right = -14.0
-	header.offset_bottom = 78.0
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.025, 0.035, 0.045, 0.88)
-	panel_style.border_color = Color(0.62, 0.49, 0.31, 0.72)
-	panel_style.set_border_width_all(1)
-	panel_style.border_width_bottom = 2
-	panel_style.set_corner_radius_all(13)
-	panel_style.content_margin_left = 10.0
-	panel_style.content_margin_right = 10.0
-	panel_style.content_margin_top = 5.0
-	panel_style.content_margin_bottom = 5.0
-	header.add_theme_stylebox_override("panel", panel_style)
-	root.add_child(header)
-
+	# This is only a transparent horizontal layout row. Each item below owns
+	# its own card so the campus remains visible between the HUD elements.
 	var row := HBoxContainer.new()
-	row.name = "CampusCareerStatusContents"
+	row.name = "CampusCareerStatusBar"
+	row.anchor_left = 0.0
+	row.anchor_top = 0.0
+	row.anchor_right = 1.0
+	row.anchor_bottom = 0.0
+	row.offset_left = 14.0
+	row.offset_top = 10.0
+	row.offset_right = -14.0
+	row.offset_bottom = 78.0
 	row.add_theme_constant_override("separation", 8)
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(row)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(row)
 
 	var insignia_frame := PanelContainer.new()
 	insignia_frame.name = "CampusCompanyInsigniaFrame"
 	insignia_frame.custom_minimum_size = Vector2(48.0, 48.0)
-	var insignia_style := StyleBoxFlat.new()
-	insignia_style.bg_color = Color(0.12, 0.15, 0.17, 0.96)
-	insignia_style.border_color = Color("#B78C4E")
-	insignia_style.set_border_width_all(1)
-	insignia_style.set_corner_radius_all(10)
-	insignia_style.content_margin_left = 3.0
-	insignia_style.content_margin_right = 3.0
-	insignia_style.content_margin_top = 3.0
-	insignia_style.content_margin_bottom = 3.0
-	insignia_frame.add_theme_stylebox_override("panel", insignia_style)
+	_apply_career_hud_card_style(insignia_frame)
 	row.add_child(insignia_frame)
 
 	var insignia := TextureRect.new()
@@ -1024,12 +1003,18 @@ func _build_career_hud(root: Control) -> void:
 	insignia.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	insignia_frame.add_child(insignia)
 
+	var identity_card := PanelContainer.new()
+	identity_card.name = "CampusCompanyIdentityCard"
+	identity_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity_card.custom_minimum_size = Vector2(150.0, 48.0)
+	_apply_career_hud_card_style(identity_card)
+	row.add_child(identity_card)
+
 	var identity := VBoxContainer.new()
 	identity.name = "CampusCompanyIdentity"
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	identity.add_theme_constant_override("separation", 1)
-	row.add_child(identity)
+	identity_card.add_child(identity)
 
 	var brand := Label.new()
 	brand.text = "DIGITAL WORLD MOBILES"
@@ -1059,6 +1044,12 @@ func _build_career_hud(root: Control) -> void:
 	career_date_label.name = "CampusDateValue"
 	career_date_label.text = career_date_text
 
+	var clock_card := PanelContainer.new()
+	clock_card.name = "CampusGameClockCard"
+	clock_card.custom_minimum_size = Vector2(90.0, 48.0)
+	_apply_career_hud_card_style(clock_card)
+	row.add_child(clock_card)
+
 	career_clock_button = Button.new()
 	career_clock_button.name = "CampusGameClockControl"
 	career_clock_button.custom_minimum_size = Vector2(84.0, 42.0)
@@ -1068,7 +1059,20 @@ func _build_career_hud(root: Control) -> void:
 	_style_overlay_button(career_clock_button)
 	career_clock_button.add_theme_font_size_override("font_size", 10)
 	career_clock_button.pressed.connect(func(): game_clock_toggle_requested.emit())
-	row.add_child(career_clock_button)
+	clock_card.add_child(career_clock_button)
+
+
+func _apply_career_hud_card_style(card: PanelContainer) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.025, 0.035, 0.045, 0.78)
+	style.border_color = Color(0.62, 0.49, 0.31, 0.72)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 5.0
+	style.content_margin_right = 5.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	card.add_theme_stylebox_override("panel", style)
 
 
 func _make_career_metric_card(card_name: String, caption: String) -> PanelContainer:
