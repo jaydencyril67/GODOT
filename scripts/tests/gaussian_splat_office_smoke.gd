@@ -24,8 +24,8 @@ func _run_test() -> void:
 		return
 
 	var gaussian: Resource = splat.get("gaussian")
-	if gaussian == null or int(gaussian.get("point_count")) != 750000:
-		_fail("The office did not load the expected 750,000-point Gaussian resource.")
+	if gaussian == null or int(gaussian.get("point_count")) != 250000:
+		_fail("The office did not load the expected 250,000-point Gaussian resource.")
 		return
 
 	var bounds_value: Variant = gaussian.get("aabb")

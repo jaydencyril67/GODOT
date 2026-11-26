@@ -43,8 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           for asset in \
-            assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply \
-            assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030_750k.ply; do
+            assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply; do
             if [[ -f "$asset" ]]; then
               mv "$asset" "/tmp/$(basename "$asset")"
             fi

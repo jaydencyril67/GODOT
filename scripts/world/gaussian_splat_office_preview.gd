@@ -2,8 +2,8 @@ extends Node3D
 
 signal back_requested
 
-const GAUSSIAN_ASSET_PATH := "res://assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030_750k.ply"
 const SPLAT_NODE_SCRIPT := preload("res://addons/gdgs/runtime/nodes/gaussian_splat_node.gd")
+const GAUSSIAN_ASSET_PATH := "res://assets/3d/Chisel_original_2m_test_250k_clean.ply"
 
 const WALK_SPEED := 2.65
 const LOOK_SENSITIVITY := 0.0036
