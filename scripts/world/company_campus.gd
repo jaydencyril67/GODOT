@@ -3,6 +3,7 @@ extends Node3D
 signal back_requested
 
 const JoystickScript = preload("res://scripts/world/campus_joystick.gd")
+const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
 
 const CAMPUS_WIDTH := 800.0
 const CAMPUS_DEPTH := 600.0
@@ -57,10 +58,9 @@ var player_camera: Camera3D
 var movement_joystick: Control
 var overlay_root: Control
 var phone_button: Button
-var phone_device: Panel
-var phone_screen: Panel
-var phone_earpiece: Panel
-var phone_camera_lens: Panel
+var phone_device: SubViewportContainer
+var phone_viewport: SubViewport
+var phone_model: Node3D
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -924,54 +924,54 @@ func _build_phone_controls(root: Control) -> void:
 	phone_button.text = ""
 	phone_button.focus_mode = Control.FOCUS_NONE
 	phone_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	phone_button.custom_minimum_size = Vector2(54.0, 54.0)
-	phone_button.size = Vector2(54.0, 54.0)
+	phone_button.custom_minimum_size = PHONE_BUTTON_SIZE
+	phone_button.size = PHONE_BUTTON_SIZE
 	phone_button.tooltip_text = "Open phone"
 	_style_phone_button(phone_button)
 	_build_phone_button_icon(phone_button)
 	phone_button.pressed.connect(_toggle_phone)
 	root.add_child(phone_button)
 
-	phone_device = Panel.new()
+	# Use the actual OS Worksite handset model, not a hand-drawn UI substitute.
+	# The worksite model supplies its own fixed front-facing camera, metal chassis,
+	# true rounded extrusion, inset bezel, dark glass, side keys and bottom hardware.
+	phone_device = SubViewportContainer.new()
 	phone_device.name = "PhoneDevice"
 	phone_device.visible = false
 	phone_device.mouse_filter = Control.MOUSE_FILTER_STOP
 	phone_device.focus_mode = Control.FOCUS_NONE
-	phone_device.set_meta("phone_design", "portrait_handset")
+	phone_device.stretch = true
+	phone_device.set_meta("phone_design", "shared_os_worksite_physical_handset")
 	phone_device.set_meta("screen_powered", false)
-	phone_device.add_theme_stylebox_override(
-		"panel",
-		_make_phone_style(Color("#171a1d"), Color("#666b70"), 2, 25)
-	)
+	phone_device.set_meta("phone_fixed", true)
+	phone_device.z_index = 5
 	root.add_child(phone_device)
 
-	phone_screen = Panel.new()
-	phone_screen.name = "PhoneScreen"
-	phone_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	phone_screen.set_meta("screen_powered", false)
-	phone_screen.add_theme_stylebox_override(
-		"panel",
-		_make_phone_style(Color.BLACK, Color("#08090a"), 1, 17)
-	)
-	phone_device.add_child(phone_screen)
+	phone_viewport = SubViewport.new()
+	phone_viewport.name = "CampusPhoneModelViewport"
+	phone_viewport.size = Vector2i(700, 1400)
+	phone_viewport.msaa_3d = Viewport.MSAA_DISABLED
+	phone_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	phone_viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	phone_viewport.scaling_3d_scale = 1.0
+	phone_viewport.own_world_3d = true
+	phone_viewport.transparent_bg = true
+	phone_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	phone_device.add_child(phone_viewport)
 
-	phone_earpiece = Panel.new()
-	phone_earpiece.name = "PhoneEarpiece"
-	phone_earpiece.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	phone_earpiece.add_theme_stylebox_override(
-		"panel",
-		_make_phone_style(Color("#555a5f"), Color("#555a5f"), 0, 3)
-	)
-	phone_device.add_child(phone_earpiece)
+	phone_model = OSPhoneModelScript.new() as Node3D
+	phone_model.name = "CampusOSWorksiteHandsetModel"
+	phone_model.set_meta("handset_source", "res://scripts/os_worksite_phone_model.gd")
+	phone_model.set_meta("rotation_locked", true)
+	phone_viewport.add_child(phone_model)
+	phone_model.call("build", _create_phone_off_texture())
+	phone_model.rotation = Vector3.ZERO
 
-	phone_camera_lens = Panel.new()
-	phone_camera_lens.name = "PhoneCameraLens"
-	phone_camera_lens.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	phone_camera_lens.add_theme_stylebox_override(
-		"panel",
-		_make_phone_style(Color("#343a40"), Color("#343a40"), 0, 5)
-	)
-	phone_device.add_child(phone_camera_lens)
+
+func _create_phone_off_texture() -> Texture2D:
+	var image := Image.create(32, 64, false, Image.FORMAT_RGBA8)
+	image.fill(Color.BLACK)
+	return ImageTexture.create_from_image(image)
 
 
 func _build_phone_button_icon(button: Button) -> void:
@@ -1012,20 +1012,6 @@ func _style_phone_button(button: Button) -> void:
 		button.add_theme_stylebox_override(state, style)
 
 
-func _make_phone_style(
-	background_color: Color,
-	border_color: Color,
-	border_width: int,
-	corner_radius: int
-) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background_color
-	style.border_color = border_color
-	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(corner_radius)
-	return style
-
-
 func _layout_phone_controls() -> void:
 	if not is_instance_valid(overlay_root) or not is_instance_valid(phone_button) or not is_instance_valid(phone_device):
 		return
@@ -1058,16 +1044,6 @@ func _layout_phone_controls() -> void:
 	)
 	phone_device.set_meta("phone_aspect_ratio", PHONE_BODY_ASPECT_RATIO)
 	phone_device.set_meta("screen_height_ratio", phone_height / viewport_size.y)
-
-	var side_margin := phone_width * 0.075
-	var top_bezel := phone_height * 0.105
-	var bottom_bezel := phone_height * 0.055
-	phone_screen.position = Vector2(side_margin, top_bezel)
-	phone_screen.size = Vector2(phone_width - side_margin * 2.0, phone_height - top_bezel - bottom_bezel)
-	phone_earpiece.position = Vector2(phone_width * 0.405, phone_height * 0.047)
-	phone_earpiece.size = Vector2(phone_width * 0.15, maxf(2.0, phone_height * 0.008))
-	phone_camera_lens.position = Vector2(phone_width * 0.625, phone_height * 0.043)
-	phone_camera_lens.size = Vector2(5.0, 5.0)
 
 
 func _toggle_phone() -> void:
