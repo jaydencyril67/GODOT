@@ -13,6 +13,7 @@ const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
 const GRASS_INSTANCE_COUNT := 5600
+const MAINTAINED_GRASS_RATIO := 0.72
 
 var player: CharacterBody3D
 var player_camera: Camera3D
@@ -155,6 +156,7 @@ func _build_environment() -> void:
 func _build_terrain() -> void:
 	var terrain := MeshInstance3D.new()
 	terrain.name = "Terrain"
+	terrain.set_meta("grass_layout", "hybrid_maintained_core_natural_perimeter")
 	var terrain_mesh := PlaneMesh.new()
 	terrain_mesh.size = Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH)
 	terrain_mesh.subdivide_width = 64
@@ -164,7 +166,7 @@ func _build_terrain() -> void:
 	var grass_material := StandardMaterial3D.new()
 	grass_material.albedo_texture = _create_grass_texture()
 	grass_material.roughness = 1.0
-	grass_material.uv1_scale = Vector3(38.0, 1.0, 30.0)
+	grass_material.uv1_scale = Vector3(1.0, 1.0, 1.0)
 	grass_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	terrain.material_override = grass_material
 	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -185,29 +187,35 @@ func _build_terrain() -> void:
 
 
 func _create_grass_texture() -> Texture2D:
-	var image := Image.create(256, 256, false, Image.FORMAT_RGB8)
+	var image := Image.create(512, 512, false, Image.FORMAT_RGB8)
 	var broad_noise := FastNoiseLite.new()
 	broad_noise.seed = 4817
-	broad_noise.frequency = 0.022
-	broad_noise.fractal_octaves = 3
+	broad_noise.frequency = 0.009
+	broad_noise.fractal_octaves = 4
+	var mid_noise := FastNoiseLite.new()
+	mid_noise.seed = 9127
+	mid_noise.frequency = 0.055
+	mid_noise.fractal_octaves = 2
 	var fine_noise := FastNoiseLite.new()
-	fine_noise.seed = 9127
-	fine_noise.frequency = 0.16
-	for y in range(256):
-		for x in range(256):
+	fine_noise.seed = 7319
+	fine_noise.frequency = 0.22
+	for y in range(512):
+		for x in range(512):
 			var broad := broad_noise.get_noise_2d(float(x), float(y))
+			var mid := mid_noise.get_noise_2d(float(x), float(y))
 			var fine := fine_noise.get_noise_2d(float(x), float(y))
-			var tone := clampf(0.52 + broad * 0.22 + fine * 0.10, 0.0, 1.0)
-			var grain := 0.96 if ((x * 13 + y * 7) % 29) < 3 else 1.0
+			var patch := clampf(0.52 + broad * 0.24 + mid * 0.12, 0.0, 1.0)
+			var grain := fine * 0.035
+			var dry_tone := maxf(0.0, mid - 0.28) * 0.10
+			var green := 0.205 + patch * 0.105 + grain - dry_tone * 0.35
 			var color := Color(
-				(0.105 + tone * 0.105) * grain,
-				(0.185 + tone * 0.175) * grain,
-				(0.060 + tone * 0.075) * grain
+				0.105 + patch * 0.055 + dry_tone * 0.50 + grain * 0.55,
+				green,
+				0.052 + patch * 0.038 + grain * 0.25
 			)
 			image.set_pixel(x, y, color)
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
-
 
 func _add_grass_instances() -> void:
 	var blade_material := StandardMaterial3D.new()
@@ -221,8 +229,8 @@ func _add_grass_instances() -> void:
 	surface.set_material(blade_material)
 	for angle in [0.0, PI / 3.0, PI * 2.0 / 3.0]:
 		var direction := Vector3(cos(angle), 0.0, sin(angle))
-		var half_width := 0.035
-		var height := 0.13
+		var half_width := 0.032
+		var height := 0.14
 		var a := -direction * half_width
 		var b := direction * half_width
 		var c := b + Vector3.UP * height
@@ -244,22 +252,45 @@ func _add_grass_instances() -> void:
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 260911
+	var maintained_count := int(float(GRASS_INSTANCE_COUNT) * MAINTAINED_GRASS_RATIO)
 	for index in range(GRASS_INSTANCE_COUNT):
-		var x := rng.randf_range(-HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
-		var z := rng.randf_range(-HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
-		var scale_value := rng.randf_range(0.76, 1.28)
+		var is_maintained := index < maintained_count
+		var x: float
+		var z: float
+		if is_maintained:
+			x = rng.randf_range(-HALF_WIDTH * 0.38, HALF_WIDTH * 0.38)
+			z = rng.randf_range(-HALF_DEPTH * 0.38, HALF_DEPTH * 0.38)
+		else:
+			var edge := rng.randi_range(0, 3)
+			if edge == 0:
+				x = rng.randf_range(-HALF_WIDTH + 2.0, HALF_WIDTH - 2.0)
+				z = rng.randf_range(-HALF_DEPTH + 2.0, -HALF_DEPTH * 0.34)
+			elif edge == 1:
+				x = rng.randf_range(-HALF_WIDTH + 2.0, HALF_WIDTH - 2.0)
+				z = rng.randf_range(HALF_DEPTH * 0.34, HALF_DEPTH - 2.0)
+			elif edge == 2:
+				x = rng.randf_range(-HALF_WIDTH + 2.0, -HALF_WIDTH * 0.38)
+				z = rng.randf_range(-HALF_DEPTH * 0.34, HALF_DEPTH * 0.34)
+			else:
+				x = rng.randf_range(HALF_WIDTH * 0.38, HALF_WIDTH - 2.0)
+				z = rng.randf_range(-HALF_DEPTH * 0.34, HALF_DEPTH * 0.34)
+
+		var scale_value := rng.randf_range(0.72, 0.98) if is_maintained else rng.randf_range(1.25, 2.05)
 		var grass_transform_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
 		multi.set_instance_transform(index, Transform3D(grass_transform_basis, Vector3(x, 0.012, z)))
-		var shade := rng.randf_range(0.78, 1.0)
-		multi.set_instance_color(index, Color(0.72 * shade, 0.92 * shade, 0.62 * shade, 1.0))
+		var shade := rng.randf_range(0.90, 1.08) if is_maintained else rng.randf_range(0.72, 1.12)
+		var tint := Color(0.78, 0.94, 0.68, 1.0) if is_maintained else Color(0.74, 0.91, 0.61, 1.0)
+		multi.set_instance_color(index, Color(tint.r * shade, tint.g * shade, tint.b * shade, 1.0))
 
 	var grass := MultiMeshInstance3D.new()
-	grass.name = "Instanced_Grass_Clumps"
+	grass.name = "Hybrid_Grass_Clumps"
 	grass.multimesh = multi
 	grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	grass.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	grass.set_meta("instance_count", GRASS_INSTANCE_COUNT)
+	grass.set_meta("maintained_core_instance_count", maintained_count)
+	grass.set_meta("natural_edge_instance_count", GRASS_INSTANCE_COUNT - maintained_count)
 	add_child(grass)
-
 
 func _build_player() -> void:
 	player = CharacterBody3D.new()
