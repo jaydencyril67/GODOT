@@ -74,6 +74,7 @@ func _ready() -> void:
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
+	set_meta("movement_response", "direct_analog_slide_no_acceleration_ramp")
 	set_meta("camera_perspective", "first_person_eye_only")
 	_build_environment()
 	_build_terrain()
@@ -96,19 +97,9 @@ func _physics_process(delta: float) -> void:
 	if movement.length() < 0.05:
 		movement = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
-	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
-	var right := Vector3(cos(camera_yaw), 0.0, sin(camera_yaw))
-	var move_direction := right * movement.x + forward * movement.y
-	var input_strength := minf(movement.length(), 1.0)
-	if move_direction.length_squared() > 1.0:
-		move_direction = move_direction.normalized()
-
-	var target_horizontal_velocity := move_direction * WALK_SPEED * input_strength
-	var current_horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
-	var movement_rate := WALK_ACCELERATION if input_strength > 0.05 else WALK_DECELERATION
-	current_horizontal_velocity = current_horizontal_velocity.move_toward(target_horizontal_velocity, movement_rate * delta)
-	player.velocity.x = current_horizontal_velocity.x
-	player.velocity.z = current_horizontal_velocity.z
+	var horizontal_velocity := _calculate_horizontal_velocity(movement)
+	player.velocity.x = horizontal_velocity.x
+	player.velocity.z = horizontal_velocity.z
 	if not player.is_on_floor():
 		player.velocity.y -= GRAVITY * delta
 	elif player.velocity.y < 0.0:
@@ -120,6 +111,22 @@ func _physics_process(delta: float) -> void:
 	_update_near_player_grass()
 
 	player.rotation.y = -camera_yaw
+
+
+func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
+	var input_strength := minf(movement.length(), 1.0)
+	if input_strength <= 0.001:
+		return Vector3.ZERO
+
+	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
+	var right := Vector3(cos(camera_yaw), 0.0, sin(camera_yaw))
+	var move_direction := right * movement.x + forward * movement.y
+	if move_direction.length_squared() <= 0.000001:
+		return Vector3.ZERO
+
+	# Normalize direction first, then apply analog strength once. This keeps
+	# partial joystick input linear instead of squaring its magnitude.
+	return move_direction.normalized() * WALK_SPEED * input_strength
 
 
 func _process(_delta: float) -> void:
