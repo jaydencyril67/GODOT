@@ -116,15 +116,6 @@ jobs:
           godot --headless --editor --path . --quit 2>&1 | tee godot-parse.log
           if grep -E 'Parse Error:|SCRIPT ERROR:|ERROR:' godot-parse.log; then exit 1; fi
 
-  home-office-smoke:
-    name: Home and Office navigation
-    uses: ./.github/workflows/godot-smoke-test.yml
-    with:
-      test_name: Home and Office navigation
-      script_path: scripts/tests/home_transition_smoke.gd
-      pass_marker: "HOME_OFFICE_TRANSITION_SMOKE_TEST: PASS"
-      log_name: home-office-smoke.log
-
   research-dashboard-smoke:
     name: Phone, Camera and Processor Research dashboards
     uses: ./.github/workflows/godot-smoke-test.yml
@@ -216,10 +207,10 @@ jobs:
       log_name: world-globe-smoke.log
 
   company-campus-smoke:
-    name: Empty walkable company campus
+    name: Company campus career home and phone apps
     uses: ./.github/workflows/godot-smoke-test.yml
     with:
-      test_name: Empty walkable company campus
+      test_name: Company campus career home and phone apps
       script_path: scripts/tests/company_campus_smoke.gd
       pass_marker: "COMPANY_CAMPUS_SMOKE_TEST: PASS"
       log_name: company-campus-smoke.log
