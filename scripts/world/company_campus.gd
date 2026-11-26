@@ -14,6 +14,12 @@ const WALK_DECELERATION := 3.5
 const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
+const PHONE_BUTTON_SIZE := Vector2(54.0, 54.0)
+const PHONE_BODY_ASPECT_RATIO := 0.46
+const PHONE_BODY_HEIGHT_RATIO := 0.90
+const PHONE_BODY_EDGE_MARGIN := 18.0
+const PHONE_BODY_BUTTON_GAP := 18.0
+const PHONE_BODY_LEFT_CLEARANCE := 230.0
 const GRASS_INSTANCE_COUNT := 7600
 const MAINTAINED_GRASS_RATIO := 0.72
 const NEAR_PLAYER_GRASS_COUNT := 900
@@ -1030,30 +1036,27 @@ func _layout_phone_controls() -> void:
 	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
 		return
 
-	const PHONE_ASPECT_RATIO := 0.46
-	const BUTTON_SIZE := 54.0
-	const EDGE_MARGIN := 18.0
-	const PHONE_BUTTON_GAP := 18.0
-	const LEFT_CLEARANCE := 230.0
-
-	var phone_height := minf(viewport_size.y * 0.90, viewport_size.y - 12.0)
-	var desired_phone_width := phone_height * PHONE_ASPECT_RATIO
-	var available_phone_width := maxf(96.0, viewport_size.x - LEFT_CLEARANCE - BUTTON_SIZE - EDGE_MARGIN * 2.0 - PHONE_BUTTON_GAP)
+	var phone_height := minf(viewport_size.y * PHONE_BODY_HEIGHT_RATIO, viewport_size.y - 12.0)
+	var desired_phone_width := phone_height * PHONE_BODY_ASPECT_RATIO
+	var available_phone_width := maxf(
+		96.0,
+		viewport_size.x - PHONE_BODY_LEFT_CLEARANCE - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN * 2.0 - PHONE_BODY_BUTTON_GAP
+	)
 	var phone_width := minf(desired_phone_width, available_phone_width)
-	phone_height = phone_width / PHONE_ASPECT_RATIO
+	phone_height = phone_width / PHONE_BODY_ASPECT_RATIO
 
-	phone_button.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
+	phone_button.size = PHONE_BUTTON_SIZE
 	phone_button.position = Vector2(
-		viewport_size.x - BUTTON_SIZE - EDGE_MARGIN,
-		viewport_size.y - BUTTON_SIZE - EDGE_MARGIN
+		viewport_size.x - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN,
+		viewport_size.y - PHONE_BUTTON_SIZE.y - PHONE_BODY_EDGE_MARGIN
 	)
 
 	phone_device.size = Vector2(phone_width, phone_height)
 	phone_device.position = Vector2(
-		viewport_size.x - BUTTON_SIZE - EDGE_MARGIN - PHONE_BUTTON_GAP - phone_width,
+		viewport_size.x - PHONE_BUTTON_SIZE.x - PHONE_BODY_EDGE_MARGIN - PHONE_BODY_BUTTON_GAP - phone_width,
 		(viewport_size.y - phone_height) * 0.5
 	)
-	phone_device.set_meta("phone_aspect_ratio", PHONE_ASPECT_RATIO)
+	phone_device.set_meta("phone_aspect_ratio", PHONE_BODY_ASPECT_RATIO)
 	phone_device.set_meta("screen_height_ratio", phone_height / viewport_size.y)
 
 	var side_margin := phone_width * 0.075
