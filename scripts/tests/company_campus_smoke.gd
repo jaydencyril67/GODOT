@@ -165,6 +165,41 @@ func _run_test() -> void:
 		_fail("The campus scene has no return-to-menu button.")
 		return
 
+	var phone_button := campus.find_child("PhoneButton", true, false) as Button
+	var phone_device := campus.find_child("PhoneDevice", true, false) as Panel
+	var phone_screen := campus.find_child("PhoneScreen", true, false) as Panel
+	if phone_button == null or phone_device == null or phone_screen == null:
+		_fail("The phone launcher, handset, or blank display is missing.")
+		return
+	if phone_button.custom_minimum_size.x >= joystick.custom_minimum_size.x or phone_button.custom_minimum_size.y >= joystick.custom_minimum_size.y:
+		_fail("The phone launcher must be substantially smaller than the movement joystick.")
+		return
+	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
+		_fail("The phone controls must capture their own touches without disabling the joystick.")
+		return
+	if phone_device.visible or bool(phone_device.get_meta("screen_powered", true)) or bool(phone_screen.get_meta("screen_powered", true)):
+		_fail("The phone must start hidden and powered off.")
+		return
+	var phone_style := phone_screen.get_theme_stylebox("panel") as StyleBoxFlat
+	if phone_style == null or phone_style.bg_color != Color.BLACK:
+		_fail("The powered-off phone screen is not completely black.")
+		return
+	var handset_ratio := phone_device.size.x / maxf(phone_device.size.y, 1.0)
+	if handset_ratio < 0.43 or handset_ratio > 0.49 or phone_device.size.y < get_root().get_visible_rect().size.y * 0.82:
+		_fail("The opened handset is not a near-full-height, realistic portrait phone shape.")
+		return
+	if phone_device.position.x <= joystick.position.x + joystick.size.x:
+		_fail("The phone handset overlaps the left movement joystick.")
+		return
+	phone_button.emit_signal("pressed")
+	if not phone_device.visible:
+		_fail("Tapping the small phone launcher did not display the handset.")
+		return
+	phone_button.emit_signal("pressed")
+	if phone_device.visible:
+		_fail("The phone launcher cannot close the handset after opening it.")
+		return
+
 	print("COMPANY_CAMPUS_SMOKE_TEST: PASS")
 	campus.queue_free()
 	await process_frame
