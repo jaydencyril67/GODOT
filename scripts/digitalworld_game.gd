@@ -1936,7 +1936,7 @@ void fragment() {
 func _show_research_scene() -> void:
 	current_screen = "research"
 
-	# Keep the already-built headquarters resident but inactive behind this page.
+	# Keep the generated campus resident but inactive behind this app.
 	# It is restored directly when the player returns to Home.
 	var root := _new_screen()
 	root.name = "ResearchDevelopmentScreen"
