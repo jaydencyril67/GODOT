@@ -497,8 +497,12 @@ func _show_home_scene() -> void:
 	_clear_world()
 	await get_tree().process_frame
 	_refresh_staff_market_on_startup()
+	# Finish constructing every first-load career destination while the
+	# preparation screen still owns the display. These scenes are reused later.
 	_prepare_phone_creation_worksite()
 	_prepare_processor_creation_worksite()
+	_prepare_camera_creation_worksite()
+	_prepare_staff_scenes()
 
 	var campus := CompanyCampusScene.instantiate() as Node3D
 	if not is_instance_valid(campus):
@@ -1754,13 +1758,32 @@ func _update_campus_loading(message: String, progress: float) -> void:
 		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
+func _are_career_startup_scenes_ready() -> bool:
+	if not is_instance_valid(company_campus):
+		return false
+	if not bool(company_campus.get_meta("campus_generation_complete", false)):
+		return false
+	if not is_instance_valid(phone_creation_worksite):
+		return false
+	if not is_instance_valid(processor_creation_worksite):
+		return false
+	if not is_instance_valid(camera_creation_worksite):
+		return false
+	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
+		return false
+	if not is_instance_valid(os_creation_worksite):
+		return false
+	return bool(os_creation_worksite.get("setup_complete"))
+
+
 func _finish_campus_loading() -> void:
 	if campus_loading_finish_started:
 		return
-	campus_loading_finish_started = true
-	if not is_instance_valid(company_campus):
-		campus_loading_finish_started = false
+	# Do not dismiss preparation until every scene required by the first
+	# career session has completed its synchronous construction and OS setup.
+	if not _are_career_startup_scenes_ready():
 		return
+	campus_loading_finish_started = true
 	if loading_progress_tween != null and loading_progress_tween.is_running():
 		loading_progress_tween.kill()
 	loading_progress_tween = null
@@ -1779,13 +1802,13 @@ func _finish_campus_loading() -> void:
 
 	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
 	company_campus.visible = true
+	company_campus.call("set_career_home_overlay_visible", true)
 	home_company_label = company_campus.find_child("CampusCompanyName", true, false) as Label
 	home_balance_label = company_campus.find_child("CampusBalanceValue", true, false) as Label
 	home_date_label = company_campus.find_child("CampusDateValue", true, false) as Label
 	home_time_button = company_campus.find_child("CampusGameClockControl", true, false) as Button
 	_update_home_status_bar()
 	current_screen = "company_campus"
-	call_deferred("_prepare_staff_scenes")
 
 
 func _show_create_scene() -> void:
