@@ -889,38 +889,6 @@ func _build_overlay() -> void:
 	back_button.pressed.connect(_request_back)
 	root.add_child(back_button)
 
-	var title := Label.new()
-	title.name = "CampusTitle"
-	title.text = "COMPANY CAMPUS"
-	title.position = Vector2(20.0, 78.0)
-	title.size = Vector2(260.0, 28.0)
-	title.add_theme_font_size_override("font_size", 17)
-	title.add_theme_color_override("font_color", Color("#f4f2e9"))
-	root.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.name = "CampusDimensions"
-	subtitle.text = "800 × 600 m   •   48 hectares   •   8 CAMPUS ZONES"
-	subtitle.position = Vector2(20.0, 106.0)
-	subtitle.size = Vector2(390.0, 24.0)
-	subtitle.add_theme_font_size_override("font_size", 10)
-	subtitle.add_theme_color_override("font_color", Color(0.91, 0.94, 0.87, 0.88))
-	root.add_child(subtitle)
-
-	var look_hint := Label.new()
-	look_hint.name = "CameraLookHint"
-	look_hint.text = "DRAG RIGHT SIDE TO LOOK"
-	look_hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	look_hint.offset_left = -230.0
-	look_hint.offset_top = 24.0
-	look_hint.offset_right = -18.0
-	look_hint.offset_bottom = 48.0
-	look_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	look_hint.add_theme_font_size_override("font_size", 11)
-	look_hint.add_theme_color_override("font_color", Color(0.95, 0.95, 0.89, 0.88))
-	look_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(look_hint)
-
 	movement_joystick = JoystickScript.new() as Control
 	movement_joystick.name = "MovementJoystick"
 	movement_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
