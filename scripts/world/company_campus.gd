@@ -60,7 +60,6 @@ var camera_yaw := PI * 0.25
 var camera_pitch := 0.0
 var camera_touch_index := -1
 var mouse_look_active := false
-var walking_phase := 0.0
 
 
 func _ready() -> void:
@@ -109,12 +108,6 @@ func _physics_process(delta: float) -> void:
 	_update_near_player_grass()
 
 	player.rotation.y = -camera_yaw
-	var is_walking := input_strength > 0.08 and move_direction.length_squared() > 0.01
-	if is_walking:
-		walking_phase += delta * 7.0 * input_strength
-	else:
-		walking_phase = lerpf(walking_phase, 0.0, minf(1.0, delta * 4.0))
-	_update_character_animation(is_walking, input_strength)
 
 
 func _process(_delta: float) -> void:
@@ -919,21 +912,6 @@ func _build_humanoid_visual() -> void:
 	body_visual.add_child(right_leg_pivot)
 	_add_capsule(right_leg_pivot, "Right_Leg", 0.12, 0.80, Vector3(0.0, -0.37, 0.0), trousers, 8)
 	_add_box(right_leg_pivot, "Right_Shoe", Vector3(0.23, 0.12, 0.38), Vector3(0.0, -0.77, -0.045), shoes)
-
-
-func _update_character_animation(is_walking: bool, input_strength: float) -> void:
-	if not is_instance_valid(body_visual):
-		return
-	var stride := sin(walking_phase) * 0.42 * input_strength if is_walking else 0.0
-	if is_instance_valid(left_leg_pivot):
-		left_leg_pivot.rotation.x = stride
-	if is_instance_valid(right_leg_pivot):
-		right_leg_pivot.rotation.x = -stride
-	if is_instance_valid(left_arm_pivot):
-		left_arm_pivot.rotation.x = -stride * 0.78
-	if is_instance_valid(right_arm_pivot):
-		right_arm_pivot.rotation.x = stride * 0.78
-	body_visual.position.y = absf(sin(walking_phase * 2.0)) * 0.025 * input_strength if is_walking else 0.0
 
 
 func _build_camera() -> void:
