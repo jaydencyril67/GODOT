@@ -385,21 +385,6 @@ func _run_test() -> void:
 		_fail("The phone launcher cannot close the handset display.")
 		return
 
-	phone_button.emit_signal("pressed")
-	worksite_app_icon.emit_signal("pressed")
-	if not worksite_app_view.visible or phone_home_view.visible or phone_screen_ui.get_meta("active_app") != "Worksite":
-		_fail("Tapping Worksite did not open its in-phone selection screen.")
-		return
-	for option_id in ["Phone", "Camera", "Os", "Processor"]:
-		if campus.find_child("WorksiteOption_" + option_id, true, false) is not Button:
-			_fail("The Worksite app is missing the %s destination." % option_id)
-			return
-	var os_worksite_option := campus.find_child("WorksiteOption_Os", true, false) as Button
-	os_worksite_option.emit_signal("pressed")
-	if app_route_requests.is_empty() or app_route_requests.back() != "worksite:os" or phone_device.visible or phone_screen_ui.visible:
-		_fail("Selecting OS Worksite did not emit the correct external scene request and close the phone.")
-		return
-
 	for option_id in ["Phone", "Camera", "Os", "Processor"]:
 		phone_button.emit_signal("pressed")
 		worksite_app_icon.emit_signal("pressed")
@@ -442,32 +427,26 @@ func _run_test() -> void:
 		_fail("The Products app did not open inside the phone.")
 		return
 	campus.find_child("ProductsBackToHomeButton", true, false).emit_signal("pressed")
-	phone_button.emit_signal("pressed")
 	marketing_app_icon.emit_signal("pressed")
 	if not (campus.find_child("MarketingAppScreen", true, false) as Control).visible:
 		_fail("The Marketing app did not open inside the phone.")
 		return
 	campus.find_child("MarketingBackToHomeButton", true, false).emit_signal("pressed")
-	phone_button.emit_signal("pressed")
 	media_app_icon.emit_signal("pressed")
 	if not (campus.find_child("MediaAppScreen", true, false) as Control).visible:
 		_fail("The Media app did not open inside the phone.")
 		return
 	campus.find_child("MediaBackToHomeButton", true, false).emit_signal("pressed")
-	phone_button.emit_signal("pressed")
 	statistics_app_icon.emit_signal("pressed")
 	if not (campus.find_child("StatisticsAppScreen", true, false) as Control).visible:
 		_fail("The Statistics app did not open inside the phone.")
 		return
 	campus.find_child("StatisticsBackToHomeButton", true, false).emit_signal("pressed")
-
-	phone_button.emit_signal("pressed")
 	office_app_icon.emit_signal("pressed")
 	if player.global_position != Vector3(-100.0, 0.0, 150.0) or not phone_home_view.visible:
 		_fail("The Office app did not take the player to the corporate office section.")
 		return
 
-	phone_button.emit_signal("pressed")
 	create_app_icon.emit_signal("pressed")
 	if app_route_requests.back() != "legacy:create" or phone_device.visible or phone_screen_ui.visible:
 		_fail("The Create app did not request the existing product-creation scene and close the phone.")
