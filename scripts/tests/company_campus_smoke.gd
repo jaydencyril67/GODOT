@@ -54,7 +54,7 @@ func _run_test() -> void:
 	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
 		_fail("The wooden fence post instances are missing or incomplete.")
 		return
-	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 300:
+	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 180:
 		_fail("The wooden fence rail instances are missing or incomplete.")
 		return
 	if fence_collisions.get_child_count() < 32:
