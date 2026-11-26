@@ -1176,7 +1176,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		section_button.custom_minimum_size = Vector2(0.0, 34.0)
 		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		section_button.focus_mode = Control.FOCUS_NONE
-		section_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		section_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		section_button.set_meta("campus_section_index", section_index)
 		_style_phone_small_button(section_button)
 		section_button.add_theme_font_size_override("font_size", 9)
