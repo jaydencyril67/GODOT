@@ -169,6 +169,12 @@ func _ready() -> void:
 	setup_completed.emit()
 
 
+func set_career_home_overlay_visible(visible: bool) -> void:
+	var layer := get_node_or_null("Campus_Controls_Layer") as CanvasLayer
+	if is_instance_valid(layer):
+		layer.visible = visible
+
+
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
@@ -1115,6 +1121,9 @@ func _build_overlay() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Campus_Controls_Layer"
 	layer.layer = 30
+	# CanvasLayer visibility is independent of the parent Node3D's visibility.
+	# Keep all campus HUD and touch controls hidden throughout startup loading.
+	layer.visible = false
 	add_child(layer)
 
 	var root := Control.new()
