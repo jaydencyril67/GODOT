@@ -1423,6 +1423,7 @@ func _return_to_phone_home() -> void:
 
 
 func _close_phone_for_external_scene() -> void:
+	_return_to_phone_home()
 	if is_instance_valid(phone_device):
 		phone_device.visible = false
 		phone_device.set_meta("phone_open", false)
