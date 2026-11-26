@@ -197,7 +197,6 @@ func _run_test() -> void:
 	var explore_app_icon := campus.find_child("ExploreAppIcon", true, false) as Button
 	var explore_back_button := campus.find_child("ExploreBackToHomeButton", true, false) as Button
 	var explore_status_label := campus.find_child("ExploreStatusLabel", true, false) as Label
-	var player := campus.find_child("PlayerCharacter", true, false) as CharacterBody3D
 	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null or phone_screen_ui == null or phone_home_view == null or explore_app_view == null or explore_app_icon == null or explore_back_button == null or explore_status_label == null or player == null:
 		_fail("The phone controls, powered display UI, Explore app, player, or shared OS Worksite handset model is missing.")
 		return
