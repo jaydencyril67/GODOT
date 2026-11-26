@@ -290,6 +290,12 @@ func _run_test() -> void:
 	if phone_device.position.x + phone_device.size.x > phone_controls[0].position.x - 20.0:
 		_fail("The handset must sit left of the control stack with a visible separation.")
 		return
+	var campus_viewport_height := campus.get_viewport().get_visible_rect().size.y
+	var phone_top_gap := phone_device.position.y
+	var phone_bottom_gap := campus_viewport_height - phone_device.position.y - phone_device.size.y
+	if phone_top_gap > 2.1 or phone_bottom_gap > 2.1 or float(phone_device.get_meta("screen_height_ratio", 0.0)) < 0.99:
+		_fail("The campus handset must nearly fill the landscape screen height with only a two-pixel top and bottom gap.")
+		return
 	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("The phone controls must capture their own touches without disabling the joystick.")
 		return
