@@ -36,6 +36,16 @@ const CAMPUS_SECTION_NAMES := [
 	"Logistics, Warehouses & Loading",
 	"Landscaping, Green Spaces & Utilities"
 ]
+const CAMPUS_SECTION_SHORT_NAMES := [
+	"Main Entrance & Reception",
+	"Corporate Offices",
+	"Staff & Recreation",
+	"Parking & Transport",
+	"Research & Technology",
+	"Production & Operations",
+	"Logistics & Warehouses",
+	"Green Spaces & Utilities"
+]
 const CAMPUS_SECTION_SIGN_TEXT := [
 	"MAIN ENTRANCE\n& RECEPTION",
 	"ADMINISTRATION\n& CORPORATE OFFICES",
@@ -61,6 +71,11 @@ var phone_control_buttons: Array[Button] = []
 var phone_device: SubViewportContainer
 var phone_viewport: SubViewport
 var phone_model: Node3D
+var phone_screen_ui: Panel
+var phone_home_view: Control
+var explore_app_view: Control
+var explore_status_label: Label
+var explore_section_buttons: Array[Button] = []
 var near_player_grass: MultiMeshInstance3D
 var near_player_grass_center := Vector3.INF
 
@@ -956,7 +971,7 @@ func _build_phone_controls(root: Control) -> void:
 	phone_device.focus_mode = Control.FOCUS_NONE
 	phone_device.stretch = true
 	phone_device.set_meta("phone_design", "shared_os_worksite_physical_handset")
-	phone_device.set_meta("screen_powered", false)
+	phone_device.set_meta("screen_powered", true)
 	phone_device.set_meta("phone_fixed", true)
 	phone_device.z_index = 5
 	root.add_child(phone_device)
@@ -978,8 +993,9 @@ func _build_phone_controls(root: Control) -> void:
 	phone_model.set_meta("handset_source", "res://scripts/os_worksite_phone_model.gd")
 	phone_model.set_meta("rotation_locked", true)
 	phone_viewport.add_child(phone_model)
-	phone_model.call("build", _create_phone_off_texture())
+	phone_model.call("build", _create_phone_screen_texture())
 	phone_model.rotation = Vector3.ZERO
+	_build_phone_screen_ui(root)
 
 
 func _create_phone_control_button(root: Control, button_name: String, button_text: String) -> Button:
@@ -998,10 +1014,282 @@ func _create_phone_control_button(root: Control, button_name: String, button_tex
 	return button
 
 
-func _create_phone_off_texture() -> Texture2D:
+func _create_phone_screen_texture() -> Texture2D:
 	var image := Image.create(32, 64, false, Image.FORMAT_RGBA8)
-	image.fill(Color.BLACK)
+	for y in range(image.get_height()):
+		var shade := lerpf(0.055, 0.105, float(y) / float(maxi(image.get_height() - 1, 1)))
+		for x in range(image.get_width()):
+			image.set_pixel(x, y, Color(shade * 0.78, shade, shade * 1.22, 1.0))
 	return ImageTexture.create_from_image(image)
+
+
+func _build_phone_screen_ui(root: Control) -> void:
+	phone_screen_ui = Panel.new()
+	phone_screen_ui.name = "PhoneScreenUI"
+	phone_screen_ui.visible = false
+	phone_screen_ui.mouse_filter = Control.MOUSE_FILTER_STOP
+	phone_screen_ui.focus_mode = Control.FOCUS_NONE
+	phone_screen_ui.clip_contents = true
+	phone_screen_ui.z_index = 8
+	phone_screen_ui.set_meta("screen_powered", true)
+	phone_screen_ui.set_meta("home_app_count", 1)
+	phone_screen_ui.add_theme_stylebox_override(
+		"panel",
+		_make_phone_style(Color("#101923"), Color("#273847"), 1, 34)
+	)
+	root.add_child(phone_screen_ui)
+
+	phone_home_view = VBoxContainer.new()
+	phone_home_view.name = "PhoneHomeScreen"
+	phone_home_view.mouse_filter = Control.MOUSE_FILTER_PASS
+	phone_home_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	phone_home_view.offset_left = 9.0
+	phone_home_view.offset_top = 8.0
+	phone_home_view.offset_right = -9.0
+	phone_home_view.offset_bottom = -8.0
+	phone_home_view.add_theme_constant_override("separation", 7)
+	phone_screen_ui.add_child(phone_home_view)
+
+	var home_status := _make_phone_status_bar("PhoneHomeStatusBar")
+	phone_home_view.add_child(home_status)
+
+	var home_heading := Label.new()
+	home_heading.name = "PhoneHomeHeading"
+	home_heading.text = "Campus"
+	home_heading.add_theme_font_size_override("font_size", 21)
+	home_heading.add_theme_color_override("font_color", Color("#F4F7FA"))
+	phone_home_view.add_child(home_heading)
+
+	var home_subtitle := Label.new()
+	home_subtitle.name = "PhoneHomeSubtitle"
+	home_subtitle.text = "Your campus, one tap away"
+	home_subtitle.add_theme_font_size_override("font_size", 10)
+	home_subtitle.add_theme_color_override("font_color", Color("#A9BAC8"))
+	phone_home_view.add_child(home_subtitle)
+
+	var app_space := CenterContainer.new()
+	app_space.name = "PhoneHomeAppArea"
+	app_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	app_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phone_home_view.add_child(app_space)
+
+	var app_tile := VBoxContainer.new()
+	app_tile.name = "ExploreAppTile"
+	app_tile.alignment = BoxContainer.ALIGNMENT_CENTER
+	app_tile.add_theme_constant_override("separation", 5)
+	app_space.add_child(app_tile)
+
+	var explore_icon := Button.new()
+	explore_icon.name = "ExploreAppIcon"
+	explore_icon.text = "⌖"
+	explore_icon.custom_minimum_size = Vector2(60.0, 60.0)
+	explore_icon.focus_mode = Control.FOCUS_NONE
+	explore_icon.tooltip_text = "Open Explore"
+	_style_phone_app_icon(explore_icon)
+	explore_icon.add_theme_font_size_override("font_size", 29)
+	explore_icon.pressed.connect(_launch_explore_app)
+	app_tile.add_child(explore_icon)
+
+	var explore_caption := Label.new()
+	explore_caption.name = "ExploreAppLabel"
+	explore_caption.text = "Explore"
+	explore_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	explore_caption.add_theme_font_size_override("font_size", 11)
+	explore_caption.add_theme_color_override("font_color", Color("#F0F4F7"))
+	app_tile.add_child(explore_caption)
+
+	var home_footer := Label.new()
+	home_footer.name = "PhoneHomeFooter"
+	home_footer.text = "DIGITALWORLD CAMPUS"
+	home_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	home_footer.add_theme_font_size_override("font_size", 8)
+	home_footer.add_theme_color_override("font_color", Color("#778B9B"))
+	phone_home_view.add_child(home_footer)
+
+	explore_app_view = VBoxContainer.new()
+	explore_app_view.name = "ExploreAppScreen"
+	explore_app_view.visible = false
+	explore_app_view.mouse_filter = Control.MOUSE_FILTER_PASS
+	explore_app_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	explore_app_view.offset_left = 7.0
+	explore_app_view.offset_top = 7.0
+	explore_app_view.offset_right = -7.0
+	explore_app_view.offset_bottom = -7.0
+	explore_app_view.add_theme_constant_override("separation", 5)
+	phone_screen_ui.add_child(explore_app_view)
+
+	explore_app_view.add_child(_make_phone_status_bar("ExploreStatusBar"))
+
+	var app_header := HBoxContainer.new()
+	app_header.name = "ExploreAppHeader"
+	app_header.add_theme_constant_override("separation", 5)
+	explore_app_view.add_child(app_header)
+
+	var home_button := Button.new()
+	home_button.name = "ExploreBackToHomeButton"
+	home_button.text = "‹"
+	home_button.custom_minimum_size = Vector2(27.0, 28.0)
+	home_button.focus_mode = Control.FOCUS_NONE
+	_style_phone_small_button(home_button)
+	home_button.add_theme_font_size_override("font_size", 21)
+	home_button.pressed.connect(_return_to_phone_home)
+	app_header.add_child(home_button)
+
+	var app_title := Label.new()
+	app_title.name = "ExploreAppTitle"
+	app_title.text = "Explore"
+	app_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	app_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	app_title.add_theme_font_size_override("font_size", 17)
+	app_title.add_theme_color_override("font_color", Color("#F4F7FA"))
+	app_header.add_child(app_title)
+
+	var app_description := Label.new()
+	app_description.name = "ExploreAppDescription"
+	app_description.text = "Choose a campus section to travel there"
+	app_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	app_description.add_theme_font_size_override("font_size", 9)
+	app_description.add_theme_color_override("font_color", Color("#A9BAC8"))
+	explore_app_view.add_child(app_description)
+
+	var section_scroll := ScrollContainer.new()
+	section_scroll.name = "ExploreSectionScroll"
+	section_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	section_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	section_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	explore_app_view.add_child(section_scroll)
+
+	var section_list := VBoxContainer.new()
+	section_list.name = "ExploreSectionList"
+	section_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_list.add_theme_constant_override("separation", 4)
+	section_scroll.add_child(section_list)
+
+	explore_section_buttons.clear()
+	for section_index in range(CAMPUS_SECTION_NAMES.size()):
+		var section_button := Button.new()
+		section_button.name = "ExploreSectionButton_%02d" % (section_index + 1)
+		section_button.text = "%02d   %s" % [section_index + 1, CAMPUS_SECTION_SHORT_NAMES[section_index]]
+		section_button.tooltip_text = CAMPUS_SECTION_NAMES[section_index]
+		section_button.custom_minimum_size = Vector2(0.0, 34.0)
+		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		section_button.focus_mode = Control.FOCUS_NONE
+		section_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		section_button.set_meta("campus_section_index", section_index)
+		_style_phone_small_button(section_button)
+		section_button.add_theme_font_size_override("font_size", 9)
+		section_button.pressed.connect(_transport_to_campus_section.bind(section_index))
+		section_list.add_child(section_button)
+		explore_section_buttons.append(section_button)
+
+	explore_status_label = Label.new()
+	explore_status_label.name = "ExploreStatusLabel"
+	explore_status_label.text = "Select a section to travel there"
+	explore_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explore_status_label.custom_minimum_size.y = 24.0
+	explore_status_label.add_theme_font_size_override("font_size", 8)
+	explore_status_label.add_theme_color_override("font_color", Color("#8FD7D1"))
+	explore_app_view.add_child(explore_status_label)
+
+
+func _make_phone_status_bar(node_name: String) -> Control:
+	var status_bar := HBoxContainer.new()
+	status_bar.name = node_name
+	status_bar.custom_minimum_size.y = 15.0
+	var clock := Label.new()
+	clock.name = node_name + "Clock"
+	clock.text = Time.get_datetime_dict_from_system().get("hour", 9)
+	clock.text = "%02d:%02d" % [
+		int(Time.get_datetime_dict_from_system().get("hour", 9)),
+		int(Time.get_datetime_dict_from_system().get("minute", 41))
+	]
+	clock.add_theme_font_size_override("font_size", 8)
+	clock.add_theme_color_override("font_color", Color("#D5E0E8"))
+	status_bar.add_child(clock)
+
+	var status_spacer := Control.new()
+	status_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_bar.add_child(status_spacer)
+
+	var indicators := Label.new()
+	indicators.name = node_name + "Indicators"
+	indicators.text = "●  ▮  ▰"
+	indicators.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	indicators.add_theme_font_size_override("font_size", 8)
+	indicators.add_theme_color_override("font_color", Color("#D5E0E8"))
+	status_bar.add_child(indicators)
+	return status_bar
+
+
+func _style_phone_app_icon(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#245E68")
+		style.border_color = Color("#71CFCC")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(18)
+		if state == "hover":
+			style.bg_color = Color("#2E7880")
+		elif state == "pressed":
+			style.bg_color = Color("#174A54")
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#F0FFFF"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+
+
+func _style_phone_small_button(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("#1B2A37")
+		style.border_color = Color("#34495A")
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(8)
+		if state == "hover":
+			style.bg_color = Color("#263C4D")
+		elif state == "pressed":
+			style.bg_color = Color("#315268")
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color("#EDF4F8"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+
+
+func _launch_explore_app() -> void:
+	if not is_instance_valid(phone_home_view) or not is_instance_valid(explore_app_view):
+		return
+	phone_home_view.visible = false
+	explore_app_view.visible = true
+	phone_screen_ui.set_meta("active_app", "Explore")
+	if is_instance_valid(explore_status_label):
+		explore_status_label.text = "Select a section to travel there"
+
+
+func _return_to_phone_home() -> void:
+	if not is_instance_valid(phone_home_view) or not is_instance_valid(explore_app_view):
+		return
+	explore_app_view.visible = false
+	phone_home_view.visible = true
+	phone_screen_ui.set_meta("active_app", "home")
+
+
+func _transport_to_campus_section(section_index: int) -> void:
+	if not is_instance_valid(player) or section_index < 0 or section_index >= CAMPUS_SECTION_NAMES.size():
+		return
+	var row_index := floori(float(section_index) / 4.0)
+	var column_index := section_index % 4
+	player.velocity = Vector3.ZERO
+	player.global_position = Vector3(
+		SECTION_COLUMN_CENTERS[column_index],
+		player.global_position.y,
+		SECTION_ROW_CENTERS[row_index]
+	)
+	player.set_meta("last_explore_section_index", section_index)
+	set_meta("last_explore_section", section_index + 1)
+	_update_camera()
+	if is_instance_valid(explore_status_label):
+		explore_status_label.text = "Arrived: " + CAMPUS_SECTION_SHORT_NAMES[section_index]
 
 
 func _build_phone_button_icon(button: Button) -> void:
@@ -1095,6 +1383,13 @@ func _layout_phone_controls() -> void:
 		button_column_x - PHONE_BODY_BUTTON_GAP - phone_width,
 		(viewport_size.y - phone_height) * 0.5
 	)
+	if is_instance_valid(phone_screen_ui):
+		phone_screen_ui.position = phone_device.position + Vector2(phone_width * 0.055, phone_height * 0.045)
+		phone_screen_ui.size = Vector2(phone_width * 0.89, phone_height * 0.91)
+		phone_screen_ui.add_theme_stylebox_override(
+			"panel",
+			_make_phone_style(Color("#101923"), Color("#273847"), 1, roundi(phone_screen_ui.size.y * 0.085))
+		)
 	phone_device.set_meta("phone_aspect_ratio", PHONE_BODY_ASPECT_RATIO)
 	phone_device.set_meta("screen_height_ratio", phone_height / viewport_size.y)
 	phone_device.set_meta("phone_left_of_control_stack", true)
@@ -1105,8 +1400,11 @@ func _toggle_phone() -> void:
 	if not is_instance_valid(phone_device):
 		return
 	phone_device.visible = not phone_device.visible
+	if is_instance_valid(phone_screen_ui):
+		phone_screen_ui.visible = phone_device.visible
 	phone_button.tooltip_text = "Close phone" if phone_device.visible else "Open phone"
 	phone_button.set_meta("phone_open", phone_device.visible)
+	phone_device.set_meta("screen_powered", true)
 
 
 func _style_overlay_button(button: Button) -> void:
