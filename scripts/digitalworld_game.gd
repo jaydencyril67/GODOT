@@ -39,6 +39,7 @@ var create_ui_root: Control
 var world_root: DigitalWorldHeadquarters
 var landing_world: Node3D
 var company_campus: Node3D
+var campus_phone_return_active := false
 var world_globe: Node3D
 var research_allocation_dashboard: Control
 var phone_creation_worksite: Node3D
@@ -487,7 +488,114 @@ func _open_company_campus() -> void:
 	company_campus = CompanyCampusScene.instantiate() as Node3D
 	company_campus.name = "Company_Campus_World"
 	company_campus.connect("back_requested", Callable(self, "_show_menu"))
+	company_campus.connect("worksite_launch_requested", Callable(self, "_open_worksite_from_campus"))
+	company_campus.connect("research_launch_requested", Callable(self, "_open_research_from_campus"))
+	company_campus.connect("staff_launch_requested", Callable(self, "_open_staff_from_campus"))
 	add_child(company_campus)
+
+
+func _suspend_company_campus_for_phone_app() -> void:
+	if not is_instance_valid(company_campus):
+		return
+	campus_phone_return_active = true
+	company_campus.process_mode = Node.PROCESS_MODE_DISABLED
+	company_campus.hide()
+	for child in company_campus.get_children():
+		if child is CanvasLayer:
+			child.hide()
+	for layer in [ui_layer, create_ui_layer, home_navigation_layer, staff_ui_layer]:
+		if is_instance_valid(layer):
+			layer.hide()
+
+
+func _resume_company_campus_after_phone_app() -> bool:
+	if not campus_phone_return_active or not is_instance_valid(company_campus):
+		return false
+	campus_phone_return_active = false
+	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+		ui_layer.hide()
+		ui_layer.queue_free()
+	ui_layer = null
+	ui_root = null
+	if is_instance_valid(create_ui_layer):
+		create_ui_layer.hide()
+	if is_instance_valid(home_navigation_layer):
+		home_navigation_layer.hide()
+	if is_instance_valid(staff_ui_layer):
+		staff_ui_layer.hide()
+	_close_staff_overlay()
+	company_campus.process_mode = Node.PROCESS_MODE_INHERIT
+	company_campus.show()
+	for child in company_campus.get_children():
+		if child is CanvasLayer:
+			child.show()
+	current_screen = "company_campus"
+	return true
+
+
+func _open_worksite_from_campus(worksite_id: String) -> void:
+	if not is_instance_valid(company_campus):
+		return
+	_suspend_company_campus_for_phone_app()
+	match worksite_id:
+		"phone":
+			_show_phone_creation_worksite()
+		"camera":
+			_show_camera_creation_worksite()
+		"processor":
+			_show_processor_creation_worksite()
+		"os":
+			_open_os_worksite_from_campus()
+		_:
+			_resume_company_campus_after_phone_app()
+
+
+func _open_os_worksite_from_campus() -> void:
+	if not is_instance_valid(os_creation_worksite):
+		_prepare_os_creation_worksite()
+	if not is_instance_valid(os_creation_worksite):
+		_resume_company_campus_after_phone_app()
+		return
+	if bool(os_creation_worksite.get("setup_complete")):
+		_show_os_creation_worksite()
+		return
+	var ready_callback := Callable(self, "_show_os_creation_worksite")
+	if not os_creation_worksite.is_connected("setup_completed", ready_callback):
+		os_creation_worksite.connect("setup_completed", ready_callback, CONNECT_ONE_SHOT)
+	var failed_callback := Callable(self, "_on_campus_os_worksite_setup_failed")
+	if not os_creation_worksite.is_connected("setup_failed", failed_callback):
+		os_creation_worksite.connect("setup_failed", failed_callback, CONNECT_ONE_SHOT)
+
+
+func _on_campus_os_worksite_setup_failed(message: String) -> void:
+	push_error("OS Worksite could not be opened from the campus phone: " + message)
+	_resume_company_campus_after_phone_app()
+
+
+func _open_research_from_campus(research_id: String) -> void:
+	if not is_instance_valid(company_campus):
+		return
+	_suspend_company_campus_for_phone_app()
+	_show_research_scene()
+	match research_id:
+		"hub":
+			return
+		"phone":
+			_show_research_allocation_dashboard()
+		"camera":
+			_show_research_allocation_dashboard(true)
+		"processor":
+			_show_research_allocation_dashboard(false, true)
+		_:
+			_resume_company_campus_after_phone_app()
+
+
+func _open_staff_from_campus(staff_screen_id: String) -> void:
+	if not is_instance_valid(company_campus):
+		return
+	_suspend_company_campus_for_phone_app()
+	_ensure_staff_data()
+	_open_staff_screen("market" if staff_screen_id == "market" else "management")
 
 
 func _show_world_globe() -> void:
@@ -2498,6 +2606,8 @@ func _on_research_category_pressed(category: String) -> void:
 
 
 func _return_home_from_research() -> void:
+	if _resume_company_campus_after_phone_app():
+		return
 	_restore_home_after_standalone_screen()
 
 
@@ -2916,6 +3026,8 @@ func _return_from_research_allocation_dashboard() -> void:
 						child.show()
 			current_screen = "phone_creation_worksite"
 		return
+	if _resume_company_campus_after_phone_app():
+		return
 	current_screen = "research"
 
 
@@ -3044,6 +3156,8 @@ func _return_from_os_creation_worksite() -> void:
 		for child in os_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
+	if _resume_company_campus_after_phone_app():
+		return
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
 		ui_layer = create_ui_layer
@@ -3139,6 +3253,8 @@ func _return_from_camera_creation_worksite() -> void:
 		for child in camera_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
+	if _resume_company_campus_after_phone_app():
+		return
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
 		ui_layer = create_ui_layer
@@ -3244,6 +3360,8 @@ func _return_from_processor_creation_worksite() -> void:
 		for child in processor_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
+	if _resume_company_campus_after_phone_app():
+		return
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
 		ui_layer = create_ui_layer
@@ -3359,6 +3477,8 @@ func _return_from_phone_creation_worksite() -> void:
 		for child in phone_creation_worksite.get_children():
 			if child is CanvasLayer:
 				child.hide()
+	if _resume_company_campus_after_phone_app():
+		return
 	if is_instance_valid(create_ui_layer):
 		create_ui_layer.show()
 		ui_layer = create_ui_layer
@@ -3621,6 +3741,8 @@ func _close_staff_overlay() -> void:
 
 func _return_home_from_staff() -> void:
 	_close_staff_overlay()
+	if _resume_company_campus_after_phone_app():
+		return
 	_show_headquarters_preview()
 
 
