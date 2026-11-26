@@ -1080,8 +1080,6 @@ func _build_phone_screen_ui(root: Control) -> void:
 	app_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	app_grid.add_theme_constant_override("h_separation", 7)
 	app_grid.add_theme_constant_override("v_separation", 5)
-	app_grid.add_theme_constant_override("margin_left", 2)
-	app_grid.add_theme_constant_override("margin_right", 2)
 	phone_home_view.add_child(app_grid)
 
 	_add_phone_home_app(app_grid, "Explore", "ExploreAppIcon", "⌖", Callable(self, "_launch_explore_app"))
@@ -1136,6 +1134,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		"Choose a workspace to open",
 		"WorksiteBackToHomeButton"
 	)
+	phone_screen_ui.add_child(worksite_page["page"])
 	phone_app_views["worksite"] = worksite_page["page"]
 	var worksite_list: VBoxContainer = worksite_page["list"]
 	worksite_app_buttons.clear()
@@ -1162,6 +1161,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		"Open a research workspace",
 		"ResearchBackToHomeButton"
 	)
+	phone_screen_ui.add_child(research_page["page"])
 	phone_app_views["research"] = research_page["page"]
 	var research_list: VBoxContainer = research_page["list"]
 	research_app_buttons.clear()
@@ -1188,6 +1188,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 		"Choose a staff area to open",
 		"StaffsBackToHomeButton"
 	)
+	phone_screen_ui.add_child(staffs_page["page"])
 	phone_app_views["staffs"] = staffs_page["page"]
 	var staffs_list: VBoxContainer = staffs_page["list"]
 	staffs_app_buttons.clear()
@@ -1312,7 +1313,6 @@ func _create_phone_destination_button(
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_phone_small_button(button)
 	button.add_theme_font_size_override("font_size", 9)
 	button.pressed.connect(action)
