@@ -28,6 +28,18 @@ func _run_test() -> void:
 	if terrain == null or terrain.mesh == null:
 		_fail("The campus grass terrain did not load.")
 		return
+	if terrain.get_meta("grass_layout", "") != "hybrid_maintained_core_natural_perimeter":
+		_fail("The campus terrain is not configured for hybrid grass zones.")
+		return
+	var grass := campus.get_node_or_null("Hybrid_Grass_Clumps") as MultiMeshInstance3D
+	if grass == null or grass.multimesh == null:
+		_fail("The hybrid grass instances are missing.")
+		return
+	if int(grass.get_meta("instance_count", 0)) != 5600:
+		_fail("The hybrid grass instance budget changed unexpectedly.")
+	if int(grass.get_meta("maintained_core_instance_count", 0)) != 4032 or int(grass.get_meta("natural_edge_instance_count", 0)) != 1568:
+		_fail("The maintained and natural grass zone counts are incorrect.")
+		return
 	var player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
 		_fail("The first playable humanoid character or its collision body is missing.")
