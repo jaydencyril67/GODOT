@@ -215,7 +215,7 @@ func _run_test() -> void:
 		return
 
 	var handset_ratio := phone_device.size.x / maxf(phone_device.size.y, 1.0)
-	if handset_ratio < 0.49 or handset_ratio > 0.51 or phone_device.size.y < get_root().get_visible_rect().size.y * 0.82:
+	if handset_ratio < 0.49 or handset_ratio > 0.51 or phone_device.size.y < get_root().get_visible_rect().size.y * 0.95:
 		_fail("The opened handset is not using the shared OS Worksite handset proportions.")
 		return
 	if phone_device.position.x <= joystick.position.x + joystick.size.x:
