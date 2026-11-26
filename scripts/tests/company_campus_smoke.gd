@@ -185,14 +185,46 @@ func _run_test() -> void:
 		return
 
 	var phone_button := campus.find_child("PhoneButton", true, false) as Button
+	var first_action_button := campus.find_child("PhoneActionButton1", true, false) as Button
+	var second_action_button := campus.find_child("PhoneActionButton2", true, false) as Button
+	var fourth_action_button := campus.find_child("PhoneActionButton4", true, false) as Button
 	var phone_device := campus.find_child("PhoneDevice", true, false) as SubViewportContainer
 	var phone_viewport := campus.find_child("CampusPhoneModelViewport", true, false) as SubViewport
 	var phone_model := campus.find_child("CampusOSWorksiteHandsetModel", true, false) as Node3D
-	if phone_button == null or phone_device == null or phone_viewport == null or phone_model == null:
-		_fail("The phone launcher, 3D viewport, or shared OS Worksite handset model is missing.")
+	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null:
+		_fail("The four phone controls, 3D viewport, or shared OS Worksite handset model are missing.")
 		return
+	var phone_controls: Array[Button] = [
+		first_action_button,
+		second_action_button,
+		phone_button,
+		fourth_action_button
+	]
+	if phone_controls[2] != phone_button or not bool(phone_button.get_meta("phone_toggle", false)):
+		_fail("The phone toggle must occupy the third position in the four-button stack.")
+		return
+	for control_button in phone_controls:
+		if control_button.custom_minimum_size != Vector2(54.0, 54.0) or control_button.size != Vector2(54.0, 54.0):
+			_fail("All four right-side controls must match the existing 54-by-54 phone toggle size.")
+			return
+		if control_button.mouse_filter != Control.MOUSE_FILTER_STOP:
+			_fail("Each right-side button must capture its own touch input.")
+			return
+	for placeholder_button in [first_action_button, second_action_button, fourth_action_button]:
+		if not bool(placeholder_button.get_meta("functionless", false)) or not placeholder_button.get_signal_connection_list("pressed").is_empty():
+			_fail("The three reserved buttons must remain functionless until assigned.")
+			return
+	for button_index in range(1, phone_controls.size()):
+		var previous_button := phone_controls[button_index - 1]
+		var current_button := phone_controls[button_index]
+		if not is_equal_approx(current_button.position.x, phone_controls[0].position.x) or current_button.position.y < previous_button.position.y + 54.0:
+			_fail("The four phone controls must form a non-overlapping vertical stack.")
+			return
 	if phone_button.custom_minimum_size.x >= joystick.custom_minimum_size.x or phone_button.custom_minimum_size.y >= joystick.custom_minimum_size.y:
-		_fail("The phone launcher must be substantially smaller than the movement joystick.")
+		_fail("The phone controls must remain substantially smaller than the movement joystick.")
+		return
+	if phone_device.position.x + phone_device.size.x > phone_controls[0].position.x - 20.0:
+		_fail("The handset must sit left of the control stack with a visible separation.")
 		return
 	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("The phone controls must capture their own touches without disabling the joystick.")
