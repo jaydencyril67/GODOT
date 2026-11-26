@@ -1033,6 +1033,7 @@ func _build_phone_screen_ui(root: Control) -> void:
 	phone_screen_ui.z_index = 8
 	phone_screen_ui.set_meta("screen_powered", true)
 	phone_screen_ui.set_meta("home_app_count", 1)
+	phone_screen_ui.set_meta("active_app", "home")
 	phone_screen_ui.add_theme_stylebox_override(
 		"panel",
 		_make_phone_style(Color("#101923"), Color("#273847"), 1, 34)
@@ -1199,7 +1200,6 @@ func _make_phone_status_bar(node_name: String) -> Control:
 	status_bar.custom_minimum_size.y = 15.0
 	var clock := Label.new()
 	clock.name = node_name + "Clock"
-	clock.text = Time.get_datetime_dict_from_system().get("hour", 9)
 	clock.text = "%02d:%02d" % [
 		int(Time.get_datetime_dict_from_system().get("hour", 9)),
 		int(Time.get_datetime_dict_from_system().get("minute", 41))
