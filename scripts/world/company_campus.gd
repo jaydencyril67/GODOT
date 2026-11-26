@@ -22,8 +22,8 @@ const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
 const PHONE_BUTTON_SIZE := Vector2(54.0, 54.0)
 const PHONE_BODY_ASPECT_RATIO := 1.45 / 2.92
-const PHONE_BODY_HEIGHT_RATIO := 0.98
-const PHONE_BODY_EDGE_MARGIN := 4.0
+const PHONE_BODY_HEIGHT_RATIO := 0.995
+const PHONE_BODY_EDGE_MARGIN := 2.0
 const PHONE_BODY_BUTTON_GAP := 26.0
 const PHONE_BUTTON_STACK_GAP := 10.0
 const PHONE_BODY_LEFT_CLEARANCE := 230.0
@@ -1761,7 +1761,9 @@ func _layout_phone_controls() -> void:
 	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
 		return
 
-	var phone_height := minf(viewport_size.y * PHONE_BODY_HEIGHT_RATIO, viewport_size.y - 12.0)
+	# Let the handset nearly touch both landscape screen edges while
+	# retaining a tiny two-pixel safety margin against clipping.
+	var phone_height := minf(viewport_size.y * PHONE_BODY_HEIGHT_RATIO, viewport_size.y - PHONE_BODY_EDGE_MARGIN * 2.0)
 	var desired_phone_width := phone_height * PHONE_BODY_ASPECT_RATIO
 	var available_phone_width := maxf(
 		96.0,
