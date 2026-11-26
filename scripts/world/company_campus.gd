@@ -446,14 +446,14 @@ func _build_section_sign(
 	board_material: Material,
 	support_material: Material
 ) -> void:
-	var sign := Node3D.new()
-	sign.name = "SectionSign"
-	section.add_child(sign)
+	var sign_root := Node3D.new()
+	sign_root.name = "SectionSign"
+	section.add_child(sign_root)
 
 	var sign_z := SECTION_HALF_DEPTH + 0.06
-	_add_box(sign, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
-	_add_box(sign, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
-	_add_box(sign, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
+	_add_box(sign_root, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
+	_add_box(sign_root, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
+	_add_box(sign_root, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
 
 	var label := Label3D.new()
 	label.name = "SectionName"
@@ -467,7 +467,7 @@ func _build_section_sign(
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.rotation.y = PI
 	label.position = Vector3(0.0, 2.43, sign_z + 0.13)
-	sign.add_child(label)
+	sign_root.add_child(label)
 
 
 func _create_grass_texture() -> Texture2D:
