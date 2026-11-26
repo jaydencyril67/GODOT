@@ -43,20 +43,45 @@ func _run_test() -> void:
 			_fail("The independent campus HUD card is missing: " + card_name)
 			return
 	var company_insignia := campus.find_child("CampusCompanyInsignia", true, false) as TextureRect
+	var company_identity_card := campus.find_child("CampusCompanyIdentityCard", true, false) as PanelContainer
 	var company_name_label := campus.find_child("CampusCompanyName", true, false) as Label
 	var balance_label := campus.find_child("CampusBalanceValue", true, false) as Label
 	var date_label := campus.find_child("CampusDateValue", true, false) as Label
 	var clock_button := campus.find_child("CampusGameClockControl", true, false) as Button
-	if career_status == null or company_insignia == null or company_insignia.texture == null or company_name_label == null or balance_label == null or date_label == null or clock_button == null:
-		_fail("The career home is missing the company insignia, name, balance, date, or game clock control.")
+	if career_status == null or company_insignia == null or company_insignia.texture == null or company_identity_card == null or company_name_label == null or balance_label == null or date_label == null or clock_button == null:
+		_fail("The career home is missing the company insignia, company identity card, name, balance, date, or game clock control.")
 		return
 	if company_name_label.text != "TEST MOBILES" or balance_label.text != "$25,000" or date_label.text != "2nd Jan 2020" or clock_button.text != "▶  PLAY":
 		_fail("The campus career HUD did not display the configured saved company details.")
+		return
+	if (company_identity_card.size_flags_horizontal & Control.SIZE_EXPAND) != 0 or company_identity_card.custom_minimum_size.x > 232.1:
+		_fail("The company identity card must fit its name instead of expanding across the remaining HUD width.")
+		return
+	var short_company_card_width := company_identity_card.custom_minimum_size.x
+	campus.call("update_career_hud", "INTERNATIONAL TECHNOLOGY HOLDINGS GROUP", "$32,500", "3rd Jan 2020", false)
+	var long_company_card_width := company_identity_card.custom_minimum_size.x
+	if long_company_card_width <= short_company_card_width or long_company_card_width > 232.1:
+		_fail("The company identity card width did not adapt to the longer company name within its maximum width.")
 		return
 	campus.call("update_career_hud", "UPDATED MOBILE CO", "$32,500", "3rd Jan 2020", false)
 	if company_name_label.text != "UPDATED MOBILE CO" or balance_label.text != "$32,500" or date_label.text != "3rd Jan 2020" or clock_button.text != "Ⅱ  PAUSE":
 		_fail("The career HUD did not update when the active company balance, date, or clock state changed.")
 		return
+	campus_controls_layer.visible = false
+	await process_frame
+	await process_frame
+	if not campus_controls_layer.visible:
+		_fail("The active campus did not restore its touch controls after an unexpected CanvasLayer visibility loss.")
+		return
+	for visibility_cycle in range(3):
+		campus.call("set_career_home_overlay_visible", false)
+		if campus_controls_layer.visible:
+			_fail("The campus control layer did not hide during a suspended screen transition.")
+			return
+		campus.call("set_career_home_overlay_visible", true)
+		if not campus_controls_layer.visible:
+			_fail("The campus control layer did not restore after a suspended screen transition.")
+			return
 	clock_button.emit_signal("pressed")
 	if not bool(observed_signals["clock_toggle_requested"]):
 		_fail("The campus Pause/Play control did not forward the career clock request.")
