@@ -33,7 +33,7 @@ func open(screen_mode: String, candidate_data: Array, employee_data: Array, staf
 	mode = screen_mode
 	candidates = candidate_data.duplicate(true)
 	employees = employee_data.duplicate(true)
-	capacity = maxi(0, staff_capacity)
+	capacity = staff_capacity
 	company_name = business_name
 	company_balance = balance
 	_build()
@@ -341,18 +341,19 @@ func _candidate_card(candidate: Dictionary) -> Control:
 	var hire := _button("HIRE", true)
 	hire.custom_minimum_size = Vector2(104, 46)
 	hire.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var office_owned := capacity > 0
-	hire.disabled = not office_owned or employees.size() >= capacity
+	var hiring_allowed := capacity != 0
+	var capacity_reached := capacity > 0 and employees.size() >= capacity
+	hire.disabled = not hiring_allowed or capacity_reached
 	hire.pressed.connect(func():
-		if not office_owned:
+		if not hiring_allowed or capacity_reached:
 			return
 		hire_requested.emit(str(candidate.get("id", "")))
 	)
 	action_row.add_child(hire)
-	if not office_owned:
-		stack.add_child(_label("PURCHASE AN OFFICE TO HIRE STAFF", 12, Color("#ffd0b8")))
-	elif employees.size() >= capacity:
-		stack.add_child(_label("HQ CAPACITY REACHED", 12, Color("#ffd0b8")))
+	if not hiring_allowed:
+		stack.add_child(_label("STAFF HIRING UNAVAILABLE", 12, Color("#ffd0b8")))
+	elif capacity_reached:
+		stack.add_child(_label("STAFF CAPACITY REACHED", 12, Color("#ffd0b8")))
 	return card
 
 
