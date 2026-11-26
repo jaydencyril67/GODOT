@@ -166,10 +166,11 @@ func _run_test() -> void:
 		return
 
 	var phone_button := campus.find_child("PhoneButton", true, false) as Button
-	var phone_device := campus.find_child("PhoneDevice", true, false) as Panel
-	var phone_screen := campus.find_child("PhoneScreen", true, false) as Panel
-	if phone_button == null or phone_device == null or phone_screen == null:
-		_fail("The phone launcher, handset, or blank display is missing.")
+	var phone_device := campus.find_child("PhoneDevice", true, false) as SubViewportContainer
+	var phone_viewport := campus.find_child("CampusPhoneModelViewport", true, false) as SubViewport
+	var phone_model := campus.find_child("CampusOSWorksiteHandsetModel", true, false) as Node3D
+	if phone_button == null or phone_device == null or phone_viewport == null or phone_model == null:
+		_fail("The phone launcher, 3D viewport, or shared OS Worksite handset model is missing.")
 		return
 	if phone_button.custom_minimum_size.x >= joystick.custom_minimum_size.x or phone_button.custom_minimum_size.y >= joystick.custom_minimum_size.y:
 		_fail("The phone launcher must be substantially smaller than the movement joystick.")
@@ -177,23 +178,55 @@ func _run_test() -> void:
 	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("The phone controls must capture their own touches without disabling the joystick.")
 		return
-	if phone_device.visible or bool(phone_device.get_meta("screen_powered", true)) or bool(phone_screen.get_meta("screen_powered", true)):
+	if phone_device.visible or bool(phone_device.get_meta("screen_powered", true)):
 		_fail("The phone must start hidden and powered off.")
 		return
-	var phone_style := phone_screen.get_theme_stylebox("panel") as StyleBoxFlat
-	if phone_style == null or phone_style.bg_color != Color.BLACK:
-		_fail("The powered-off phone screen is not completely black.")
+	if not phone_viewport.transparent_bg or phone_viewport.size != Vector2i(700, 1400):
+		_fail("The handset must render in its own transparent, portrait SubViewport.")
 		return
+
+	var chassis := phone_model.find_child("PhoneChassis", true, false) as MeshInstance3D
+	var inset := phone_model.find_child("DisplayInsetFrame", true, false) as MeshInstance3D
+	var screen := phone_model.find_child("PhoneScreenSurface", true, false) as MeshInstance3D
+	var power_key := phone_model.find_child("PowerButton", true, false) as MeshInstance3D
+	var volume_up := phone_model.find_child("VolumeUpButton", true, false) as MeshInstance3D
+	var volume_down := phone_model.find_child("VolumeDownButton", true, false) as MeshInstance3D
+	var phone_camera := phone_model.find_child("PhonePreviewCamera", true, false) as Camera3D
+	if chassis == null or inset == null or screen == null or power_key == null or volume_up == null or volume_down == null or phone_camera == null:
+		_fail("The campus phone does not contain the shared OS Worksite chassis, glass, side keys, and fixed preview camera.")
+		return
+	var body_bounds := chassis.mesh.get_aabb()
+	if not is_equal_approx(body_bounds.size.x, 1.45) or not is_equal_approx(body_bounds.size.y, 2.92) or not is_equal_approx(body_bounds.size.z, 0.13):
+		_fail("The campus handset no longer matches the physical OS Worksite phone dimensions.")
+		return
+	var screen_material := screen.material_override as StandardMaterial3D
+	if screen_material == null or screen_material.albedo_texture == null or screen_material.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+		_fail("The 3D phone glass is missing its powered-off screen texture.")
+		return
+	var screen_image := (screen_material.albedo_texture as ImageTexture).get_image()
+	if screen_image.get_pixel(0, 0) != Color.BLACK:
+		_fail("The campus handset display must start fully black.")
+		return
+	if phone_model.rotation != Vector3.ZERO or phone_camera.position != Vector3(0.0, 0.0, 4.6) or phone_camera.basis != Basis.IDENTITY:
+		_fail("The shared handset camera and model must remain fixed and non-rotatable.")
+		return
+	if not bool(phone_device.get_meta("phone_fixed", false)) or not bool(phone_model.get_meta("rotation_locked", false)):
+		_fail("The opened handset must be marked as a fixed, non-rotatable phone.")
+		return
+
 	var handset_ratio := phone_device.size.x / maxf(phone_device.size.y, 1.0)
-	if handset_ratio < 0.43 or handset_ratio > 0.49 or phone_device.size.y < get_root().get_visible_rect().size.y * 0.82:
-		_fail("The opened handset is not a near-full-height, realistic portrait phone shape.")
+	if handset_ratio < 0.49 or handset_ratio > 0.51 or phone_device.size.y < get_root().get_visible_rect().size.y * 0.82:
+		_fail("The opened handset is not using the shared OS Worksite handset proportions.")
 		return
 	if phone_device.position.x <= joystick.position.x + joystick.size.x:
 		_fail("The phone handset overlaps the left movement joystick.")
 		return
 	phone_button.emit_signal("pressed")
 	if not phone_device.visible:
-		_fail("Tapping the small phone launcher did not display the handset.")
+		_fail("Tapping the small phone launcher did not display the 3D handset.")
+		return
+	if phone_model.rotation != Vector3.ZERO:
+		_fail("Opening the phone changed the fixed handset orientation.")
 		return
 	phone_button.emit_signal("pressed")
 	if phone_device.visible:
