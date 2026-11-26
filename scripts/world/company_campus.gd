@@ -75,7 +75,7 @@ func _physics_process(delta: float) -> void:
 	player.global_position.x = clampf(player.global_position.x, -HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
 	player.global_position.z = clampf(player.global_position.z, -HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
 
-	player.rotation.y = camera_yaw
+	player.rotation.y = -camera_yaw
 	var is_walking := input_strength > 0.08 and move_direction.length_squared() > 0.01
 	if is_walking:
 		walking_phase += delta * 7.0 * input_strength
