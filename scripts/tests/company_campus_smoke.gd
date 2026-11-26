@@ -35,18 +35,29 @@ func _run_test() -> void:
 	if grass == null or grass.multimesh == null:
 		_fail("The hybrid grass instances are missing.")
 		return
-	if int(grass.get_meta("instance_count", 0)) != 5600:
+	if int(grass.get_meta("instance_count", 0)) != 7600:
 		_fail("The hybrid grass instance budget changed unexpectedly.")
 		return
-	if int(grass.get_meta("maintained_core_instance_count", 0)) != 4032 or int(grass.get_meta("natural_edge_instance_count", 0)) != 1568:
+	if int(grass.get_meta("maintained_core_instance_count", 0)) != 5472 or int(grass.get_meta("natural_edge_instance_count", 0)) != 2128:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
 	var near_grass := campus.get_node_or_null("NearPlayer_Grass") as MultiMeshInstance3D
 	if near_grass == null or near_grass.multimesh == null:
 		_fail("The near-player grass layer is missing.")
 		return
-	if near_grass.multimesh.instance_count != 700 or not bool(near_grass.get_meta("follows_player", false)):
+	if near_grass.multimesh.instance_count != 900 or not bool(near_grass.get_meta("follows_player", false)):
 		_fail("The near-player grass layer is not configured to follow the player.")
+		return
+	var tree_trunks := campus.get_node_or_null("Campus_Tree_Trunks") as MultiMeshInstance3D
+	var tree_canopies := campus.get_node_or_null("Campus_Tree_Canopies") as MultiMeshInstance3D
+	if tree_trunks == null or tree_canopies == null:
+		_fail("The campus tree trunks or canopies are missing.")
+		return
+	if tree_trunks.multimesh == null or tree_canopies.multimesh == null:
+		_fail("The campus tree MultiMeshes were not created.")
+		return
+	if tree_trunks.multimesh.instance_count != 44 or tree_canopies.multimesh.instance_count != 44:
+		_fail("The campus should contain 44 instanced trees.")
 		return
 	var player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
