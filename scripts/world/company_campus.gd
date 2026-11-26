@@ -324,13 +324,18 @@ func _build_campus_sections() -> void:
 	post_mesh.size = Vector3.ONE
 	var rail_mesh := BoxMesh.new()
 	rail_mesh.size = Vector3.ONE
+	var picket_mesh := BoxMesh.new()
+	picket_mesh.size = Vector3(0.16, 1.18, 0.10)
 	var post_transforms: Array[Transform3D] = []
 	var rail_transforms: Array[Transform3D] = []
+	var picket_transforms: Array[Transform3D] = []
 
 	var fence_collisions := StaticBody3D.new()
 	fence_collisions.name = "Fence_Collisions"
 	fence_collisions.collision_layer = 1
 	fence_collisions.collision_mask = 1
+	fence_collisions.set_meta("blocks_player", true)
+	fence_collisions.set_meta("collision_layer", 1)
 	fence_root.add_child(fence_collisions)
 
 	for section_index in range(CAMPUS_SECTION_NAMES.size()):
@@ -354,24 +359,32 @@ func _build_campus_sections() -> void:
 		var east_start := center + Vector3(SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
-		_append_fence_side(post_transforms, rail_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
 		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
 
+	var picket_material := StandardMaterial3D.new()
+	picket_material.albedo_color = Color("#a87549")
+	picket_material.roughness = 0.93
 	var posts := _add_fence_multimesh(fence_root, "Fence_Posts", post_mesh, post_material, post_transforms)
 	var rails := _add_fence_multimesh(fence_root, "Fence_Rails", rail_mesh, rail_material, rail_transforms)
-	posts.set_meta("fence_component", "vertical_posts")
+	var pickets := _add_fence_multimesh(fence_root, "Fence_Vertical_Pickets", picket_mesh, picket_material, picket_transforms)
+	posts.set_meta("fence_component", "structural_posts")
 	rails.set_meta("fence_component", "horizontal_rails")
+	pickets.set_meta("fence_component", "vertical_pickets")
+	fence_root.set_meta("fence_style", "hybrid_post_rail_vertical_picket")
 	fence_root.set_meta("post_count", post_transforms.size())
 	fence_root.set_meta("rail_segment_count", rail_transforms.size())
+	fence_root.set_meta("picket_count", picket_transforms.size())
 	fence_root.set_meta("collision_segment_count", fence_collisions.get_child_count())
 
 
 func _append_fence_side(
 	post_transforms: Array[Transform3D],
 	rail_transforms: Array[Transform3D],
+	picket_transforms: Array[Transform3D],
 	fence_collisions: StaticBody3D,
 	start: Vector3,
 	direction: Vector3,
@@ -394,9 +407,17 @@ func _append_fence_side(
 			continue
 
 		var segment_center := start + normalized_direction * ((segment_start + segment_end) * 0.5)
-		for rail_height in [0.34, 0.78, 1.22]:
-			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.14, 0.18))
+		for rail_height in [0.38, 1.08]:
+			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.16, 0.18))
 			rail_transforms.append(Transform3D(rail_basis, segment_center + Vector3.UP * rail_height))
+
+		var picket_spacing := 0.34
+		var picket_count := maxi(1, ceili(segment_length / picket_spacing))
+		for picket_index in range(picket_count):
+			var picket_distance := minf(segment_length - 0.10, (float(picket_index) + 0.5) * segment_length / float(picket_count))
+			var picket_position := start + normalized_direction * (segment_start + picket_distance) + Vector3.UP * 0.76
+			var picket_basis := Basis(Vector3.UP, yaw).scaled(Vector3(1.0, 1.0, 1.0))
+			picket_transforms.append(Transform3D(picket_basis, picket_position))
 
 		var post_steps := maxi(1, ceili(segment_length / 3.4))
 		for post_index in range(post_steps + 1):
@@ -408,9 +429,9 @@ func _append_fence_side(
 		var fence_shape := CollisionShape3D.new()
 		fence_shape.name = "Fence_Wall_Collision"
 		var fence_box := BoxShape3D.new()
-		fence_box.size = Vector3(segment_length, 1.44, 0.22)
+		fence_box.size = Vector3(segment_length, 1.52, 0.30)
 		fence_shape.shape = fence_box
-		fence_shape.position = segment_center + Vector3.UP * 0.72
+		fence_shape.position = segment_center + Vector3.UP * 0.76
 		fence_shape.rotation.y = yaw
 		fence_collisions.add_child(fence_shape)
 
