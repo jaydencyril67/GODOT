@@ -191,8 +191,15 @@ func _run_test() -> void:
 	var phone_device := campus.find_child("PhoneDevice", true, false) as SubViewportContainer
 	var phone_viewport := campus.find_child("CampusPhoneModelViewport", true, false) as SubViewport
 	var phone_model := campus.find_child("CampusOSWorksiteHandsetModel", true, false) as Node3D
-	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null:
-		_fail("The four phone controls, 3D viewport, or shared OS Worksite handset model are missing.")
+	var phone_screen_ui := campus.find_child("PhoneScreenUI", true, false) as Panel
+	var phone_home_view := campus.find_child("PhoneHomeScreen", true, false) as Control
+	var explore_app_view := campus.find_child("ExploreAppScreen", true, false) as Control
+	var explore_app_icon := campus.find_child("ExploreAppIcon", true, false) as Button
+	var explore_back_button := campus.find_child("ExploreBackToHomeButton", true, false) as Button
+	var explore_status_label := campus.find_child("ExploreStatusLabel", true, false) as Label
+	var player := campus.find_child("PlayerCharacter", true, false) as CharacterBody3D
+	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null or phone_screen_ui == null or phone_home_view == null or explore_app_view == null or explore_app_icon == null or explore_back_button == null or explore_status_label == null or player == null:
+		_fail("The phone controls, powered display UI, Explore app, player, or shared OS Worksite handset model is missing.")
 		return
 	var phone_controls: Array[Button] = [
 		first_action_button,
@@ -229,8 +236,14 @@ func _run_test() -> void:
 	if phone_button.mouse_filter != Control.MOUSE_FILTER_STOP or phone_device.mouse_filter != Control.MOUSE_FILTER_STOP:
 		_fail("The phone controls must capture their own touches without disabling the joystick.")
 		return
-	if phone_device.visible or bool(phone_device.get_meta("screen_powered", true)):
-		_fail("The phone must start hidden and powered off.")
+	if phone_device.visible or phone_screen_ui.visible or not bool(phone_device.get_meta("screen_powered", false)) or not bool(phone_screen_ui.get_meta("screen_powered", false)):
+		_fail("The handset must start hidden while its screen system is powered and ready.")
+		return
+	if not phone_home_view.visible or explore_app_view.visible or phone_screen_ui.get_meta("active_app") != "home":
+		_fail("The phone must boot to its home screen before an app is opened.")
+		return
+	if explore_app_icon.text.is_empty() or explore_app_icon.tooltip_text != "Open Explore":
+		_fail("The phone home screen does not contain a launchable Explore app icon.")
 		return
 	var phone_viewport_ratio := float(phone_viewport.size.x) / maxf(float(phone_viewport.size.y), 1.0)
 	if not phone_viewport.transparent_bg or phone_viewport_ratio < 0.49 or phone_viewport_ratio > 0.51:
@@ -256,8 +269,8 @@ func _run_test() -> void:
 		_fail("The 3D phone glass is missing its powered-off screen texture.")
 		return
 	var screen_image := (screen_material.albedo_texture as ImageTexture).get_image()
-	if screen_image.get_pixel(0, 0) != Color.BLACK:
-		_fail("The campus handset display must start fully black.")
+	if screen_image.get_pixel(0, 0) == Color.BLACK:
+		_fail("The powered-on handset display still uses a fully black screen texture.")
 		return
 	if phone_model.rotation != Vector3.ZERO or phone_camera.position != Vector3(0.0, 0.0, 4.6) or phone_camera.basis != Basis.IDENTITY:
 		_fail("The shared handset camera and model must remain fixed and non-rotatable.")
@@ -274,15 +287,45 @@ func _run_test() -> void:
 		_fail("The phone handset overlaps the left movement joystick.")
 		return
 	phone_button.emit_signal("pressed")
-	if not phone_device.visible:
-		_fail("Tapping the small phone launcher did not display the 3D handset.")
+	if not phone_device.visible or not phone_screen_ui.visible:
+		_fail("Tapping the phone launcher did not display the powered handset screen.")
 		return
 	if phone_model.rotation != Vector3.ZERO:
 		_fail("Opening the phone changed the fixed handset orientation.")
 		return
+
+	explore_app_icon.emit_signal("pressed")
+	if phone_home_view.visible or not explore_app_view.visible or phone_screen_ui.get_meta("active_app") != "Explore":
+		_fail("Tapping the Explore icon did not launch the app inside the phone.")
+		return
+	if campus.find_children("ExploreSectionButton_*", "Button", true, false).size() != 8:
+		_fail("The Explore app must list all eight campus sections.")
+		return
+	for section_index in range(8):
+		var section_button := campus.find_child("ExploreSectionButton_%02d" % (section_index + 1), true, false) as Button
+		if section_button == null or int(section_button.get_meta("campus_section_index", -1)) != section_index:
+			_fail("The Explore destination list is missing or has an incorrect section index.")
+			return
+
+	var seventh_section_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
+	seventh_section_button.emit_signal("pressed")
+	if int(campus.get_meta("last_explore_section", 0)) != 7 or int(player.get_meta("last_explore_section_index", -1)) != 6:
+		_fail("Selecting a campus destination did not record the chosen section.")
+		return
+	if player.global_position != Vector3(100.0, 0.0, -150.0) or player.velocity != Vector3.ZERO:
+		_fail("The Explore app did not transport the player to the selected section center.")
+		return
+	if not explore_status_label.text.contains("Logistics & Warehouses"):
+		_fail("The Explore app did not confirm arrival at the selected section.")
+		return
+
+	explore_back_button.emit_signal("pressed")
+	if not phone_home_view.visible or explore_app_view.visible or phone_screen_ui.get_meta("active_app") != "home":
+		_fail("The Explore app back control did not return to the phone home screen.")
+		return
 	phone_button.emit_signal("pressed")
-	if phone_device.visible:
-		_fail("The phone launcher cannot close the handset after opening it.")
+	if phone_device.visible or phone_screen_ui.visible:
+		_fail("The phone launcher cannot close the handset display.")
 		return
 
 	print("COMPANY_CAMPUS_SMOKE_TEST: PASS")
