@@ -15,10 +15,6 @@ on:
       log_name:
         required: true
         type: string
-      include_gaussian_asset:
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -32,7 +28,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          lfs: ${{ inputs.include_gaussian_asset }}
       - name: Install GDGS Gaussian Splat addon
         shell: bash
         run: bash .github/scripts/install-gdgs-addon.sh
@@ -44,7 +39,7 @@ jobs:
           set -euo pipefail
           for asset in \
             assets/3d/Chisel_Create-a-highly-realistic-luxurious-mode_Splat_20261124-120030.ply \
-            assets/3d/Chisel_original_2m_test_250k_clean.ply; do
+; do
             if [[ -f "$asset" ]]; then
               mv "$asset" "/tmp/$(basename "$asset")"
             fi
