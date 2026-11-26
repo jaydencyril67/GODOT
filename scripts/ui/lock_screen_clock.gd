@@ -71,9 +71,13 @@ func prepare_all_styles(batch_size: int = 5, progress_callback: Callable = Calla
 
 
 func set_clock_style_index(style_index: int) -> bool:
-	if style_index < 1 or style_index > AssetLibrary.get_analog_clock_count():
+	var digital_style_count := int(digital_artwork.call("get_style_count"))
+	if style_index < 1 or style_index > digital_style_count:
 		return false
 	_clock_style_index = style_index
+	# Digital faces retain their full 41-style library. Analog artwork is a
+	# separate 15-image collection, so higher shared style indices use the
+	# final available analog artwork rather than requesting a missing file.
 	_restore_selected_analog_artwork()
 	var digital_style_updated := bool(digital_artwork.call("set_style_index", style_index))
 	_apply_clock_renderer_visibility()
