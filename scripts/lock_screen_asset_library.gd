@@ -82,4 +82,4 @@ static func get_analog_clock_path(asset_index: int) -> String:
 	return "res://assets/lock-screen/clocks/analog/analog-%02d.png" % clampi(asset_index, 1, get_analog_clock_count())
 
 static func get_analog_clock_count() -> int:
-	return 41
+	return 15
