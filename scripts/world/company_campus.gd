@@ -1122,17 +1122,6 @@ func _build_overlay() -> void:
 	root.resized.connect(_layout_phone_controls)
 	_build_career_hud(root)
 
-	var back_button := Button.new()
-	back_button.name = "BackToMenuButton"
-	back_button.text = "‹  MENU"
-	back_button.position = Vector2(16.0, 88.0)
-	back_button.size = Vector2(108.0, 40.0)
-	back_button.custom_minimum_size = Vector2(108.0, 40.0)
-	back_button.focus_mode = Control.FOCUS_NONE
-	_style_overlay_button(back_button)
-	back_button.pressed.connect(_request_back)
-	root.add_child(back_button)
-
 	movement_joystick = JoystickScript.new() as Control
 	movement_joystick.name = "MovementJoystick"
 	movement_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
