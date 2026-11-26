@@ -18,6 +18,32 @@ const NEAR_PLAYER_GRASS_COUNT := 900
 const NEAR_PLAYER_GRASS_RADIUS := 6.5
 const NEAR_PLAYER_GRASS_UPDATE_DISTANCE := 1.25
 
+const CAMPUS_SECTION_NAMES := [
+	"Main Entrance, Security & Reception",
+	"Administration & Corporate Offices",
+	"Staff Facilities, Cafeteria & Recreation",
+	"Parking, Roads & Transport",
+	"Research & Technology",
+	"Production & Operations",
+	"Logistics, Warehouses & Loading",
+	"Landscaping, Green Spaces & Utilities"
+]
+const CAMPUS_SECTION_SIGN_TEXT := [
+	"MAIN ENTRANCE\n& RECEPTION",
+	"ADMINISTRATION\n& CORPORATE OFFICES",
+	"STAFF QUARTERS\n& FACILITIES",
+	"PARKING\n& TRANSPORT",
+	"RESEARCH\n& TECHNOLOGY",
+	"PRODUCTION\n& OPERATIONS",
+	"LOGISTICS\n& WAREHOUSES",
+	"LANDSCAPING\n& UTILITIES"
+]
+const SECTION_COLUMN_CENTERS := [-300.0, -100.0, 100.0, 300.0]
+const SECTION_ROW_CENTERS := [150.0, -150.0]
+const SECTION_HALF_WIDTH := 94.0
+const SECTION_HALF_DEPTH := 144.0
+const SECTION_GATE_WIDTH := 8.0
+
 var player: CharacterBody3D
 var player_camera: Camera3D
 var movement_joystick: Control
@@ -134,29 +160,34 @@ func _build_environment() -> void:
 	world_environment.name = "Campus_World_Environment"
 	var environment := Environment.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#58758d")
-	sky_material.sky_horizon_color = Color("#c5d0d0")
-	sky_material.ground_bottom_color = Color("#39493a")
-	sky_material.ground_horizon_color = Color("#aab7a8")
+	sky_material.sky_top_color = Color("#3e82bd")
+	sky_material.sky_horizon_color = Color("#b9d7ed")
+	sky_material.ground_bottom_color = Color("#34483b")
+	sky_material.ground_horizon_color = Color("#a9b9aa")
+	sky_material.sky_curve = 0.16
+	sky_material.sky_energy_multiplier = 1.08
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#d5ddce")
-	environment.ambient_light_energy = 0.62
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_energy = 0.72
+	environment.reflected_light_source = Environment.REFLECTION_SOURCE_BG
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_exposure = 1.0
 	world_environment.environment = environment
 	add_child(world_environment)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "Soft_Daylight"
 	sun.rotation_degrees = Vector3(-43.0, -32.0, 0.0)
-	sun.light_color = Color("#fff0d9")
-	sun.light_energy = 1.12
+	sun.light_color = Color("#fff1dc")
+	sun.light_energy = 1.24
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 82.0
+	sun.directional_shadow_max_distance = 72.0
 	add_child(sun)
+
+	_build_cloud_layer()
 
 
 func _build_terrain() -> void:
@@ -191,6 +222,252 @@ func _build_terrain() -> void:
 
 	_add_grass_instances()
 	_build_campus_trees()
+	_build_campus_sections()
+
+
+
+func _build_cloud_layer() -> void:
+	var cloud_material := StandardMaterial3D.new()
+	cloud_material.albedo_color = Color.WHITE
+	cloud_material.vertex_color_use_as_albedo = true
+	cloud_material.roughness = 1.0
+	cloud_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var cloud_mesh := SphereMesh.new()
+	cloud_mesh.radius = 1.0
+	cloud_mesh.height = 2.0
+	cloud_mesh.radial_segments = 12
+	cloud_mesh.rings = 6
+	cloud_mesh.material = cloud_material
+
+	var cloud_multi := MultiMesh.new()
+	cloud_multi.transform_format = MultiMesh.TRANSFORM_3D
+	cloud_multi.use_colors = true
+	cloud_multi.mesh = cloud_mesh
+	var cloud_transforms: Array[Transform3D] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261126
+	const CLOUD_CLUSTER_COUNT := 22
+
+	for cloud_index in range(CLOUD_CLUSTER_COUNT):
+		var center := Vector3(
+			rng.randf_range(-455.0, 455.0),
+			rng.randf_range(94.0, 132.0),
+			rng.randf_range(-390.0, 390.0)
+		)
+		var puff_count := rng.randi_range(6, 8)
+		var cloud_yaw := rng.randf_range(0.0, TAU)
+		var along_axis := Vector3(cos(cloud_yaw), 0.0, sin(cloud_yaw))
+		var across_axis := Vector3(-along_axis.z, 0.0, along_axis.x)
+		var cloud_span := rng.randf_range(24.0, 38.0)
+
+		for puff_index in range(puff_count):
+			var centered_index := float(puff_index) - float(puff_count - 1) * 0.5
+			var along := centered_index * cloud_span / float(puff_count - 1)
+			var puff_position := center
+			puff_position += along_axis * along
+			puff_position += across_axis * rng.randf_range(-5.5, 5.5)
+			puff_position.y += rng.randf_range(-2.2, 2.2)
+
+			var puff_scale := Vector3(
+				rng.randf_range(8.0, 13.5),
+				rng.randf_range(3.5, 5.8),
+				rng.randf_range(6.5, 10.5)
+			)
+			var cloud_basis := Basis.IDENTITY.scaled(puff_scale)
+			cloud_transforms.append(Transform3D(cloud_basis, puff_position))
+
+	cloud_multi.instance_count = cloud_transforms.size()
+	for index in range(cloud_transforms.size()):
+		cloud_multi.set_instance_transform(index, cloud_transforms[index])
+		var brightness := rng.randf_range(0.91, 1.0)
+		cloud_multi.set_instance_color(index, Color(brightness, brightness, minf(1.0, brightness + 0.015), 1.0))
+
+	var clouds := MultiMeshInstance3D.new()
+	clouds.name = "Campus_Clouds"
+	clouds.multimesh = cloud_multi
+	clouds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	clouds.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	clouds.set_meta("cloud_cluster_count", CLOUD_CLUSTER_COUNT)
+	clouds.set_meta("cloud_puff_count", cloud_transforms.size())
+	clouds.set_meta("cloud_layer_height_range", Vector2(94.0, 132.0))
+	add_child(clouds)
+
+
+func _build_campus_sections() -> void:
+	var section_root := Node3D.new()
+	section_root.name = "Campus_Sections"
+	section_root.set_meta("section_count", CAMPUS_SECTION_NAMES.size())
+	section_root.set_meta("layout", "four_columns_two_rows")
+	add_child(section_root)
+
+	var fence_root := Node3D.new()
+	fence_root.name = "Campus_Wooden_Fences"
+	fence_root.set_meta("wooden_fence", true)
+	fence_root.set_meta("gate_opening_width_metres", SECTION_GATE_WIDTH)
+	add_child(fence_root)
+
+	var post_material := StandardMaterial3D.new()
+	post_material.albedo_color = Color("#67452e")
+	post_material.roughness = 0.94
+	var rail_material := StandardMaterial3D.new()
+	rail_material.albedo_color = Color("#8a5b38")
+	rail_material.roughness = 0.92
+	var sign_board_material := StandardMaterial3D.new()
+	sign_board_material.albedo_color = Color("#503522")
+	sign_board_material.roughness = 0.92
+	var sign_support_material := StandardMaterial3D.new()
+	sign_support_material.albedo_color = Color("#69452d")
+	sign_support_material.roughness = 0.94
+
+	var post_mesh := BoxMesh.new()
+	post_mesh.size = Vector3.ONE
+	var rail_mesh := BoxMesh.new()
+	rail_mesh.size = Vector3.ONE
+	var post_transforms: Array[Transform3D] = []
+	var rail_transforms: Array[Transform3D] = []
+
+	var fence_collisions := StaticBody3D.new()
+	fence_collisions.name = "Fence_Collisions"
+	fence_collisions.collision_layer = 1
+	fence_collisions.collision_mask = 1
+	fence_root.add_child(fence_collisions)
+
+	for section_index in range(CAMPUS_SECTION_NAMES.size()):
+		var row_index := floori(float(section_index) / 4.0)
+		var column_index := section_index % 4
+		var center := Vector3(
+			SECTION_COLUMN_CENTERS[column_index],
+			0.0,
+			SECTION_ROW_CENTERS[row_index]
+		)
+
+		var section := Node3D.new()
+		section.name = "Section_%02d" % (section_index + 1)
+		section.position = center
+		section.set_meta("section_number", section_index + 1)
+		section.set_meta("section_name", CAMPUS_SECTION_NAMES[section_index])
+		section.set_meta("section_bounds_local", Vector4(-SECTION_HALF_WIDTH, -SECTION_HALF_DEPTH, SECTION_HALF_WIDTH, SECTION_HALF_DEPTH))
+		section_root.add_child(section)
+
+		var west_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
+		var east_start := center + Vector3(SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
+		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
+		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
+		_append_fence_side(post_transforms, rail_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		_append_fence_side(post_transforms, rail_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
+
+	var posts := _add_fence_multimesh(fence_root, "Fence_Posts", post_mesh, post_material, post_transforms)
+	var rails := _add_fence_multimesh(fence_root, "Fence_Rails", rail_mesh, rail_material, rail_transforms)
+	posts.set_meta("fence_component", "vertical_posts")
+	rails.set_meta("fence_component", "horizontal_rails")
+	fence_root.set_meta("post_count", post_transforms.size())
+	fence_root.set_meta("rail_segment_count", rail_transforms.size())
+	fence_root.set_meta("collision_segment_count", fence_collisions.get_child_count())
+
+
+func _append_fence_side(
+	post_transforms: Array[Transform3D],
+	rail_transforms: Array[Transform3D],
+	fence_collisions: StaticBody3D,
+	start: Vector3,
+	direction: Vector3,
+	length: float
+) -> void:
+	var normalized_direction := direction.normalized()
+	var gate_start := (length - SECTION_GATE_WIDTH) * 0.5
+	var gate_end := gate_start + SECTION_GATE_WIDTH
+	var segments := [
+		Vector2(0.0, gate_start),
+		Vector2(gate_end, length)
+	]
+	var yaw := 0.0 if absf(normalized_direction.x) > 0.5 else PI * 0.5
+
+	for segment in segments:
+		var segment_start: float = segment.x
+		var segment_end: float = segment.y
+		var segment_length := segment_end - segment_start
+		if segment_length <= 0.5:
+			continue
+
+		var segment_center := start + normalized_direction * ((segment_start + segment_end) * 0.5)
+		for rail_height in [0.34, 0.78, 1.22]:
+			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.14, 0.18))
+			rail_transforms.append(Transform3D(rail_basis, segment_center + Vector3.UP * rail_height))
+
+		var post_steps := maxi(1, ceili(segment_length / 3.4))
+		for post_index in range(post_steps + 1):
+			var post_distance := lerpf(segment_start, segment_end, float(post_index) / float(post_steps))
+			var post_position := start + normalized_direction * post_distance + Vector3.UP * 0.72
+			var post_basis := Basis(Vector3.UP, yaw).scaled(Vector3(0.20, 1.44, 0.20))
+			post_transforms.append(Transform3D(post_basis, post_position))
+
+		var fence_shape := CollisionShape3D.new()
+		fence_shape.name = "Fence_Wall_Collision"
+		var fence_box := BoxShape3D.new()
+		fence_box.size = Vector3(segment_length, 1.44, 0.22)
+		fence_shape.shape = fence_box
+		fence_shape.position = segment_center + Vector3.UP * 0.72
+		fence_shape.rotation.y = yaw
+		fence_collisions.add_child(fence_shape)
+
+
+func _add_fence_multimesh(
+	parent: Node3D,
+	node_name: String,
+	mesh: Mesh,
+	material: Material,
+	transforms: Array[Transform3D]
+) -> MultiMeshInstance3D:
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = mesh
+	multi.instance_count = transforms.size()
+	for index in range(transforms.size()):
+		multi.set_instance_transform(index, transforms[index])
+
+	var instance := MultiMeshInstance3D.new()
+	instance.name = node_name
+	instance.multimesh = multi
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	instance.set_meta("instance_count", transforms.size())
+	parent.add_child(instance)
+	return instance
+
+
+func _build_section_sign(
+	section: Node3D,
+	sign_text: String,
+	board_material: Material,
+	support_material: Material
+) -> void:
+	var sign := Node3D.new()
+	sign.name = "SectionSign"
+	section.add_child(sign)
+
+	var sign_z := SECTION_HALF_DEPTH + 0.06
+	_add_box(sign, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
+	_add_box(sign, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
+	_add_box(sign, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
+
+	var label := Label3D.new()
+	label.name = "SectionName"
+	label.text = sign_text
+	label.font_size = 46
+	label.pixel_size = 0.008
+	label.outline_size = 8
+	label.modulate = Color("#fff0d5")
+	label.outline_modulate = Color("#2d2118")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.rotation.y = PI
+	label.position = Vector3(0.0, 2.43, sign_z + 0.13)
+	sign.add_child(label)
 
 
 func _create_grass_texture() -> Texture2D:
@@ -680,9 +957,9 @@ func _build_overlay() -> void:
 
 	var subtitle := Label.new()
 	subtitle.name = "CampusDimensions"
-	subtitle.text = "800 × 600 m   •   48 hectares   •   EMPTY LAND PHASE"
+	subtitle.text = "800 × 600 m   •   48 hectares   •   8 CAMPUS ZONES"
 	subtitle.position = Vector2(20.0, 106.0)
-	subtitle.size = Vector2(330.0, 24.0)
+	subtitle.size = Vector2(390.0, 24.0)
 	subtitle.add_theme_font_size_override("font_size", 10)
 	subtitle.add_theme_color_override("font_color", Color(0.91, 0.94, 0.87, 0.88))
 	root.add_child(subtitle)
