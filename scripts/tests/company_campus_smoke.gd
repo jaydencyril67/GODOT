@@ -128,6 +128,25 @@ func _run_test() -> void:
 	if player.collision_layer != 1 or player.collision_mask != 1:
 		_fail("The player collision layer and mask are not configured to collide with campus fences.")
 		return
+	if campus.get_meta("movement_response", "") != "direct_analog_slide_no_acceleration_ramp":
+		_fail("Player movement must use direct continuous joystick velocity without an acceleration ramp.")
+		return
+	var full_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 1.0))
+	var half_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.5))
+	var diagonal_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.7071068, 0.7071068))
+	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
+	if not is_equal_approx(full_input_velocity.length(), 1.5):
+		_fail("Full joystick input must produce the calibrated 1.5 m/s slide speed.")
+		return
+	if not is_equal_approx(half_input_velocity.length(), 0.75):
+		_fail("Half joystick input must produce exactly half speed, without squared analog input.")
+		return
+	if not is_equal_approx(diagonal_input_velocity.length(), 1.5):
+		_fail("Diagonal movement must remain normalized and must not move faster.")
+		return
+	if released_input_velocity.length_squared() > 0.000001:
+		_fail("Releasing the joystick must stop horizontal movement directly, without glide steps.")
+		return
 	await physics_frame
 	var fence_ray := PhysicsRayQueryParameters3D.create(
 		Vector3(-398.0, 0.80, 50.0),
