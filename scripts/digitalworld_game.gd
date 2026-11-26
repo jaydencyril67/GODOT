@@ -3169,7 +3169,7 @@ func _connect_staff_screen_signals(screen: Control) -> void:
 
 func _open_staff_screen(screen_mode: String) -> void:
 	current_screen = "staff_market" if screen_mode == "market" else "staff_management"
-	# Staff is a standalone page, not a translucent layer over the HQ scene.
+	# Staff is a standalone page opened from the campus phone.
 	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
 		ui_layer.hide()
 		ui_layer.queue_free()
@@ -3181,7 +3181,7 @@ func _open_staff_screen(screen_mode: String) -> void:
 	staff_market_screen.hide()
 	staff_management_screen.hide()
 	staff_screen = staff_market_screen if screen_mode == "market" else staff_management_screen
-	# Both pages were fully built during HQ loading. Opening is visibility-only.
+	# Both pages are prepared during campus generation. Opening is visibility-only.
 	staff_screen.show()
 
 
@@ -3202,7 +3202,6 @@ func _return_home_from_staff() -> void:
 
 func _hire_staff_candidate(candidate_id: String) -> void:
 	var market: Array = career.get("staff_candidates", [])
-	var team: Array = career.get("staff_employees", [])
 	for candidate_value in market:
 		if not (candidate_value is Dictionary):
 			continue
@@ -3216,8 +3215,7 @@ func _hire_staff_candidate(candidate_id: String) -> void:
 
 
 func _apply_staff_hire_candidate(candidate_id: String) -> void:
-	# Re-check ownership after the confirmation dialog too, so a stale hire
-	# confirmation can never bypass the office requirement.
+	# Re-check that the selected candidate still exists after confirmation.
 	var market: Array = career.get("staff_candidates", [])
 	var team: Array = career.get("staff_employees", [])
 	var candidate_index := -1
