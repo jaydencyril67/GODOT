@@ -15,12 +15,11 @@ func _run_test() -> void:
 	var insignia_image := Image.create(16, 16, false, Image.FORMAT_RGBA8)
 	insignia_image.fill(Color("#D2A15C"))
 	campus.call("configure_career_hud", "TEST MOBILES", ImageTexture.create_from_image(insignia_image), "$25,000", "2nd Jan 2020", true)
-	var campus_generated := false
-	var clock_toggle_requested := false
-	campus.setup_completed.connect(func(): campus_generated = true)
-	campus.game_clock_toggle_requested.connect(func(): clock_toggle_requested = true)
+	var observed_signals := {"campus_generated": false, "clock_toggle_requested": false}
+	campus.setup_completed.connect(func(): observed_signals["campus_generated"] = true)
+	campus.game_clock_toggle_requested.connect(func(): observed_signals["clock_toggle_requested"] = true)
 	root.add_child(campus)
-	while not campus_generated:
+	while not bool(observed_signals["campus_generated"]):
 		await process_frame
 
 	if not bool(campus.get_meta("career_home_scene", false)) or not bool(campus.get_meta("campus_generation_complete", false)):
@@ -43,7 +42,7 @@ func _run_test() -> void:
 		_fail("The career HUD did not update when the active company balance, date, or clock state changed.")
 		return
 	clock_button.emit_signal("pressed")
-	if not clock_toggle_requested:
+	if not bool(observed_signals["clock_toggle_requested"]):
 		_fail("The campus Pause/Play control did not forward the career clock request.")
 		return
 
