@@ -37,6 +37,7 @@ func _run_test() -> void:
 		return
 	if int(grass.get_meta("instance_count", 0)) != 5600:
 		_fail("The hybrid grass instance budget changed unexpectedly.")
+		return
 	if int(grass.get_meta("maintained_core_instance_count", 0)) != 4032 or int(grass.get_meta("natural_edge_instance_count", 0)) != 1568:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
