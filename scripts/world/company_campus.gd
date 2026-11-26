@@ -378,8 +378,8 @@ func _update_near_player_grass(force: bool = false) -> void:
 		var x := flat_position.x + cos(angle) * radius
 		var z := flat_position.z + sin(angle) * radius
 		var scale_value := rng.randf_range(0.78, 1.28)
-		var basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
-		multi.set_instance_transform(index, Transform3D(basis, Vector3(x, 0.008, z)))
+		var grass_instance_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
+		multi.set_instance_transform(index, Transform3D(grass_instance_basis, Vector3(x, 0.008, z)))
 		var shade := rng.randf_range(0.82, 1.08)
 		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
 
@@ -422,10 +422,10 @@ func _build_campus_trees() -> void:
 		var size_y := rng.randf_range(0.88, 1.24)
 		var size_z := rng.randf_range(0.82, 1.18)
 		var yaw := rng.randf_range(0.0, TAU)
-		var basis := Basis(Vector3.UP, yaw).scaled(Vector3(size_x, size_y, size_z))
-		var transform := Transform3D(basis, positions[index])
-		trunk_multi.set_instance_transform(index, transform)
-		canopy_multi.set_instance_transform(index, transform)
+		var tree_instance_basis := Basis(Vector3.UP, yaw).scaled(Vector3(size_x, size_y, size_z))
+		var tree_instance_transform := Transform3D(tree_instance_basis, positions[index])
+		trunk_multi.set_instance_transform(index, tree_instance_transform)
+		canopy_multi.set_instance_transform(index, tree_instance_transform)
 
 	var trunks := MultiMeshInstance3D.new()
 	trunks.name = "Campus_Tree_Trunks"
