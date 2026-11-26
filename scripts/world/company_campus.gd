@@ -244,8 +244,8 @@ func _add_grass_instances() -> void:
 		var x := rng.randf_range(-HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
 		var z := rng.randf_range(-HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
 		var scale_value := rng.randf_range(0.76, 1.28)
-		var basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
-		multi.set_instance_transform(index, Transform3D(basis, Vector3(x, 0.012, z)))
+		var grass_transform_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
+		multi.set_instance_transform(index, Transform3D(grass_transform_basis, Vector3(x, 0.012, z)))
 		var shade := rng.randf_range(0.78, 1.0)
 		multi.set_instance_color(index, Color(0.72 * shade, 0.92 * shade, 0.62 * shade, 1.0))
 
