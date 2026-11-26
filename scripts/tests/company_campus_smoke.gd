@@ -25,7 +25,15 @@ func _run_test() -> void:
 	if not bool(campus.get_meta("career_home_scene", false)) or not bool(campus.get_meta("campus_generation_complete", false)):
 		_fail("The campus did not complete its generated career-home setup.")
 		return
-	var career_status := campus.find_child("CampusCareerStatusBar", true, false) as PanelContainer
+	var career_status := campus.find_child("CampusCareerStatusBar", true, false) as HBoxContainer
+	if career_status == null or career_status.get_theme_stylebox("panel") != null:
+		_fail("The campus career HUD must be a transparent layout with no shared background card.")
+		return
+	for card_name in ["CampusCompanyInsigniaFrame", "CampusCompanyIdentityCard", "CampusBalanceCard", "CampusDateCard", "CampusGameClockCard"]:
+		var hud_card := campus.find_child(card_name, true, false) as PanelContainer
+		if hud_card == null:
+			_fail("The independent campus HUD card is missing: " + card_name)
+			return
 	var company_insignia := campus.find_child("CampusCompanyInsignia", true, false) as TextureRect
 	var company_name_label := campus.find_child("CampusCompanyName", true, false) as Label
 	var balance_label := campus.find_child("CampusBalanceValue", true, false) as Label
