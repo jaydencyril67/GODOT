@@ -169,10 +169,10 @@ func _ready() -> void:
 	setup_completed.emit()
 
 
-func set_career_home_overlay_visible(visible: bool) -> void:
+func set_career_home_overlay_visible(should_show: bool) -> void:
 	var layer := get_node_or_null("Campus_Controls_Layer") as CanvasLayer
 	if is_instance_valid(layer):
-		layer.visible = visible
+		layer.visible = should_show
 
 
 func _physics_process(delta: float) -> void:
