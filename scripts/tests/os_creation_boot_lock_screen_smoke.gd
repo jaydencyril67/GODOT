@@ -382,8 +382,8 @@ func _run_test() -> void:
 	await process_frame
 	analog_artwork = lock_screen.find_child("GeneratedAnalogClockArtwork", true, false) as TextureRect
 	var analog_container := lock_screen.find_child("AnalogClock", true, false) as Control
-	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(41):
-		_fail("Analog Style 41 did not render the matching uploaded artwork.")
+	if analog_artwork == null or analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(15):
+		_fail("Analog artwork did not render the final retained style (15) for digital Style 41.")
 		return
 	if analog_container == null or not analog_container.visible or not analog_artwork.visible or not analog_artwork.is_visible_in_tree() or digital_clock.visible:
 		_fail("Switching from Digital back to Analog must restore the visible analog renderer and hide Digital.")
@@ -405,8 +405,8 @@ func _run_test() -> void:
 		if not analog_container.visible or not analog_artwork.visible or not analog_artwork.is_visible_in_tree() or digital_clock.visible:
 			_fail("Analog Style %02d disappeared after switching back from Digital." % style_index)
 			return
-		if analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(style_index):
-			_fail("Analog Style %02d did not restore its matching artwork after switching back." % style_index)
+		if analog_artwork.texture == null or analog_artwork.texture.resource_path != LockScreenAssetLibrary.get_analog_clock_path(mini(style_index, LockScreenAssetLibrary.get_analog_clock_count())):
+			_fail("Analog artwork did not restore its matching retained asset after switching back from digital Style %02d." % style_index)
 			return
 
 	worksite.call("_show_step", 2)
