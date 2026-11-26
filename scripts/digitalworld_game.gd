@@ -199,6 +199,17 @@ func _load_career() -> bool:
 	if config.load(SAVE_PATH) != OK:
 		career = {}
 		return false
+
+	# Migrate existing careers by deleting saved data used only by the retired
+	# ten-level headquarters and rent system.
+	var removed_legacy_headquarters_data := false
+	for legacy_key in ["upgrade_level", "last_rent_billed_month"]:
+		if config.has_section_key("career", legacy_key):
+			config.erase_section_key("career", legacy_key)
+			removed_legacy_headquarters_data = true
+	if removed_legacy_headquarters_data and config.save(SAVE_PATH) != OK:
+		push_warning("The old headquarters upgrade and rent fields could not be removed from the career save.")
+
 	career = {
 		"full_name": str(config.get_value("career", "full_name", "")),
 		"company_name": str(config.get_value("career", "company_name", "")),
