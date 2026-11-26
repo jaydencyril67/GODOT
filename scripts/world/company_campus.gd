@@ -1012,6 +1012,20 @@ func _style_phone_button(button: Button) -> void:
 		button.add_theme_stylebox_override(state, style)
 
 
+func _make_phone_style(
+	background_color: Color,
+	border_color: Color,
+	border_width: int,
+	corner_radius: int
+) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background_color
+	style.border_color = border_color
+	style.set_border_width_all(border_width)
+	style.set_corner_radius_all(corner_radius)
+	return style
+
+
 func _layout_phone_controls() -> void:
 	if not is_instance_valid(overlay_root) or not is_instance_valid(phone_button) or not is_instance_valid(phone_device):
 		return
