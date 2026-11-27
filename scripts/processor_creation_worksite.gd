@@ -500,8 +500,10 @@ func _build_interface_batched() -> void:
 	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
+	preview_holder.visibility_changed.connect(Callable(self, "_apply_preview_render_budget"))
 	startup_progress.emit("Building Processor Creation Worksite interface", 10.0)
 	await get_tree().process_frame
+	_apply_preview_render_budget()
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "ProcessorSelectionScroll"
@@ -1371,6 +1373,18 @@ func _on_processor_technology_next_pressed() -> void:
 	_refresh_processor_technology_controls()
 
 
+func _apply_preview_render_budget() -> void:
+	if not is_instance_valid(preview_viewport):
+		return
+	# SubViewportContainer may change update behavior as it mounts or becomes
+	# visible. Reassert the lightweight preview settings after each transition.
+	preview_viewport.msaa_3d = Viewport.MSAA_DISABLED
+	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	if preview_viewport.size.x <= 0 or preview_viewport.size.y <= 0:
+		preview_viewport.size = Vector2i(640, 480)
+
+
 func _apply_responsive_layout() -> void:
 	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll) or not is_instance_valid(right_panel_column):
 		return
@@ -1398,6 +1412,7 @@ func _apply_responsive_layout() -> void:
 		selection_region.add_theme_constant_override("margin_right", 20)
 		selection_region.add_theme_constant_override("margin_top", 14)
 		selection_region.add_theme_constant_override("margin_bottom", 14)
+	_apply_preview_render_budget()
 
 
 func _set_wizard_step(step: int) -> void:
