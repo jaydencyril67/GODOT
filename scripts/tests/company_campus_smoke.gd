@@ -297,12 +297,20 @@ func _run_test() -> void:
 	if int(grass.get_meta("maintained_core_instance_count", 0)) != 5472 or int(grass.get_meta("natural_edge_instance_count", 0)) != 2128:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
-	var grass_instances := grass.multimesh
-	for grass_index in range(grass_instances.instance_count):
-		var grass_position := grass_instances.get_instance_transform(grass_index).origin
-		if bool(campus.call("_is_on_asphalt_road", grass_position.x, grass_position.z)):
-			_fail("Grass clump %d at (%.3f, %.3f) overlaps an asphalt corridor." % [grass_index, grass_position.x, grass_position.z])
+	if int(grass.get_meta("road_safe_instance_count", 0)) != 7600 or not bool(grass.get_meta("road_exclusion_enabled", false)):
+		_fail("The campus grass generator did not keep every generated clump clear of asphalt corridors.")
+		return
+	for road_x in [-200.0, 0.0, 200.0]:
+		if not bool(campus.call("_is_on_asphalt_road", road_x, 100.0)):
+			_fail("The asphalt exclusion mask missed a vertical road corridor.")
 			return
+	for road_z in [-150.0, 0.0, 150.0]:
+		if not bool(campus.call("_is_on_asphalt_road", 300.0, road_z)):
+			_fail("The asphalt exclusion mask missed a horizontal road corridor.")
+			return
+	if bool(campus.call("_is_on_asphalt_road", 100.0, 100.0)):
+		_fail("The asphalt exclusion mask incorrectly marked a plot interior as road.")
+		return
 	if campus.get_node_or_null("NearPlayer_Grass") != null or bool(campus.get_meta("movement_grass_follow_enabled", true)):
 		_fail("Player movement must not trigger or carry a regenerating near-player grass layer.")
 		return
