@@ -304,12 +304,12 @@ func _run_test() -> void:
 		_fail("The mobile grass mesh must use the optimized six-blade clump geometry.")
 		return
 	var daylight := campus.get_node_or_null("Soft_Daylight") as DirectionalLight3D
-	var tree_trunks := campus.get_node_or_null("Campus_Tree_Trunks") as MultiMeshInstance3D
-	var tree_canopies := campus.get_node_or_null("Campus_Tree_Canopies") as MultiMeshInstance3D
+	var shadow_check_trunks := campus.get_node_or_null("Campus_Tree_Trunks") as MultiMeshInstance3D
+	var shadow_check_canopies := campus.get_node_or_null("Campus_Tree_Canopies") as MultiMeshInstance3D
 	if daylight == null or daylight.shadow_enabled:
 		_fail("The mobile campus must not render an expensive real-time directional shadow map.")
 		return
-	if tree_trunks == null or tree_canopies == null or tree_trunks.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or tree_canopies.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+	if shadow_check_trunks == null or shadow_check_canopies == null or shadow_check_trunks.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or shadow_check_canopies.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
 		_fail("Instanced campus trees must preserve their geometry without rendering real-time shadows.")
 		return
 	for road_x in [-200.0, 0.0, 200.0]:
