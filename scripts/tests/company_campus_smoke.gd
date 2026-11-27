@@ -210,6 +210,10 @@ func _run_test() -> void:
 	if tree_trunks.multimesh.instance_count != 44 or tree_canopies.multimesh.instance_count != 44:
 		_fail("The campus should contain 44 instanced trees.")
 		return
+	var tree_collisions := campus.get_node_or_null("Campus_Tree_Collisions") as StaticBody3D
+	if tree_collisions == null or tree_collisions.get_child_count() != 44 or int(tree_collisions.get_meta("tree_collision_count", 0)) != 44:
+		_fail("Every campus tree trunk must have a blocking physics collider.")
+		return
 	var player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
 	if player == null or player.get_node_or_null("Humanoid_Collision") == null:
 		_fail("The first playable humanoid character or its collision body is missing.")
@@ -230,13 +234,13 @@ func _run_test() -> void:
 	var slight_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.001))
 	var diagonal_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.7071068, 0.7071068))
 	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
-	if not is_equal_approx(full_input_velocity.length(), 1.5):
-		_fail("Full joystick input must produce the calibrated 1.5 m/s slide speed.")
+	if not is_equal_approx(full_input_velocity.length(), 2.0):
+		_fail("Full joystick input must produce the calibrated 2.0 m/s slide speed.")
 		return
-	if not is_equal_approx(slight_input_velocity.length(), 1.5):
+	if not is_equal_approx(slight_input_velocity.length(), 2.0):
 		_fail("Any non-zero joystick input, however small, must immediately produce the full 1.5 m/s speed.")
 		return
-	if not is_equal_approx(diagonal_input_velocity.length(), 1.5):
+	if not is_equal_approx(diagonal_input_velocity.length(), 2.0):
 		_fail("Diagonal movement must remain normalized and must not move faster.")
 		return
 	if released_input_velocity.length_squared() > 0.000001:
