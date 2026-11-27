@@ -3246,7 +3246,16 @@ func _prepare_staff_scenes_batched() -> void:
 	_connect_staff_screen_signals(staff_market_screen)
 	_update_campus_loading_range("Preparing Staff Market", 20.0, 30.0, 34.0)
 	await get_tree().process_frame
-	staff_market_screen.open("market", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_market_screen.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(30.0, 34.0))
+	await staff_market_screen.call(
+		"open_batched",
+		"market",
+		career.get("staff_candidates", []),
+		career.get("staff_employees", []),
+		-1,
+		str(career.get("company_name", "YOUR COMPANY")),
+		float(career.get("balance", 0.0))
+	)
 	staff_market_screen.hide()
 	_update_campus_loading_range("Preparing Staff Market", 100.0, 30.0, 34.0)
 	await get_tree().process_frame
@@ -3258,7 +3267,16 @@ func _prepare_staff_scenes_batched() -> void:
 	_connect_staff_screen_signals(staff_management_screen)
 	_update_campus_loading_range("Preparing Staff Management", 20.0, 34.0, 38.0)
 	await get_tree().process_frame
-	staff_management_screen.open("management", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_management_screen.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(34.0, 38.0))
+	await staff_management_screen.call(
+		"open_batched",
+		"management",
+		career.get("staff_candidates", []),
+		career.get("staff_employees", []),
+		-1,
+		str(career.get("company_name", "YOUR COMPANY")),
+		float(career.get("balance", 0.0))
+	)
 	staff_management_screen.hide()
 	_update_campus_loading_range("Preparing Staff Management", 100.0, 34.0, 38.0)
 	await get_tree().process_frame
