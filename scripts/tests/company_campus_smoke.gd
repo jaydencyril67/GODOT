@@ -266,7 +266,7 @@ func _run_test() -> void:
 	if player.position.distance_to(Vector3(-366.0, 0.0, 0.0)) > 0.001 or campus.get_meta("player_spawn_zone", "") != "central_dividing_aisle":
 		_fail("The player must spawn on the central dividing aisle, outside every land parcel.")
 		return
-	if not is_equal_approx(float(campus.camera_yaw), PI * 0.5) or campus.get_meta("player_spawn_heading", "") != "east_along_central_aisle":
+	if not is_equal_approx(float(campus.get("camera_yaw")), PI * 0.5) or campus.get_meta("player_spawn_heading", "") != "east_along_central_aisle":
 		_fail("The player must initially face along the central aisle toward the opposing gate rows.")
 		return
 	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
