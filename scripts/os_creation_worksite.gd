@@ -151,7 +151,7 @@ func _initialize_worksite() -> void:
 		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 0.0)
 		await get_tree().process_frame
 		var files: Array[String] = []
-		_collect_files(str(STEP_ASSET_PATHS[step_index]), files)
+		await _collect_files_batched(str(STEP_ASSET_PATHS[step_index]), files, category_name.to_lower())
 		files.sort()
 		_asset_file_cache[step_index] = files
 		_emit_setup_progress("Indexing %s assets" % category_name.to_lower(), 100.0)
@@ -184,7 +184,7 @@ func _initialize_worksite() -> void:
 		setup_failed.emit("The homepage or 200-app drawer could not be built.")
 		return
 
-	_build_all_step_content_panels()
+	await _build_all_step_content_panels_batched()
 	_show_step(0)
 	_update_phone_preview_mode()
 	setup_complete = true
@@ -684,9 +684,10 @@ func _on_phone_preview_gui_input(event: InputEvent) -> void:
 		_phone_pointer_clock_mode = false
 
 
-func _build_all_step_content_panels() -> void:
+func _build_all_step_content_panels_batched() -> void:
 	if _step_content_panels_built or not is_instance_valid(_step_content_host):
 		return
+	var total_steps := maxi(1, STEP_NAMES.size())
 	for step_index in range(STEP_NAMES.size()):
 		var panel := VBoxContainer.new()
 		panel.name = "OSStepControls_%02d" % step_index
@@ -697,6 +698,9 @@ func _build_all_step_content_panels() -> void:
 		panel.visible = false
 		_step_content_host.add_child(panel)
 		_step_content_panels[step_index] = panel
+		_emit_setup_progress("Building OS worksite step panels", 45.0 * float(step_index + 1) / float(total_steps))
+		await get_tree().process_frame
+
 	for step_index in range(STEP_NAMES.size()):
 		content_column = _step_content_panels[step_index] as VBoxContainer
 		match step_index:
@@ -710,8 +714,12 @@ func _build_all_step_content_panels() -> void:
 				_show_status_bar_style_controls()
 			_:
 				_show_asset_browser(step_index)
+		_emit_setup_progress("Building OS worksite step panels", 45.0 + 54.0 * float(step_index + 1) / float(total_steps))
+		await get_tree().process_frame
+
 	_step_content_panels_built = true
 	content_column = _step_content_panels.get(current_step, _step_content_panels[0]) as VBoxContainer
+	_emit_setup_progress("Building OS worksite step panels", 100.0)
 
 
 func _refresh_boot_order_rows() -> void:
@@ -1328,6 +1336,38 @@ func _show_asset_browser(step_index: int) -> void:
 		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		item.pressed.connect(_select_asset.bind(file_path))
 		content_column.add_child(item)
+
+func _collect_files_batched(folder_path: String, output: Array[String], category_name: String) -> void:
+	var pending_directories: Array[String] = [folder_path]
+	var processed_entries := 0
+	var reported_batches := 0
+	while not pending_directories.is_empty():
+		var current_folder := pending_directories.pop_back()
+		var directory := DirAccess.open(current_folder)
+		if directory == null:
+			continue
+		directory.list_dir_begin()
+		var entry := directory.get_next()
+		while not entry.is_empty():
+			if entry != "." and entry != "..":
+				var full_path := current_folder.path_join(entry)
+				if directory.current_is_dir():
+					pending_directories.append(full_path)
+				else:
+					output.append(full_path)
+			processed_entries += 1
+			if processed_entries % 48 == 0:
+				reported_batches += 1
+				_emit_setup_progress(
+					"Indexing %s assets" % category_name,
+					minf(95.0, float(reported_batches) * 2.5)
+				)
+				await get_tree().process_frame
+			entry = directory.get_next()
+		directory.list_dir_end()
+	_emit_setup_progress("Indexing %s assets" % category_name, 100.0)
+	await get_tree().process_frame
+
 
 func _collect_files(folder_path: String, output: Array[String]) -> void:
 	var directory := DirAccess.open(folder_path)
