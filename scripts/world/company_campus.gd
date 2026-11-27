@@ -481,12 +481,13 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var east_start := center + Vector3(SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		var side_progress_span := (progress_end - progress_start) * 0.55 / float(CAMPUS_SECTION_NAMES.size() * 4)
+		var side_progress_base := progress_start + float(section_index * 4) * side_progress_span
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0)
 		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
-		setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_start + (progress_end - progress_start) * 0.55, float(section_index + 1) / float(CAMPUS_SECTION_NAMES.size())))
 		await get_tree().process_frame
 	var picket_material := StandardMaterial3D.new()
 	picket_material.albedo_color = Color("#a87549")
@@ -566,13 +567,21 @@ func _append_fence_side_batched(
 	fence_collisions: StaticBody3D,
 	start: Vector3,
 	direction: Vector3,
-	length: float
+	length: float,
+	progress_start: float,
+	progress_end: float
 ) -> void:
 	var normalized_direction := direction.normalized()
 	var gate_start := (length - SECTION_GATE_WIDTH) * 0.5
 	var gate_end := gate_start + SECTION_GATE_WIDTH
 	var segments := [Vector2(0.0, gate_start), Vector2(gate_end, length)]
 	var yaw := 0.0 if absf(normalized_direction.x) > 0.5 else PI * 0.5
+	var total_pickets := 0
+	for segment_value in segments:
+		var segment_value_length := float(segment_value.y - segment_value.x)
+		if segment_value_length > 0.5:
+			total_pickets += maxi(1, ceili(segment_value_length / 0.34))
+	var processed_pickets := 0
 	for segment in segments:
 		var segment_start: float = segment.x
 		var segment_end: float = segment.y
@@ -589,7 +598,10 @@ func _append_fence_side_batched(
 			var picket_distance := minf(segment_length - 0.10, (float(picket_index) + 0.5) * segment_length / float(picket_count))
 			var picket_position := start + normalized_direction * (segment_start + picket_distance) + Vector3.UP * 0.76
 			picket_transforms.append(Transform3D(Basis(Vector3.UP, yaw), picket_position))
-			if (picket_index + 1) % 128 == 0:
+			processed_pickets += 1
+			if processed_pickets % 128 == 0 or processed_pickets == total_pickets:
+				var batch_ratio := float(processed_pickets) / maxf(float(total_pickets), 1.0)
+				setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, batch_ratio))
 				await get_tree().process_frame
 		var post_steps := maxi(1, ceili(segment_length / 3.4))
 		for post_index in range(post_steps + 1):
@@ -605,6 +617,7 @@ func _append_fence_side_batched(
 		fence_shape.position = segment_center + Vector3.UP * 0.76
 		fence_shape.rotation.y = yaw
 		fence_collisions.add_child(fence_shape)
+	setup_progress.emit("Generating campus grounds and landscaping", progress_end)
 
 
 func _add_fence_multimesh_batched(
