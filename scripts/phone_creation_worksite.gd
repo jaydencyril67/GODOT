@@ -12,6 +12,10 @@ var cooling_system_step_visited := false
 
 signal back_requested
 signal research_requested
+signal startup_progress(message: String, progress: float)
+
+var defer_initial_setup := false
+var startup_setup_complete := false
 
 const PHONE_TYPES := ["Standard", "Flip", "Fold"]
 const CHARGE_PORT_RESEARCH_ORDER := [
@@ -885,11 +889,28 @@ var box_package_logo_sprite: Sprite3D
 
 var box_package_name_label: Label3D
 
+func set_defer_initial_setup(value: bool) -> void:
+	defer_initial_setup = value
+
+
 func _ready() -> void:
+	if defer_initial_setup:
+		return
+	await prepare_for_initial_load()
+
+
+func prepare_for_initial_load() -> bool:
+	if startup_setup_complete:
+		return true
 	screen_quality_state = ScreenTechnologySystem.create_state()
 	current_screen_technology = ScreenTechnologySystem.get_technology_name(0)
-	_build_preview_world()
-	_build_interface()
+	startup_progress.emit("Building Phone Creation preview", 0.0)
+	await _build_preview_world_batched()
+	startup_progress.emit("Building Phone Creation interface", 0.0)
+	await _build_interface_batched()
+	startup_setup_complete = true
+	startup_progress.emit("Building Phone Creation interface", 100.0)
+	return true
 
 func set_company_branding(company_name: String, logo_id: int) -> void:
 	box_company_name = company_name.strip_edges()
@@ -899,7 +920,7 @@ func set_company_branding(company_name: String, logo_id: int) -> void:
 	if is_instance_valid(box_package_preview):
 		_refresh_box_package_branding()
 
-func _build_preview_world() -> void:
+func _build_preview_world_batched() -> void:
 	# Worksite owns the live preview viewport directly. There is no nested
 	# editor node, preview-engine scene, or second editor interface.
 	preview_container = SubViewportContainer.new()
@@ -908,7 +929,7 @@ func _build_preview_world() -> void:
 	preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	preview_container.stretch = true
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	preview_container.add_child(_get_preview_viewport())
+	preview_container.add_child(await _get_preview_viewport_batched())
 	if is_instance_valid(preview_camera):
 		preview_camera.look_at_from_position(Vector3(0.0, 0.0, 4.6), Vector3.ZERO, Vector3.UP)
 	worksite_nested_color_view_opened.connect(_on_nested_color_view_opened)
@@ -958,7 +979,7 @@ func _apply_worksite_preview_studio_lighting(preview_viewport: SubViewport) -> v
 			studio_sky_material.sky_energy_multiplier = 0.9
 			studio_sky_material.ground_energy_multiplier = 0.72
 
-func _build_interface() -> void:
+func _build_interface_batched() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneCreationWorksiteInterface"
 	layer.layer = 40
@@ -1069,6 +1090,8 @@ func _build_interface() -> void:
 				preview_environment.environment.background_mode = Environment.BG_COLOR
 				preview_environment.environment.background_color = Color(0.0, 0.0, 0.0, 0.0)
 			_apply_worksite_preview_studio_lighting(preview_viewport)
+	startup_progress.emit("Building Phone Creation interface", 18.0)
+	await get_tree().process_frame
 
 	# Software specifications replace the 3D preview during the final software
 	# steps. One shared, invisible vertical scroll area moves both columns
@@ -1119,6 +1142,8 @@ func _build_interface() -> void:
 	specification_readout.add_child(specification_readout_right)
 
 	specification_readout_scroll.add_child(specification_readout)
+	startup_progress.emit("Building Phone Creation interface", 42.0)
+	await get_tree().process_frame
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "PhoneTypeSelectionScroll"
@@ -1173,6 +1198,8 @@ func _build_interface() -> void:
 	section_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	type_step_content.add_child(section_title)
 	_add_phone_type_selector(type_step_content)
+	startup_progress.emit("Building Phone Creation interface", 65.0)
+	await get_tree().process_frame
 
 	# Bottom arrows are independent root controls, not children of a full-width
 	# bar or a high-priority navigation layer.
@@ -1212,6 +1239,8 @@ func _build_interface() -> void:
 	# Start with Standard selected so the Worksite preview and Next state are
 	# immediately ready.
 	_apply_phone_type_level()
+	startup_progress.emit("Building Phone Creation interface", 100.0)
+	await get_tree().process_frame
 
 
 func _apply_responsive_layout() -> void:
@@ -4602,7 +4631,7 @@ func _make_glass_panel(fill_color: Color) -> PanelContainer:
 	panel.add_theme_stylebox_override("panel", style)
 	return panel
 
-func _get_preview_viewport() -> SubViewport:
+func _get_preview_viewport_batched() -> SubViewport:
 	var viewport := SubViewport.new()
 	viewport.name = "PhonePreviewViewport"
 	# SubViewportContainer.stretch sizes this viewport to the actual preview panel.
@@ -4643,6 +4672,8 @@ func _get_preview_viewport() -> SubViewport:
 	var preview_world := Node3D.new()
 	preview_world.name = "PhonePreviewWorld"
 	viewport.add_child(preview_world)
+	startup_progress.emit("Building Phone Creation preview", 15.0)
+	await get_tree().process_frame
 
 	phone_body = MeshInstance3D.new()
 	phone_body.name = "Plain_Phone_Body"
@@ -4685,6 +4716,8 @@ func _get_preview_viewport() -> SubViewport:
 	_rebuild_power_bank_preview()
 	_rebuild_earbuds_preview()
 	_rebuild_box_package_preview()
+	startup_progress.emit("Building Phone Creation preview", 65.0)
+	await get_tree().process_frame
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-28.0, -32.0, 0.0)
@@ -4714,6 +4747,8 @@ func _get_preview_viewport() -> SubViewport:
 	preview_camera.current = true
 	preview_camera.fov = 38.0
 	preview_world.add_child(preview_camera)
+	startup_progress.emit("Building Phone Creation preview", 100.0)
+	await get_tree().process_frame
 	return viewport
 
 func _add_tool_button(parent: GridContainer, feature_name: String) -> void:
