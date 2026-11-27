@@ -850,7 +850,7 @@ func _build_section_sign(
 	sign_root.name = "SectionSign"
 	section.add_child(sign_root)
 
-	var sign_z := SECTION_HALF_DEPTH + 0.06
+	var sign_z := -SECTION_HALF_DEPTH + 5.0
 	_add_box(sign_root, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
@@ -865,7 +865,7 @@ func _build_section_sign(
 	label.outline_modulate = Color("#2d2118")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.rotation.y = PI
+	label.rotation.y = 0.0
 	label.position = Vector3(0.0, 2.43, sign_z + 0.13)
 	sign_root.add_child(label)
 
