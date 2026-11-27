@@ -495,12 +495,24 @@ func _show_home_scene() -> void:
 	_clear_world()
 	await get_tree().process_frame
 	_refresh_staff_market_on_startup()
-	# Finish constructing every first-load career destination while the
-	# preparation screen still owns the display. These scenes are reused later.
+	# Every first-load destination is prepared off-screen in its own yielding
+	# batches. The same instances are reused after the loading screen closes.
+	_update_campus_loading_range("Preparing Phone Creation Worksite", 0.0, 0.0, 10.0)
 	_prepare_phone_creation_worksite()
+	phone_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(0.0, 10.0))
+	await phone_creation_worksite.call("prepare_for_initial_load")
+
+	_update_campus_loading_range("Preparing Processor Creation Worksite", 0.0, 10.0, 20.0)
 	_prepare_processor_creation_worksite()
+	processor_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(10.0, 20.0))
+	await processor_creation_worksite.call("prepare_for_initial_load")
+
+	_update_campus_loading_range("Preparing Camera Creation Worksite", 0.0, 20.0, 30.0)
 	_prepare_camera_creation_worksite()
-	_prepare_staff_scenes()
+	camera_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(20.0, 30.0))
+	await camera_creation_worksite.call("prepare_for_initial_load")
+
+	await _prepare_staff_scenes_batched()
 
 	var campus := CompanyCampusScene.instantiate() as Node3D
 	if not is_instance_valid(campus):
@@ -1770,9 +1782,11 @@ func _are_career_startup_scenes_ready() -> bool:
 		return false
 	if not is_instance_valid(phone_creation_worksite):
 		return false
-	if not is_instance_valid(processor_creation_worksite):
+	if not is_instance_valid(processor_creation_worksite) or not bool(processor_creation_worksite.get("startup_setup_complete")):
 		return false
-	if not is_instance_valid(camera_creation_worksite):
+	if not is_instance_valid(camera_creation_worksite) or not bool(camera_creation_worksite.get("startup_setup_complete")):
+		return false
+	if not bool(phone_creation_worksite.get("startup_setup_complete")):
 		return false
 	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
 		return false
@@ -2689,6 +2703,7 @@ func _prepare_camera_creation_worksite() -> void:
 		return
 	camera_creation_worksite.name = "Camera_Creation_Worksite"
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	camera_creation_worksite.call("set_defer_initial_setup", true)
 	camera_creation_worksite.connect("back_requested", Callable(self, "_return_from_camera_creation_worksite"))
 	camera_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_camera_creation_worksite"))
 	add_child(camera_creation_worksite)
@@ -2784,6 +2799,7 @@ func _prepare_processor_creation_worksite() -> void:
 		return
 	processor_creation_worksite.name = "Processor_Creation_Worksite"
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	processor_creation_worksite.call("set_defer_initial_setup", true)
 	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
 	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
 	processor_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_processor_creation_worksite"))
@@ -2900,6 +2916,7 @@ func _prepare_phone_creation_worksite() -> void:
 		return
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	phone_creation_worksite.call("set_defer_initial_setup", true)
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	phone_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
@@ -3173,6 +3190,13 @@ func _refresh_staff_screen_data() -> void:
 func _update_staff_office_balance() -> void:
 	if is_instance_valid(staff_screen):
 		staff_screen.update_balance(float(career.get("balance", 0.0)))
+
+
+func _prepare_staff_scenes_batched() -> void:
+	_update_campus_loading_range("Preparing Staff Market", 0.0, 30.0, 34.0)
+	_prepare_staff_scenes()
+	await get_tree().process_frame
+	_update_campus_loading_range("Preparing Staff Management", 100.0, 34.0, 38.0)
 
 
 func _prepare_staff_scenes() -> void:
