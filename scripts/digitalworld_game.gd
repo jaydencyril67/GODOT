@@ -1567,6 +1567,10 @@ func _toggle_game_clock() -> void:
 
 func _show_campus_loading_screen() -> void:
 	var root := _new_screen()
+	# The campus preparation overlay is a global modal surface. Keep it above
+	# every other CanvasLayer so a prepared scene can never draw through it.
+	if is_instance_valid(ui_layer):
+		ui_layer.layer = RenderingServer.CANVAS_LAYER_MAX
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	# Keep the preparation screen fully visible on its very first rendered frame.
 	root.modulate.a = 1.0
