@@ -57,6 +57,7 @@ var screen_photo_label: Label
 
 var current_scene_index := 0
 var zoom_level := 1.0
+var preview_active := false
 var night_mode_enabled := false
 var night_mode_quality_level := 0
 var gallery_open := false
@@ -68,6 +69,15 @@ func _ready() -> void:
 	_build_phone_camera_interface()
 	_build_scene(current_scene_index)
 	_update_screen_labels()
+
+
+func set_preview_active(active: bool) -> void:
+	preview_active = active
+	var update_mode := SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
+	if is_instance_valid(test_viewport):
+		test_viewport.render_target_update_mode = update_mode
+	if is_instance_valid(screen_viewport):
+		screen_viewport.render_target_update_mode = update_mode
 
 
 func get_screen_texture() -> Texture2D:
@@ -168,9 +178,9 @@ func _build_test_camera() -> void:
 	test_viewport.size = Vector2i(480, 960)
 	test_viewport.own_world_3d = true
 	test_viewport.transparent_bg = false
-	test_viewport.msaa_3d = Viewport.MSAA_2X
+	test_viewport.msaa_3d = Viewport.MSAA_DISABLED
 	test_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
-	test_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	test_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(test_viewport)
 
 	test_world = Node3D.new()
@@ -219,7 +229,7 @@ func _build_phone_camera_interface() -> void:
 	screen_viewport.name = "PhoneCameraAppViewport"
 	screen_viewport.size = Vector2i(480, 960)
 	screen_viewport.disable_3d = true
-	screen_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	screen_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(screen_viewport)
 
 	screen_root = Control.new()
