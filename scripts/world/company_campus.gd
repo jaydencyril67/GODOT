@@ -38,7 +38,15 @@ const CAMPUS_SECTION_NAMES := [
 	"Research & Technology",
 	"Production & Operations",
 	"Logistics, Warehouses & Loading",
-	"Landscaping, Green Spaces & Utilities"
+	"Landscaping, Green Spaces & Utilities",
+	"Expansion Zone A",
+	"Expansion Zone B",
+	"Innovation Hub",
+	"Future Projects",
+	"R&D Extension",
+	"Manufacturing Expansion",
+	"Global Business Hub",
+	"Special Projects"
 ]
 const CAMPUS_SECTION_SHORT_NAMES := [
 	"Main Entrance & Reception",
@@ -48,26 +56,45 @@ const CAMPUS_SECTION_SHORT_NAMES := [
 	"Research & Technology",
 	"Production & Operations",
 	"Logistics & Warehouses",
-	"Green Spaces & Utilities"
+	"Green Spaces & Utilities",
+	"Expansion Zone A",
+	"Expansion Zone B",
+	"Innovation Hub",
+	"Future Projects",
+	"R&D Extension",
+	"Manufacturing Expansion",
+	"Global Business Hub",
+	"Special Projects"
 ]
 const CAMPUS_SECTION_SIGN_TEXT := [
-	"MAIN ENTRANCE\n& RECEPTION",
-	"ADMINISTRATION\n& CORPORATE OFFICES",
-	"STAFF QUARTERS\n& FACILITIES",
-	"PARKING\n& TRANSPORT",
-	"RESEARCH\n& TECHNOLOGY",
-	"PRODUCTION\n& OPERATIONS",
-	"LOGISTICS\n& WAREHOUSES",
-	"LANDSCAPING\n& UTILITIES"
+	"PLOT 01\nMAIN ENTRANCE & RECEPTION",
+	"PLOT 02\nCORPORATE OFFICES",
+	"PLOT 03\nSTAFF & RECREATION",
+	"PLOT 04\nPARKING & TRANSPORT",
+	"PLOT 05\nRESEARCH & TECHNOLOGY",
+	"PLOT 06\nPRODUCTION & OPERATIONS",
+	"PLOT 07\nLOGISTICS & WAREHOUSES",
+	"PLOT 08\nGREEN SPACES & UTILITIES",
+	"PLOT 09\nEXPANSION ZONE A",
+	"PLOT 10\nEXPANSION ZONE B",
+	"PLOT 11\nINNOVATION HUB",
+	"PLOT 12\nFUTURE PROJECTS",
+	"PLOT 13\nR&D EXTENSION",
+	"PLOT 14\nMANUFACTURING EXPANSION",
+	"PLOT 15\nGLOBAL BUSINESS HUB",
+	"PLOT 16\nSPECIAL PROJECTS"
 ]
 const SECTION_COLUMN_CENTERS := [-300.0, -100.0, 100.0, 300.0]
-const SECTION_ROW_CENTERS := [150.0, -150.0]
+const SECTION_ROW_CENTERS := [225.0, 75.0, -75.0, -225.0]
 const SECTION_HALF_WIDTH := 94.0
-const SECTION_HALF_DEPTH := 144.0
+const SECTION_HALF_DEPTH := 69.0
 const SECTION_GATE_WIDTH := 8.0
-const CENTRAL_DIVIDING_AISLE_WIDTH := 12.0
+const INTERNAL_ROAD_WIDTH := 12.0
+const CENTRAL_DIVIDING_AISLE_WIDTH := INTERNAL_ROAD_WIDTH
+const ROAD_VERTICAL_CENTERS := [-200.0, 0.0, 200.0]
+const ROAD_HORIZONTAL_CENTERS := [150.0, 0.0, -150.0]
 const STARTER_LAND_PARCEL_ID := "LAND-01"
-const LAND_PARCEL_COUNT := 8
+const LAND_PARCEL_COUNT := 16
 
 var land_parcels: Array[Dictionary] = []
 var active_land_parcel_id := STARTER_LAND_PARCEL_ID
@@ -97,6 +124,8 @@ var career_identity_card: PanelContainer
 var career_balance_label: Label
 var career_date_label: Label
 var career_clock_button: Button
+var _property_gate_mesh: Mesh
+var _property_gate_material: StandardMaterial3D
 
 var camera_yaw := PI * 0.5
 var camera_pitch := 0.0
@@ -155,18 +184,32 @@ func configure_land_parcels(parcel_values: Array, selected_parcel_id: String) ->
 
 
 func _ensure_default_land_parcels() -> void:
-	if not land_parcels.is_empty():
-		return
+	var existing_by_id: Dictionary = {}
+	for existing_value in land_parcels:
+		if existing_value is Dictionary:
+			var existing_parcel: Dictionary = existing_value.duplicate(true)
+			var existing_id := str(existing_parcel.get("id", ""))
+			if existing_id.begins_with("LAND-"):
+				existing_by_id[existing_id] = existing_parcel
+
+	land_parcels.clear()
 	for section_index in range(LAND_PARCEL_COUNT):
 		var parcel_id := "LAND-%02d" % (section_index + 1)
 		var is_starter := section_index == 0
-		land_parcels.append({
-			"id": parcel_id,
-			"section_index": section_index,
-			"access_granted": is_starter,
-			"access_status": "accessible" if is_starter else "locked",
-			"tenure_status": "starter_access" if is_starter else "not_acquired"
-		})
+		var parcel: Dictionary = existing_by_id.get(parcel_id, {})
+		var access_granted := bool(parcel.get("access_granted", is_starter))
+		var tenure_status := str(parcel.get("tenure_status", "starter_access" if is_starter else "not_acquired"))
+		if not existing_by_id.has(parcel_id):
+			access_granted = is_starter
+			tenure_status = "starter_access" if is_starter else "not_acquired"
+		if tenure_status in ["starter_access", "owned", "rented"]:
+			access_granted = true
+		parcel["id"] = parcel_id
+		parcel["section_index"] = section_index
+		parcel["access_granted"] = access_granted
+		parcel["access_status"] = "accessible" if access_granted else "locked"
+		parcel["tenure_status"] = tenure_status if access_granted else "not_acquired"
+		land_parcels.append(parcel)
 
 
 func _is_land_parcel_accessible(parcel_id: String) -> bool:
@@ -182,6 +225,19 @@ func _is_section_accessible(section_index: int) -> bool:
 	return _is_land_parcel_accessible("LAND-%02d" % (section_index + 1))
 
 
+func _get_internal_plot_sides(row_index: int, column_index: int) -> Array[String]:
+	var sides: Array[String] = []
+	if column_index > 0:
+		sides.append("west")
+	if column_index < 3:
+		sides.append("east")
+	if row_index > 0:
+		sides.append("north")
+	if row_index < 3:
+		sides.append("south")
+	return sides
+
+
 func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_status: String = "owned") -> bool:
 	var section_index := -1
 	for index in range(land_parcels.size()):
@@ -190,6 +246,7 @@ func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_stat
 			break
 	if section_index < 0 or (not access_granted and parcel_id == active_land_parcel_id):
 		return false
+
 	for index in range(land_parcels.size()):
 		if str(land_parcels[index].get("id", "")) == parcel_id:
 			var updated_parcel: Dictionary = land_parcels[index].duplicate(true)
@@ -198,31 +255,35 @@ func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_stat
 			updated_parcel["tenure_status"] = tenure_status if access_granted else "not_acquired"
 			land_parcels[index] = updated_parcel
 			break
+
 	var section_root := get_node_or_null("Campus_Sections") as Node3D
 	var section := section_root.get_node_or_null("Section_%02d" % (section_index + 1)) as Node3D if is_instance_valid(section_root) else null
 	if is_instance_valid(section):
 		section.set_meta("access_granted", access_granted)
 		section.set_meta("access_status", "accessible" if access_granted else "locked")
 		section.set_meta("tenure_status", tenure_status if access_granted else "not_acquired")
+
 	var gates_root := get_node_or_null("Campus_Wooden_Fences/Property_Gates") as Node3D
-	var gate := gates_root.get_node_or_null("PropertyGate_%02d" % (section_index + 1)) as StaticBody3D if is_instance_valid(gates_root) else null
-	if not access_granted and not is_instance_valid(gate) and is_instance_valid(gates_root):
-		var row_index := floori(float(section_index) / 4.0)
-		var column_index := section_index % 4
-		var section_center := Vector3(SECTION_COLUMN_CENTERS[column_index], 0.0, SECTION_ROW_CENTERS[row_index])
-		gate = _build_locked_property_gate(gates_root, section_center, section_index)
-		var gate_count := int(gates_root.get_meta("gate_count", 0)) + 1
-		gates_root.set_meta("gate_count", gate_count)
-		gates_root.set_meta("locked_gate_count", gate_count)
-		var fence_root := get_node_or_null("Campus_Wooden_Fences") as Node3D
-		if is_instance_valid(fence_root):
-			fence_root.set_meta("locked_gate_count", gate_count)
-	if is_instance_valid(gate):
-		gate.visible = not access_granted
-		gate.set_meta("gate_locked", not access_granted)
-		var gate_collision := gate.get_node_or_null("GateCollision") as CollisionShape3D
-		if is_instance_valid(gate_collision):
-			gate_collision.disabled = access_granted
+	if is_instance_valid(gates_root):
+		var matching_gate_count := 0
+		for gate_value in gates_root.get_children():
+			var gate := gate_value as StaticBody3D
+			if not is_instance_valid(gate) or str(gate.get_meta("property_id", "")) != parcel_id:
+				continue
+			matching_gate_count += 1
+			gate.visible = not access_granted
+			gate.set_meta("gate_locked", not access_granted)
+			var gate_collision := gate.get_node_or_null("GateCollision") as CollisionShape3D
+			if is_instance_valid(gate_collision):
+				gate_collision.disabled = access_granted
+
+		if matching_gate_count == 0:
+			var row_index := floori(float(section_index) / 4.0)
+			var column_index := section_index % 4
+			var section_center := Vector3(SECTION_COLUMN_CENTERS[column_index], 0.0, SECTION_ROW_CENTERS[row_index])
+			_create_property_gates_for_parcel(gates_root, section_center, section_index, access_granted)
+		_refresh_property_gate_counts(gates_root)
+
 	_refresh_explore_section_buttons()
 	return true
 
@@ -525,21 +586,27 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	var section_root := Node3D.new()
 	section_root.name = "Campus_Sections"
 	section_root.set_meta("section_count", CAMPUS_SECTION_NAMES.size())
-	section_root.set_meta("layout", "four_columns_two_rows")
-	section_root.set_meta("property_model", "eight_independent_land_parcels")
+	section_root.set_meta("layout", "four_columns_four_rows")
+	section_root.set_meta("grid_columns", 4)
+	section_root.set_meta("grid_rows", 4)
+	section_root.set_meta("property_model", "sixteen_independent_land_parcels")
+	section_root.set_meta("plot_size_metres", Vector2(SECTION_HALF_WIDTH * 2.0, SECTION_HALF_DEPTH * 2.0))
 	add_child(section_root)
+
+	_build_asphalt_road_network()
 
 	var fence_root := Node3D.new()
 	fence_root.name = "Campus_Wooden_Fences"
 	fence_root.set_meta("wooden_fence", true)
 	fence_root.set_meta("gate_opening_width_metres", SECTION_GATE_WIDTH)
+	fence_root.set_meta("plot_count", LAND_PARCEL_COUNT)
 	add_child(fence_root)
 
 	var gates_root := Node3D.new()
 	gates_root.name = "Property_Gates"
-	gates_root.set_meta("gate_system", "individual_land_parcel_entrances")
+	gates_root.set_meta("gate_system", "individual_plot_internal_perimeter_entrances")
 	fence_root.add_child(gates_root)
-	var locked_gate_count := 0
+	_ensure_property_gate_resources()
 
 	var post_material := StandardMaterial3D.new()
 	post_material.albedo_color = Color("#67452e")
@@ -572,6 +639,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	fence_collisions.set_meta("collision_layer", 1)
 	fence_root.add_child(fence_collisions)
 
+	var locked_gate_count := 0
 	for section_index in range(CAMPUS_SECTION_NAMES.size()):
 		var row_index := floori(float(section_index) / 4.0)
 		var column_index := section_index % 4
@@ -591,14 +659,17 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 			if str(parcel.get("id", "")) == parcel_id:
 				parcel_tenure = str(parcel.get("tenure_status", parcel_tenure))
 				break
-		var entrance_on_negative_z_side := row_index == 0
+
+		var internal_sides := _get_internal_plot_sides(row_index, column_index)
 		section.set_meta("section_number", section_index + 1)
 		section.set_meta("section_name", CAMPUS_SECTION_NAMES[section_index])
-		section.set_meta("entrance_side", "north" if entrance_on_negative_z_side else "south")
-		section.set_meta("faces_central_dividing_aisle", true)
 		section.set_meta("property_id", parcel_id)
 		section.set_meta("is_individual_land_parcel", true)
 		section.set_meta("property_area_square_metres", SECTION_HALF_WIDTH * 2.0 * SECTION_HALF_DEPTH * 2.0)
+		section.set_meta("plot_size_metres", Vector2(SECTION_HALF_WIDTH * 2.0, SECTION_HALF_DEPTH * 2.0))
+		section.set_meta("grid_row", row_index)
+		section.set_meta("grid_column", column_index)
+		section.set_meta("entrance_sides", internal_sides.duplicate())
 		section.set_meta("access_granted", parcel_accessible)
 		section.set_meta("access_status", "accessible" if parcel_accessible else "locked")
 		section.set_meta("tenure_status", parcel_tenure)
@@ -607,19 +678,24 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 
 		var west_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var east_start := center + Vector3(SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
-		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
-		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
+		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
+		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var side_progress_span := (progress_end - progress_start) * 0.55 / float(CAMPUS_SECTION_NAMES.size() * 4)
 		var side_progress_base := progress_start + float(section_index * 4) * side_progress_span
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, false)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, false)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, entrance_on_negative_z_side)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, not entrance_on_negative_z_side)
+
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, internal_sides.has("west"))
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, internal_sides.has("east"))
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, internal_sides.has("north"))
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, internal_sides.has("south"))
+
+		for side in internal_sides:
+			_build_locked_property_gate(gates_root, center, section_index, side, parcel_accessible)
 		if not parcel_accessible:
-			_build_locked_property_gate(gates_root, center, section_index)
-			locked_gate_count += 1
-		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material, entrance_on_negative_z_side)
+			locked_gate_count += internal_sides.size()
+
+		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
 		await get_tree().process_frame
+
 	var picket_material := StandardMaterial3D.new()
 	picket_material.albedo_color = Color("#a87549")
 	picket_material.roughness = 0.93
@@ -635,8 +711,123 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	fence_root.set_meta("picket_count", picket_transforms.size())
 	fence_root.set_meta("collision_segment_count", fence_collisions.get_child_count())
 	fence_root.set_meta("locked_gate_count", locked_gate_count)
-	gates_root.set_meta("locked_gate_count", locked_gate_count)
-	gates_root.set_meta("gate_count", locked_gate_count)
+	_refresh_property_gate_counts(gates_root)
+
+
+func _build_asphalt_road_network() -> void:
+	var asphalt_material := StandardMaterial3D.new()
+	asphalt_material.albedo_color = Color("#30363b")
+	asphalt_material.roughness = 0.98
+	asphalt_material.metallic = 0.0
+
+	var road_surface := SurfaceTool.new()
+	road_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	road_surface.set_material(asphalt_material)
+
+	var campus_min_x := -HALF_WIDTH + 6.0
+	var campus_max_x := HALF_WIDTH - 6.0
+	var campus_min_z := -HALF_DEPTH + 6.0
+	var campus_max_z := HALF_DEPTH - 6.0
+
+	for horizontal_z in ROAD_HORIZONTAL_CENTERS:
+		_append_road_quad(road_surface, campus_min_x, campus_max_x, horizontal_z - INTERNAL_ROAD_WIDTH * 0.5, horizontal_z + INTERNAL_ROAD_WIDTH * 0.5)
+
+	for vertical_x in ROAD_VERTICAL_CENTERS:
+		var z_start := campus_min_z
+		for horizontal_z in ROAD_HORIZONTAL_CENTERS:
+			var intersection_min_z := horizontal_z - INTERNAL_ROAD_WIDTH * 0.5
+			var intersection_max_z := horizontal_z + INTERNAL_ROAD_WIDTH * 0.5
+			if intersection_min_z > z_start:
+				_append_road_quad(road_surface, vertical_x - INTERNAL_ROAD_WIDTH * 0.5, vertical_x + INTERNAL_ROAD_WIDTH * 0.5, z_start, intersection_min_z)
+			z_start = intersection_max_z
+		if z_start < campus_max_z:
+			_append_road_quad(road_surface, vertical_x - INTERNAL_ROAD_WIDTH * 0.5, vertical_x + INTERNAL_ROAD_WIDTH * 0.5, z_start, campus_max_z)
+
+	road_surface.generate_normals()
+	var road_instance := MeshInstance3D.new()
+	road_instance.name = "Campus_Asphalt_Roads"
+	road_instance.mesh = road_surface.commit()
+	road_instance.material_override = asphalt_material
+	road_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	road_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	road_instance.set_meta("road_corridor_count", 6)
+	road_instance.set_meta("asphalt_surface_quad_count", 15)
+	road_instance.set_meta("road_width_metres", INTERNAL_ROAD_WIDTH)
+	add_child(road_instance)
+
+	var marking_material := StandardMaterial3D.new()
+	marking_material.albedo_color = Color("#d5d8d9")
+	marking_material.roughness = 0.96
+	marking_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var dash_mesh := BoxMesh.new()
+	dash_mesh.size = Vector3.ONE
+	var dash_transforms: Array[Transform3D] = []
+
+	for horizontal_z in ROAD_HORIZONTAL_CENTERS:
+		var x_position := campus_min_x + 10.0
+		while x_position <= campus_max_x - 10.0:
+			var near_intersection := false
+			for vertical_x in ROAD_VERTICAL_CENTERS:
+				if absf(x_position - vertical_x) < INTERNAL_ROAD_WIDTH:
+					near_intersection = true
+					break
+			if not near_intersection:
+				var dash_basis := Basis.IDENTITY.scaled(Vector3(2.6, 0.012, 0.16))
+				dash_transforms.append(Transform3D(dash_basis, Vector3(x_position, 0.052, horizontal_z)))
+			x_position += 14.0
+
+	for vertical_x in ROAD_VERTICAL_CENTERS:
+		var z_position := campus_min_z + 10.0
+		while z_position <= campus_max_z - 10.0:
+			var near_intersection := false
+			for horizontal_z in ROAD_HORIZONTAL_CENTERS:
+				if absf(z_position - horizontal_z) < INTERNAL_ROAD_WIDTH:
+					near_intersection = true
+					break
+			if not near_intersection:
+				var dash_basis := Basis.IDENTITY.scaled(Vector3(0.16, 0.012, 2.6))
+				dash_transforms.append(Transform3D(dash_basis, Vector3(vertical_x, 0.052, z_position)))
+			z_position += 14.0
+
+	var dash_multi := MultiMesh.new()
+	dash_multi.transform_format = MultiMesh.TRANSFORM_3D
+	dash_multi.mesh = dash_mesh
+	dash_multi.instance_count = dash_transforms.size()
+	for dash_index in range(dash_transforms.size()):
+		dash_multi.set_instance_transform(dash_index, dash_transforms[dash_index])
+	var markings := MultiMeshInstance3D.new()
+	markings.name = "Campus_Road_Markings"
+	markings.multimesh = dash_multi
+	markings.material_override = marking_material
+	markings.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	markings.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	markings.set_meta("marking_style", "sparse_dashed_center_lines")
+	markings.set_meta("dash_count", dash_transforms.size())
+	add_child(markings)
+
+
+func _append_road_quad(surface: SurfaceTool, min_x: float, max_x: float, min_z: float, max_z: float) -> void:
+	var a := Vector3(min_x, 0.035, min_z)
+	var b := Vector3(min_x, 0.035, max_z)
+	var c := Vector3(max_x, 0.035, max_z)
+	var d := Vector3(max_x, 0.035, min_z)
+	surface.add_vertex(a)
+	surface.add_vertex(b)
+	surface.add_vertex(c)
+	surface.add_vertex(a)
+	surface.add_vertex(c)
+	surface.add_vertex(d)
+
+
+func _is_on_asphalt_road(x: float, z: float) -> bool:
+	var road_clearance := INTERNAL_ROAD_WIDTH * 0.5 + 0.25
+	for road_x in ROAD_VERTICAL_CENTERS:
+		if absf(x - road_x) < road_clearance:
+			return true
+	for road_z in ROAD_HORIZONTAL_CENTERS:
+		if absf(z - road_z) < road_clearance:
+			return true
+	return false
 
 
 func _append_fence_side(
@@ -812,22 +1003,136 @@ func _add_fence_multimesh(
 	return instance
 
 
-func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, section_index: int) -> StaticBody3D:
+func _ensure_property_gate_resources() -> void:
+	if _property_gate_mesh != null and _property_gate_material != null:
+		return
+
+	_property_gate_material = StandardMaterial3D.new()
+	_property_gate_material.vertex_color_use_as_albedo = true
+	_property_gate_material.roughness = 0.94
+	_property_gate_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(_property_gate_material)
+	var timber_color := Color("#563922")
+	var slat_color := Color("#8A5B38")
+	var sign_color := Color("#2D2118")
+
+	_append_gate_box(surface, Vector3(0.22, 1.92, 0.24), Vector3(-3.86, 0.96, 0.0), timber_color)
+	_append_gate_box(surface, Vector3(0.22, 1.92, 0.24), Vector3(3.86, 0.96, 0.0), timber_color)
+	_append_gate_box(surface, Vector3(7.72, 0.20, 0.24), Vector3(0.0, 1.78, 0.0), timber_color)
+	_append_gate_box(surface, Vector3(7.72, 0.20, 0.24), Vector3(0.0, 0.22, 0.0), timber_color)
+	for slat_index in range(11):
+		var slat_x := lerpf(-3.35, 3.35, float(slat_index) / 10.0)
+		_append_gate_box(surface, Vector3(0.15, 1.42, 0.14), Vector3(slat_x, 1.0, 0.0), slat_color)
+	_append_gate_box(surface, Vector3(5.8, 0.62, 0.18), Vector3(0.0, 2.36, 0.0), sign_color)
+
+	surface.generate_normals()
+	_property_gate_mesh = surface.commit()
+
+
+func _append_gate_box(surface: SurfaceTool, size: Vector3, center: Vector3, color: Color) -> void:
+	var half := size * 0.5
+	var p000 := center + Vector3(-half.x, -half.y, -half.z)
+	var p001 := center + Vector3(-half.x, -half.y, half.z)
+	var p010 := center + Vector3(-half.x, half.y, -half.z)
+	var p011 := center + Vector3(-half.x, half.y, half.z)
+	var p100 := center + Vector3(half.x, -half.y, -half.z)
+	var p101 := center + Vector3(half.x, -half.y, half.z)
+	var p110 := center + Vector3(half.x, half.y, -half.z)
+	var p111 := center + Vector3(half.x, half.y, half.z)
+
+	_append_gate_face(surface, p001, p101, p111, p011, color)
+	_append_gate_face(surface, p100, p000, p010, p110, color)
+	_append_gate_face(surface, p101, p100, p110, p111, color)
+	_append_gate_face(surface, p000, p001, p011, p010, color)
+	_append_gate_face(surface, p011, p111, p110, p010, color)
+	_append_gate_face(surface, p000, p100, p101, p001, color)
+
+
+func _append_gate_face(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, color: Color) -> void:
+	surface.set_color(color)
+	surface.add_vertex(a)
+	surface.set_color(color)
+	surface.add_vertex(b)
+	surface.set_color(color)
+	surface.add_vertex(c)
+	surface.set_color(color)
+	surface.add_vertex(a)
+	surface.set_color(color)
+	surface.add_vertex(c)
+	surface.set_color(color)
+	surface.add_vertex(d)
+
+
+func _create_property_gates_for_parcel(gates_root: Node3D, section_center: Vector3, section_index: int, parcel_accessible: bool) -> int:
+	var row_index := floori(float(section_index) / 4.0)
+	var column_index := section_index % 4
+	var sides := _get_internal_plot_sides(row_index, column_index)
+	for side in sides:
+		_build_locked_property_gate(gates_root, section_center, section_index, side, parcel_accessible)
+	return sides.size()
+
+
+func _refresh_property_gate_counts(gates_root: Node3D) -> void:
+	var total_gate_count := 0
+	var locked_gate_count := 0
+	for gate_value in gates_root.get_children():
+		var gate := gate_value as StaticBody3D
+		if not is_instance_valid(gate):
+			continue
+		total_gate_count += 1
+		if bool(gate.get_meta("gate_locked", false)):
+			locked_gate_count += 1
+	gates_root.set_meta("gate_count", total_gate_count)
+	gates_root.set_meta("locked_gate_count", locked_gate_count)
+	var fence_root := gates_root.get_parent() as Node3D
+	if is_instance_valid(fence_root):
+		fence_root.set_meta("locked_gate_count", locked_gate_count)
+
+
+func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, section_index: int, side: String, parcel_accessible: bool) -> StaticBody3D:
+	_ensure_property_gate_resources()
 	var parcel_id := "LAND-%02d" % (section_index + 1)
 	var gate := StaticBody3D.new()
-	gate.name = "PropertyGate_%02d" % (section_index + 1)
-	var row_index := floori(float(section_index) / 4.0)
-	var entrance_offset_z := -SECTION_HALF_DEPTH if row_index == 0 else SECTION_HALF_DEPTH
-	gate.position = section_center + Vector3(0.0, 0.0, entrance_offset_z)
+	gate.name = "PropertyGate_%02d_%s" % [section_index + 1, side.capitalize()]
 	gate.collision_layer = 1
 	gate.collision_mask = 1
+	gate.visible = not parcel_accessible
 	gate.set_meta("property_id", parcel_id)
-	gate.set_meta("entrance_side", "north" if row_index == 0 else "south")
-	gate.set_meta("faces_central_dividing_aisle", true)
-	gate.set_meta("gate_locked", true)
+	gate.set_meta("entrance_side", side)
+	gate.set_meta("faces_campus_interior", true)
+	gate.set_meta("gate_locked", not parcel_accessible)
 	gate.set_meta("blocks_player", true)
 	gate.add_to_group("locked_land_gates")
-	gates_root.add_child(gate)
+
+	var gate_offset := Vector3.ZERO
+	match side:
+		"north":
+			gate_offset = Vector3(0.0, 0.0, SECTION_HALF_DEPTH)
+			gate.rotation.y = 0.0
+		"south":
+			gate_offset = Vector3(0.0, 0.0, -SECTION_HALF_DEPTH)
+			gate.rotation.y = PI
+		"east":
+			gate_offset = Vector3(SECTION_HALF_WIDTH, 0.0, 0.0)
+			gate.rotation.y = PI * 0.5
+		"west":
+			gate_offset = Vector3(-SECTION_HALF_WIDTH, 0.0, 0.0)
+			gate.rotation.y = -PI * 0.5
+		_:
+			push_error("Unknown internal plot gate side: " + side)
+			return gate
+	gate.position = section_center + gate_offset
+
+	var gate_mesh_instance := MeshInstance3D.new()
+	gate_mesh_instance.name = "GateMesh"
+	gate_mesh_instance.mesh = _property_gate_mesh
+	gate_mesh_instance.material_override = _property_gate_material
+	gate_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gate_mesh_instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	gate.add_child(gate_mesh_instance)
 
 	var gate_collision := CollisionShape3D.new()
 	gate_collision.name = "GateCollision"
@@ -835,33 +1140,23 @@ func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, se
 	gate_shape.size = Vector3(SECTION_GATE_WIDTH, 1.95, 0.40)
 	gate_collision.shape = gate_shape
 	gate_collision.position = Vector3(0.0, 0.98, 0.0)
+	gate_collision.disabled = parcel_accessible
 	gate.add_child(gate_collision)
 
-	var timber_material := _material(Color("#563922"), 0.94)
-	var slat_material := _material(Color("#8A5B38"), 0.92)
-	var sign_material := _material(Color("#2D2118"), 0.95)
-	_add_box(gate, "Gate_Left_Frame", Vector3(0.22, 1.92, 0.24), Vector3(-3.86, 0.96, 0.0), timber_material)
-	_add_box(gate, "Gate_Right_Frame", Vector3(0.22, 1.92, 0.24), Vector3(3.86, 0.96, 0.0), timber_material)
-	_add_box(gate, "Gate_Top_Rail", Vector3(7.72, 0.20, 0.24), Vector3(0.0, 1.78, 0.0), timber_material)
-	_add_box(gate, "Gate_Bottom_Rail", Vector3(7.72, 0.20, 0.24), Vector3(0.0, 0.22, 0.0), timber_material)
-	for slat_index in range(11):
-		var slat_x := lerpf(-3.35, 3.35, float(slat_index) / 10.0)
-		_add_box(gate, "Gate_Vertical_Slat_%02d" % slat_index, Vector3(0.15, 1.42, 0.14), Vector3(slat_x, 1.0, 0.0), slat_material)
-	_add_box(gate, "Gate_Locked_Signboard", Vector3(5.8, 0.62, 0.18), Vector3(0.0, 2.36, 0.0), sign_material)
-	for face_index in range(2):
-		var label := Label3D.new()
-		label.name = "Gate_Locked_Label_%d" % face_index
-		label.text = "LAND %02d  -  NOT ACQUIRED" % (section_index + 1)
-		label.font_size = 31
-		label.pixel_size = 0.009
-		label.outline_size = 6
-		label.modulate = Color("#FFF0D5")
-		label.outline_modulate = Color("#2D2118")
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.position = Vector3(0.0, 2.36, 0.105 if face_index == 0 else -0.105)
-		label.rotation.y = PI if face_index == 1 else 0.0
-		gate.add_child(label)
+	var label := Label3D.new()
+	label.name = "Gate_Locked_Label"
+	label.text = "PLOT %02d  -  LOCKED" % (section_index + 1)
+	label.font_size = 25
+	label.pixel_size = 0.008
+	label.outline_size = 5
+	label.modulate = Color("#FFF0D5")
+	label.outline_modulate = Color("#2D2118")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.position = Vector3(0.0, 2.36, 0.125)
+	gate.add_child(label)
+
+	gates_root.add_child(gate)
 	return gate
 
 
@@ -869,14 +1164,13 @@ func _build_section_sign(
 	section: Node3D,
 	sign_text: String,
 	board_material: Material,
-	support_material: Material,
-	entrance_on_negative_z_side: bool
+	support_material: Material
 ) -> void:
 	var sign_root := Node3D.new()
 	sign_root.name = "SectionSign"
 	section.add_child(sign_root)
 
-	var sign_z := SECTION_HALF_DEPTH - 5.0 if entrance_on_negative_z_side else -SECTION_HALF_DEPTH + 5.0
+	var sign_z := 0.0
 	_add_box(sign_root, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
@@ -884,15 +1178,14 @@ func _build_section_sign(
 	var label := Label3D.new()
 	label.name = "SectionName"
 	label.text = sign_text
-	label.font_size = 46
+	label.font_size = 38
 	label.pixel_size = 0.008
 	label.outline_size = 8
 	label.modulate = Color("#fff0d5")
 	label.outline_modulate = Color("#2d2118")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.rotation.y = PI if entrance_on_negative_z_side else 0.0
-	label.position = Vector3(0.0, 2.43, sign_z + (0.13 if not entrance_on_negative_z_side else -0.13))
+	label.position = Vector3(0.0, 2.43, sign_z + 0.13)
 	sign_root.add_child(label)
 
 
@@ -970,14 +1263,14 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	var maintained_count := int(float(GRASS_INSTANCE_COUNT) * MAINTAINED_GRASS_RATIO)
 	for index in range(GRASS_INSTANCE_COUNT):
 		var is_maintained := index < maintained_count
+		var edge := -1 if is_maintained else rng.randi_range(0, 3)
 		var x: float
 		var z: float
-		if is_maintained:
-			x = rng.randf_range(-HALF_WIDTH * 0.38, HALF_WIDTH * 0.38)
-			z = rng.randf_range(-HALF_DEPTH * 0.38, HALF_DEPTH * 0.38)
-		else:
-			var edge := rng.randi_range(0, 3)
-			if edge == 0:
+		while true:
+			if is_maintained:
+				x = rng.randf_range(-HALF_WIDTH * 0.38, HALF_WIDTH * 0.38)
+				z = rng.randf_range(-HALF_DEPTH * 0.38, HALF_DEPTH * 0.38)
+			elif edge == 0:
 				x = rng.randf_range(-HALF_WIDTH + 2.0, HALF_WIDTH - 2.0)
 				z = rng.randf_range(-HALF_DEPTH + 2.0, -HALF_DEPTH * 0.34)
 			elif edge == 1:
@@ -989,6 +1282,8 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 			else:
 				x = rng.randf_range(HALF_WIDTH * 0.38, HALF_WIDTH - 2.0)
 				z = rng.randf_range(-HALF_DEPTH * 0.34, HALF_DEPTH * 0.34)
+			if not _is_on_asphalt_road(x, z):
+				break
 
 		var scale_value := rng.randf_range(0.72, 0.98) if is_maintained else rng.randf_range(1.25, 2.05)
 		var grass_transform_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
@@ -1071,20 +1366,14 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 	var trunk_mesh := _create_tree_trunk_mesh(trunk_material)
 	var canopy_mesh := _create_tree_canopy_mesh(leaf_material)
 	var positions: Array[Vector3] = []
-	for index in range(11):
-		var z := lerpf(-238.0, 238.0, float(index) / 10.0)
-		if absf(z) < 0.01:
-			# Keep the centre dividing aisle clear from end to end. The two
-			# perimeter trees beside this crossing are moved into their plots.
-			positions.append(Vector3(-354.0, 0.0, -20.0))
-			positions.append(Vector3(354.0, 0.0, 20.0))
-		else:
-			positions.append(Vector3(-354.0, 0.0, z))
-			positions.append(Vector3(354.0, 0.0, z))
-	for index in range(11):
-		var x := lerpf(-316.0, 316.0, float(index) / 10.0)
-		positions.append(Vector3(x, 0.0, -254.0))
-		positions.append(Vector3(x, 0.0, 254.0))
+	var perimeter_tree_z_positions := [-260.0, -220.0, -185.0, -110.0, -75.0, -35.0, 35.0, 75.0, 110.0, 185.0, 260.0]
+	for z in perimeter_tree_z_positions:
+		positions.append(Vector3(-382.0, 0.0, z))
+		positions.append(Vector3(382.0, 0.0, z))
+	var perimeter_tree_x_positions := [-380.0, -340.0, -280.0, -240.0, -120.0, -80.0, 80.0, 120.0, 240.0, 280.0, 340.0]
+	for x in perimeter_tree_x_positions:
+		positions.append(Vector3(x, 0.0, -288.0))
+		positions.append(Vector3(x, 0.0, 288.0))
 
 	var trunk_multi := MultiMesh.new()
 	trunk_multi.transform_format = MultiMesh.TRANSFORM_3D
