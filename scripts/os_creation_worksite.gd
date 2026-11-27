@@ -272,6 +272,8 @@ func _build_interface() -> void:
 	power_button.add_theme_color_override("font_color", TEXT)
 	power_button.pressed.connect(_on_power_pressed)
 	power_button_center.add_child(power_button)
+	_emit_setup_progress("Preparing handset screen and boot interface", 18.0)
+	await get_tree().process_frame
 
 	# Render a fixed 3D handset in its own viewport. The camera is deliberately
 	# static: the player can power the device, but cannot rotate or drag it.
@@ -300,6 +302,8 @@ func _build_interface() -> void:
 	var phone_world := Node3D.new()
 	phone_world.name = "FixedPhonePreviewWorld"
 	phone_viewport.add_child(phone_world)
+	_emit_setup_progress("Preparing handset screen and boot interface", 38.0)
+	await get_tree().process_frame
 
 	# A dedicated UI viewport supplies the boot image to the 3D glass surface.
 	# The handset model itself is built by the same geometry rules as the
@@ -323,6 +327,8 @@ func _build_interface() -> void:
 	phone_screen.color = Color("#000000")
 	phone_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	screen_root.add_child(phone_screen)
+	_emit_setup_progress("Preparing handset screen and boot interface", 58.0)
+	await get_tree().process_frame
 
 	var boot_content := VBoxContainer.new()
 	boot_content.name = "BootScreenContent"
@@ -341,6 +347,8 @@ func _build_interface() -> void:
 	company_logo_preview.visible = false
 	company_logo_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boot_content.add_child(company_logo_preview)
+	_emit_setup_progress("Preparing handset screen and boot interface", 75.0)
+	await get_tree().process_frame
 
 	phone_name_label = _make_label("Digital World", 60, TEXT)
 	phone_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -353,6 +361,8 @@ func _build_interface() -> void:
 	phone_model_label.visible = false
 	boot_content.add_child(phone_model_label)
 	_apply_boot_font_weight(phone_model_label, 900)
+	_emit_setup_progress("Preparing handset screen and boot interface", 84.0)
+	await get_tree().process_frame
 
 	lock_screen_designer = LockScreenDesignerScript.new()
 	lock_screen_designer.name = "AutonomousLockScreenDesignerPreview"
@@ -364,6 +374,8 @@ func _build_interface() -> void:
 	lock_screen_designer.visible = false
 	phone_screen.add_child(lock_screen_designer)
 	lock_screen_designer.pin_unlocked.connect(_on_pin_unlocked)
+	_emit_setup_progress("Preparing handset screen and boot interface", 91.0)
+	await get_tree().process_frame
 
 	home_screen_designer = HomeScreenDesignerScript.new()
 	home_screen_designer.name = "OneUIHomeScreenPreview"
@@ -375,6 +387,7 @@ func _build_interface() -> void:
 	home_screen_designer.visible = false
 	phone_screen.add_child(home_screen_designer)
 	_emit_setup_progress("Preparing handset screen and boot interface", 100.0)
+	await get_tree().process_frame
 	await get_tree().create_timer(0.18).timeout
 	_emit_setup_progress("Preparing handset scene connection", 0.0)
 
@@ -397,6 +410,8 @@ func _build_interface() -> void:
 	scroll_bar.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	worksite_body.add_child(controls_scroll)
+	_emit_setup_progress("Building OS worksite controls and navigation", 12.0)
+	await get_tree().process_frame
 
 	var controls_margin := MarginContainer.new()
 	controls_margin.name = "OSControlsMargin"
@@ -414,6 +429,8 @@ func _build_interface() -> void:
 	controls_stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	controls_stack.add_theme_constant_override("separation", 18)
 	controls_margin.add_child(controls_stack)
+	_emit_setup_progress("Building OS worksite controls and navigation", 24.0)
+	await get_tree().process_frame
 
 	var heading_row := HBoxContainer.new()
 	heading_row.name = "WorksiteStepHeroRow"
@@ -447,6 +464,8 @@ func _build_interface() -> void:
 	content_column.add_theme_constant_override("separation", 28)
 	controls_stack.add_child(content_column)
 	_step_content_host = content_column
+	_emit_setup_progress("Building OS worksite controls and navigation", 45.0)
+	await get_tree().process_frame
 
 	selection_status_label = _make_label("NO ASSET SELECTED", 10, MUTED)
 	selection_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -466,6 +485,8 @@ func _build_interface() -> void:
 	back_button.offset_bottom = 58
 	back_button.pressed.connect(func(): back_requested.emit())
 	root_control.add_child(back_button)
+	_emit_setup_progress("Building OS worksite controls and navigation", 60.0)
+	await get_tree().process_frame
 
 	var progress_box := VBoxContainer.new()
 	progress_box.name = "WorksiteProgress"
@@ -492,6 +513,8 @@ func _build_interface() -> void:
 	progress_bar.add_theme_stylebox_override("fill", _make_panel_style(ACCENT, ACCENT, 0, 4))
 	progress_bar.add_theme_stylebox_override("background", _make_panel_style(Color("#17191B"), Color("#17191B"), 0, 4))
 	progress_box.add_child(progress_bar)
+	_emit_setup_progress("Building OS worksite controls and navigation", 80.0)
+	await get_tree().process_frame
 
 	previous_button = _make_arrow_button("‹")
 	previous_button.name = "WorksitePreviousArrow"
@@ -518,6 +541,8 @@ func _build_interface() -> void:
 	next_button.offset_bottom = -14
 	next_button.pressed.connect(_next_step)
 	root_control.add_child(next_button)
+	_emit_setup_progress("Building OS worksite controls and navigation", 95.0)
+	await get_tree().process_frame
 
 	root_control.resized.connect(_apply_responsive_layout)
 	preview_region.resized.connect(_apply_responsive_layout)
