@@ -340,19 +340,15 @@ func _run_test() -> void:
 	var project_app_icon := campus.find_child("ProjectAppIcon", true, false) as Button
 	var explore_back_button := campus.find_child("ExploreBackToHomeButton", true, false) as Button
 	var explore_status_label := campus.find_child("ExploreStatusLabel", true, false) as Label
-	var worksite_app_view := campus.find_child("WorksiteAppScreen", true, false) as Control
 	var worksite_app_icon := campus.find_child("WorksiteAppIcon", true, false) as Button
-	var research_app_view := campus.find_child("ResearchAppScreen", true, false) as Control
 	var research_app_icon := campus.find_child("ResearchAppIcon", true, false) as Button
-	var staffs_app_view := campus.find_child("StaffsAppScreen", true, false) as Control
 	var staffs_app_icon := campus.find_child("StaffsAppIcon", true, false) as Button
-	var create_app_icon := campus.find_child("CreateAppIcon", true, false) as Button
 	var products_app_icon := campus.find_child("ProductsAppIcon", true, false) as Button
 	var marketing_app_icon := campus.find_child("MarketingAppIcon", true, false) as Button
 	var media_app_icon := campus.find_child("MediaAppIcon", true, false) as Button
 	var office_app_icon := campus.find_child("OfficeAppIcon", true, false) as Button
 	var statistics_app_icon := campus.find_child("StatisticsAppIcon", true, false) as Button
-	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null or phone_screen_ui == null or phone_home_view == null or explore_app_view == null or explore_app_icon == null or project_app_icon == null or explore_back_button == null or explore_status_label == null or worksite_app_view == null or worksite_app_icon == null or research_app_view == null or research_app_icon == null or staffs_app_view == null or staffs_app_icon == null or create_app_icon == null or products_app_icon == null or marketing_app_icon == null or media_app_icon == null or office_app_icon == null or statistics_app_icon == null or player == null:
+	if phone_button == null or first_action_button == null or second_action_button == null or fourth_action_button == null or phone_device == null or phone_viewport == null or phone_model == null or phone_screen_ui == null or phone_home_view == null or explore_app_view == null or explore_app_icon == null or project_app_icon == null or explore_back_button == null or explore_status_label == null or worksite_app_icon == null or research_app_icon == null or staffs_app_icon == null or products_app_icon == null or marketing_app_icon == null or media_app_icon == null or office_app_icon == null or statistics_app_icon == null or player == null:
 		_fail("The phone controls, powered display UI, Explore app, player, or shared OS Worksite handset model is missing.")
 		return
 	var phone_controls: Array[Button] = [
@@ -417,7 +413,7 @@ func _run_test() -> void:
 	if worksite_app_icon.tooltip_text != "Open Worksite" or research_app_icon.tooltip_text != "Open Research" or staffs_app_icon.tooltip_text != "Open Staffs":
 		_fail("The Worksite, Research, and Staffs app launch icons are missing from the phone home screen.")
 		return
-	if int(phone_screen_ui.get_meta("home_app_count", 0)) != 11:
+	if int(phone_screen_ui.get_meta("home_app_count", 0)) != 10:
 		_fail("The phone home screen must contain the eleven career navigation apps.")
 		return
 	var app_grid := campus.find_child("PhoneHomeAppGrid", true, false) as GridContainer
@@ -526,41 +522,28 @@ func _run_test() -> void:
 		_fail("The phone launcher cannot close the handset display.")
 		return
 
-	for option_id in ["Phone", "Camera", "Os", "Processor"]:
-		phone_button.emit_signal("pressed")
-		worksite_app_icon.emit_signal("pressed")
-		var worksite_option := campus.find_child("WorksiteOption_" + option_id, true, false) as Button
-		if worksite_option == null or not worksite_app_view.visible:
-			_fail("The Worksite app did not show the %s workspace option." % option_id)
-			return
-		worksite_option.emit_signal("pressed")
-		if app_route_requests.back() != "worksite:" + option_id.to_lower() or phone_device.visible or phone_screen_ui.visible:
-			_fail("Selecting %s Worksite did not emit the correct scene request and close the phone." % option_id)
+	for removed_page_name in ["WorksiteAppScreen", "ResearchAppScreen", "StaffsAppScreen"]:
+		if campus.find_child(removed_page_name, true, false) != null:
+			_fail("The %s legacy in-phone chooser should not exist; its gateway now opens as a standalone screen." % removed_page_name)
 			return
 
-	for option_id in ["Hub", "Phone", "Camera", "Processor"]:
-		phone_button.emit_signal("pressed")
-		research_app_icon.emit_signal("pressed")
-		var research_option := campus.find_child("ResearchOption_" + option_id, true, false) as Button
-		if research_option == null or not research_app_view.visible:
-			_fail("The Research app is missing the %s destination." % option_id)
-			return
-		research_option.emit_signal("pressed")
-		if app_route_requests.back() != "research:" + option_id.to_lower() or phone_device.visible or phone_screen_ui.visible:
-			_fail("Selecting %s Research did not emit the correct scene request and close the phone." % option_id)
-			return
+	phone_button.emit_signal("pressed")
+	worksite_app_icon.emit_signal("pressed")
+	if app_route_requests.back() != "worksite:create" or phone_device.visible or phone_screen_ui.visible or not phone_home_view.visible:
+		_fail("Worksite did not launch its standalone Create gateway directly from the campus phone.")
+		return
 
-	for option_id in ["Market", "Management"]:
-		phone_button.emit_signal("pressed")
-		staffs_app_icon.emit_signal("pressed")
-		var staff_option := campus.find_child("StaffsOption_" + option_id, true, false) as Button
-		if staff_option == null or not staffs_app_view.visible:
-			_fail("The Staffs app is missing the %s destination." % option_id)
-			return
-		staff_option.emit_signal("pressed")
-		if app_route_requests.back() != "staffs:" + option_id.to_lower() or phone_device.visible or phone_screen_ui.visible:
-			_fail("Selecting %s did not emit the correct staff scene request and close the phone." % option_id)
-			return
+	phone_button.emit_signal("pressed")
+	research_app_icon.emit_signal("pressed")
+	if app_route_requests.back() != "research:hub" or phone_device.visible or phone_screen_ui.visible or not phone_home_view.visible:
+		_fail("Research did not launch its standalone gateway directly from the campus phone.")
+		return
+
+	phone_button.emit_signal("pressed")
+	staffs_app_icon.emit_signal("pressed")
+	if app_route_requests.back() != "staffs:hub" or phone_device.visible or phone_screen_ui.visible or not phone_home_view.visible:
+		_fail("Staffs did not launch its standalone gateway directly from the campus phone.")
+		return
 
 	phone_button.emit_signal("pressed")
 	products_app_icon.emit_signal("pressed")
@@ -617,11 +600,6 @@ func _run_test() -> void:
 		return
 	if phone_screen_ui.get_meta("active_app") != "home" or not phone_home_view.visible:
 		_fail("Launching Project did not leave the phone on its home screen.")
-		return
-	phone_button.emit_signal("pressed")
-	create_app_icon.emit_signal("pressed")
-	if app_route_requests.back() != "legacy:create" or phone_device.visible or phone_screen_ui.visible:
-		_fail("The Create app did not request the existing product-creation scene and close the phone.")
 		return
 	if phone_screen_ui.get_meta("active_app") != "home" or not phone_home_view.visible:
 		_fail("External app launches did not leave the phone at its home screen.")
