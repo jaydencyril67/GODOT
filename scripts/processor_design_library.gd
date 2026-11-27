@@ -331,6 +331,35 @@ static func build_all(parent: Node3D) -> Array[Dictionary]:
 
 
 
+static func build_all_batched(parent: Node3D, progress_callback: Callable = Callable()) -> Array[Dictionary]:
+	var built_models: Array[Dictionary] = []
+	var tree := Engine.get_main_loop() as SceneTree
+	for index in range(DESIGNS.size()):
+		var profile: Dictionary = DESIGNS[index]
+		var model_root := Node3D.new()
+		model_root.name = "ProcessorSoCModel" if index == 0 else "ProcessorSoCModel_%02d" % (index + 1)
+		model_root.position = Vector3(0.0, 0.02, 0.0)
+		model_root.rotation = Vector3(-0.24, -0.42, 0.0)
+		parent.add_child(model_root)
+
+		var model_data: Dictionary
+		if index == 0:
+			model_data = _build_reference_design(model_root)
+		else:
+			model_data = _build_variant_design(model_root, profile)
+		_apply_profile_finishes(model_data, profile)
+		model_data["root"] = model_root
+		model_data["profile"] = profile.duplicate(true)
+		model_root.visible = index == 0
+		built_models.append(model_data)
+
+		if progress_callback.is_valid():
+			progress_callback.call("Building processor preview models", 100.0 * float(index + 1) / float(DESIGNS.size()))
+		if tree != null:
+			await tree.process_frame
+	return built_models
+
+
 static func _apply_profile_finishes(model_data: Dictionary, _profile: Dictionary) -> void:
 	# Every preset starts in the same monochrome black finish. Colour selection
 	# is handled separately as processor worksite step 2.
