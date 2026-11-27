@@ -16,7 +16,7 @@ const CAMPUS_WIDTH := 800.0
 const CAMPUS_DEPTH := 600.0
 const HALF_WIDTH := CAMPUS_WIDTH * 0.5
 const HALF_DEPTH := CAMPUS_DEPTH * 0.5
-const WALK_SPEED := 2.0
+const MOVE_SPEED := 2.0
 const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
@@ -308,8 +308,9 @@ func _ready() -> void:
 	set_meta("land_parcel_count", LAND_PARCEL_COUNT)
 	set_meta("initially_accessible_land_parcel_count", 1)
 	set_meta("active_land_parcel_id", active_land_parcel_id)
-	set_meta("walk_speed_metres_per_second", WALK_SPEED)
-	set_meta("movement_response", "direct_analog_speed_no_deadzone_no_temporal_acceleration")
+	set_meta("move_speed_metres_per_second", MOVE_SPEED)
+	set_meta("movement_model", "continuous_velocity")
+	set_meta("movement_response", "direct_analog_velocity_no_deadzone_no_temporal_acceleration")
 	set_meta("mobile_render_profile", "performance_first_no_realtime_shadows")
 	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
@@ -350,18 +351,13 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
 		return
 
-	var movement := Vector2.ZERO
-	if is_instance_valid(movement_joystick):
-		var joystick_value: Variant = movement_joystick.call("get_value")
-		if joystick_value is Vector2:
-			movement = joystick_value
+	var move_input := _get_move_input()
+	var move_velocity := _calculate_move_velocity(move_input)
 
-	if movement == Vector2.ZERO:
-		movement = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-
-	var horizontal_velocity := _calculate_horizontal_velocity(movement)
-	player.velocity.x = horizontal_velocity.x
-	player.velocity.z = horizontal_velocity.z
+	# Translation is driven only by continuous world-space velocity. No gait,
+	# step timer, animation cycle, or movement cadence controls player position.
+	player.velocity.x = move_velocity.x
+	player.velocity.z = move_velocity.z
 	if not player.is_on_floor():
 		player.velocity.y -= GRAVITY * delta
 	elif player.velocity.y < 0.0:
@@ -374,21 +370,30 @@ func _physics_process(delta: float) -> void:
 	player.rotation.y = -camera_yaw
 
 
-func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
-	var movement_strength := clampf(movement.length(), 0.0, 1.0)
-	if movement_strength <= 0.0:
+func _get_move_input() -> Vector2:
+	if is_instance_valid(movement_joystick):
+		var joystick_value: Variant = movement_joystick.call("get_value")
+		if joystick_value is Vector2 and joystick_value != Vector2.ZERO:
+			return joystick_value
+
+	return Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+
+
+func _calculate_move_velocity(move_input: Vector2) -> Vector3:
+	var input_strength := clampf(move_input.length(), 0.0, 1.0)
+	if input_strength <= 0.0:
 		return Vector3.ZERO
 
 	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
 	var right := Vector3(cos(camera_yaw), 0.0, sin(camera_yaw))
-	var move_direction := right * movement.x + forward * movement.y
+	var move_direction := right * move_input.x + forward * move_input.y
 	if move_direction.length_squared() <= 0.000001:
 		return Vector3.ZERO
 
-	# Preserve the joystick's radial strength while normalizing only its
-	# direction. Full deflection remains 2 m/s; partial deflection scales
-	# proportionally without a dead zone or time-based acceleration ramp.
-	return move_direction.normalized() * WALK_SPEED * movement_strength
+	# Direction is normalized once; input magnitude remains analog. Godot's
+	# CharacterBody3D integrates this velocity through move_and_slide() each
+	# physics tick, keeping travel continuous and collision-resolved.
+	return move_direction.normalized() * MOVE_SPEED * input_strength
 
 
 func _process(_delta: float) -> void:
@@ -1556,6 +1561,8 @@ func _build_player() -> void:
 	player.position = Vector3(-366.0, 0.0, 0.0)
 	player.collision_layer = 1
 	player.collision_mask = 1
+	player.set_meta("motion_model", "continuous_velocity")
+	player.set_meta("motion_animation_drives_translation", false)
 	player.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	player.floor_snap_length = 0.28
 	player.safe_margin = 0.06

@@ -373,17 +373,23 @@ func _run_test() -> void:
 	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
 		_fail("Project-wide physics interpolation must be enabled for smooth rendered movement.")
 		return
-	if campus.get_meta("movement_response", "") != "direct_analog_speed_no_deadzone_no_temporal_acceleration":
-		_fail("Player movement must use direct continuous joystick velocity without an acceleration ramp.")
+	if campus.get_meta("movement_model", "") != "continuous_velocity" or campus.get_meta("movement_response", "") != "direct_analog_velocity_no_deadzone_no_temporal_acceleration":
+		_fail("Player movement must use a continuous velocity model with no gait timing or acceleration ramp.")
 		return
-	var full_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 1.0))
-	var half_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.5))
-	var slight_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.001))
-	var diagonal_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.7071068, 0.7071068))
-	var oversized_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 2.0))
-	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
+	if player.get_meta("motion_model", "") != "continuous_velocity" or bool(player.get_meta("motion_animation_drives_translation", true)):
+		_fail("Player translation must be controlled by continuous velocity, never by a walk animation.")
+		return
+	if not is_equal_approx(float(campus.get_meta("move_speed_metres_per_second", 0.0)), 2.0):
+		_fail("The continuous movement system must retain its calibrated 2.0 m/s top speed.")
+		return
+	var full_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2(0.0, 1.0))
+	var half_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2(0.0, 0.5))
+	var slight_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2(0.0, 0.001))
+	var diagonal_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2(0.7071068, 0.7071068))
+	var oversized_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2(0.0, 2.0))
+	var released_input_velocity: Vector3 = campus.call("_calculate_move_velocity", Vector2.ZERO)
 	if not is_equal_approx(full_input_velocity.length(), 2.0):
-		_fail("Full joystick input must produce the calibrated 2.0 m/s slide speed.")
+		_fail("Full joystick input must produce the calibrated 2.0 m/s movement speed.")
 		return
 	if not is_equal_approx(full_input_velocity.x, 2.0) or not is_equal_approx(full_input_velocity.z, 0.0):
 		_fail("Forward movement must follow the central dividing aisle east-west instead of entering either plot row.")
