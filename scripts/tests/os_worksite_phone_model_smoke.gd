@@ -97,6 +97,17 @@ func _initialize() -> void:
 			_fail("A physical side key is not seated on the left or right chassis edge.")
 			return
 
+	if power_key.position.x <= 0.0 or volume_up.position.x >= 0.0 or volume_down.position.x >= 0.0:
+		_fail("The volume keys must remain on the handset edge directly opposite the power key.")
+		return
+	var volume_pair_center_y := (volume_up.position.y + volume_down.position.y) * 0.5
+	if not is_equal_approx(volume_pair_center_y, power_key.position.y) or volume_up.position.y <= power_key.position.y or volume_down.position.y >= power_key.position.y:
+		_fail("The raised volume-up/down pair must straddle the power key's height and be centered directly opposite it.")
+		return
+	if not is_equal_approx(volume_up.position.y - volume_down.position.y, 0.24):
+		_fail("The two volume keys must keep a compact, clearly separated vertical rocker layout.")
+		return
+
 	var display_arrays := display.mesh.surface_get_arrays(0)
 	var display_uvs: PackedVector2Array = display_arrays[Mesh.ARRAY_TEX_UV]
 	if display_uvs.is_empty():
