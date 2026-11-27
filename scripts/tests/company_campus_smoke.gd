@@ -266,6 +266,9 @@ func _run_test() -> void:
 	if player.position.distance_to(Vector3(-366.0, 0.0, 0.0)) > 0.001 or campus.get_meta("player_spawn_zone", "") != "central_dividing_aisle":
 		_fail("The player must spawn on the central dividing aisle, outside every land parcel.")
 		return
+	if not is_equal_approx(float(campus.get_meta("central_dividing_aisle_width_metres", 0.0)), 12.0):
+		_fail("The central dividing aisle must preserve the full 12-metre separation between plot rows.")
+		return
 	if not is_equal_approx(float(campus.get("camera_yaw")), PI * 0.5) or campus.get_meta("player_spawn_heading", "") != "east_along_central_aisle":
 		_fail("The player must initially face along the central aisle toward the opposing gate rows.")
 		return
@@ -296,6 +299,14 @@ func _run_test() -> void:
 		return
 	await physics_frame
 	await process_frame
+	var aisle_clear_ray := PhysicsRayQueryParameters3D.create(Vector3(-360.0, 0.80, 0.0), Vector3(-348.0, 0.80, 0.0))
+ aisle_clear_ray.collision_mask = 1
+	 aisle_clear_ray.collide_with_bodies = true
+	 aisle_clear_ray.collide_with_areas = false
+	 var aisle_clear_hit := campus.get_world_3d().direct_space_state.intersect_ray(aisle_clear_ray)
+	if not aisle_clear_hit.is_empty():
+		_fail("A perimeter tree or fence collision blocks the central dividing aisle near the starting point.")
+		return
 	var fence_ray := PhysicsRayQueryParameters3D.create(
 		Vector3(-398.0, 0.80, 50.0),
 		Vector3(-390.0, 0.80, 50.0)
