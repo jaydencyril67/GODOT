@@ -52,6 +52,13 @@ func _run_test() -> void:
 	if career_status == null or career_status.has_theme_stylebox_override("panel"):
 		_fail("The campus career HUD must be a transparent layout with no shared background card.")
 		return
+	var hud_spacer := campus.find_child("CampusCareerHudAlignmentSpacer", true, false) as Control
+	if hud_spacer == null or hud_spacer.get_parent() != career_status or hud_spacer.get_index() != 2 or (hud_spacer.size_flags_horizontal & Control.SIZE_EXPAND) == 0:
+		_fail("The campus HUD must place an expanding alignment spacer between the left company identity and right-side status controls.")
+		return
+	if career_status.anchor_left != 0.0 or career_status.anchor_right != 1.0 or not is_equal_approx(career_status.offset_left, 14.0) or not is_equal_approx(career_status.offset_right, -14.0):
+		_fail("The campus HUD must span the top edge with consistent left and right screen margins.")
+		return
 	for card_name in ["CampusCompanyInsigniaFrame", "CampusCompanyIdentityCard", "CampusBalanceCard", "CampusDateCard", "CampusGameClockCard"]:
 		var hud_card := campus.find_child(card_name, true, false) as PanelContainer
 		if hud_card == null:
