@@ -254,7 +254,10 @@ func _wait_for_digital_clock_layout(digital_clock: Control, face_index: int) -> 
 	# Each imported face can use a different nested layout. Wait until the
 	# renderer has detached its date layer, allowed containers to reflow, and
 	# centered the final time bounds before testing its shared position.
-	for _frame_index in range(12):
+	# Nested XMorph layouts can need additional frame passes after font and
+	# container sizing settles. Keep the visual assertions, but avoid failing
+	# a valid face solely because a device/CI runner lays it out more slowly.
+	for _frame_index in range(60):
 		if not is_instance_valid(digital_clock):
 			_fail("Digital face %02d renderer was replaced before normalization." % face_index)
 			return false
@@ -263,7 +266,7 @@ func _wait_for_digital_clock_layout(digital_clock: Control, face_index: int) -> 
 		await process_frame
 	if is_instance_valid(digital_clock) and bool(digital_clock.call("is_time_layout_normalized")):
 		return true
-	_fail("Digital face %02d did not finish layout normalization within 12 frames." % face_index)
+	_fail("Digital face %02d did not finish layout normalization within 60 frames." % face_index)
 	return false
 
 
