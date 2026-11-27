@@ -16,6 +16,10 @@ func _run_test() -> void:
 	insignia_image.fill(Color("#D2A15C"))
 	campus.call("configure_career_hud", "TEST MOBILES", ImageTexture.create_from_image(insignia_image), "$25,000", "2nd Jan 2020", true)
 	var observed_signals := {"campus_generated": false, "clock_toggle_requested": false}
+	var progress_updates: Array[Dictionary] = []
+	campus.setup_progress.connect(func(message: String, progress: float):
+		progress_updates.append({"message": message, "progress": progress})
+	)
 	campus.setup_completed.connect(func(): observed_signals["campus_generated"] = true)
 	campus.game_clock_toggle_requested.connect(func(): observed_signals["clock_toggle_requested"] = true)
 	root.add_child(campus)
@@ -25,6 +29,17 @@ func _run_test() -> void:
 	if not bool(campus.get_meta("career_home_scene", false)) or not bool(campus.get_meta("campus_generation_complete", false)):
 		_fail("The campus did not complete its generated career-home setup.")
 		return
+	if progress_updates.size() < 100:
+		_fail("Campus initialization did not report progress for every bounded world-generation batch.")
+		return
+	var last_progress_by_stage: Dictionary = {}
+	for update in progress_updates:
+		var stage_message := str(update.get("message", ""))
+		var stage_progress := float(update.get("progress", -1.0))
+		if stage_progress < float(last_progress_by_stage.get(stage_message, -1.0)) - 0.01:
+			_fail("The campus progress bar moved backwards within the same initialization stage: " + stage_message)
+			return
+		last_progress_by_stage[stage_message] = stage_progress
 	var campus_controls_layer := campus.get_node_or_null("Campus_Controls_Layer") as CanvasLayer
 	if campus_controls_layer == null or campus_controls_layer.visible:
 		_fail("Campus HUD and touch controls must remain hidden while startup preparation is active.")
