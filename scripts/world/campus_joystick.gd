@@ -2,9 +2,10 @@ extends Control
 
 signal vector_changed(value: Vector2)
 
-const OUTER_RADIUS := 94.0
-const KNOB_RADIUS := 44.2
-const TRAVEL_RADIUS := 48.0
+const JOYSTICK_SCALE := 1.2
+const OUTER_RADIUS := 94.0 * JOYSTICK_SCALE
+const KNOB_RADIUS := 44.2 * JOYSTICK_SCALE
+const TRAVEL_RADIUS := 48.0 * JOYSTICK_SCALE
 
 var _value := Vector2.ZERO
 var _knob_offset := Vector2.ZERO
@@ -13,7 +14,8 @@ var _mouse_active := false
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(196.0, 196.0)
+	custom_minimum_size = Vector2(235.2, 235.2)
+	set_meta("joystick_scale_factor", JOYSTICK_SCALE)
 	set_meta("knob_radius", KNOB_RADIUS)
 	set_meta("knob_scale_factor", 1.3)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -68,7 +70,7 @@ func _draw() -> void:
 	var center := size * 0.5
 	draw_circle(center, OUTER_RADIUS, Color(0.025, 0.040, 0.035, 0.58))
 	draw_arc(center, OUTER_RADIUS, 0.0, TAU, 80, Color(0.80, 0.86, 0.78, 0.52), 2.4, true)
-	draw_circle(center, 69.0, Color(0.12, 0.17, 0.13, 0.24))
+	draw_circle(center, 69.0 * JOYSTICK_SCALE, Color(0.12, 0.17, 0.13, 0.24))
 	draw_circle(center + _knob_offset, KNOB_RADIUS, Color(0.82, 0.86, 0.78, 0.94))
 	draw_arc(center + _knob_offset, KNOB_RADIUS, 0.0, TAU, 48, Color(1.0, 1.0, 1.0, 0.82), 2.0, true)
-	draw_string(ThemeDB.fallback_font, Vector2(center.x - 22.0, center.y + 78.0), "MOVE", HORIZONTAL_ALIGNMENT_CENTER, 44.0, 11, Color(0.92, 0.95, 0.89, 0.86))
+	draw_string(ThemeDB.fallback_font, Vector2(center.x - 26.4, center.y + 93.6), "MOVE", HORIZONTAL_ALIGNMENT_CENTER, 52.8, 13, Color(0.92, 0.95, 0.89, 0.86))

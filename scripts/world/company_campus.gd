@@ -724,8 +724,9 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 
 func _build_asphalt_road_network() -> void:
 	var asphalt_material := StandardMaterial3D.new()
-	asphalt_material.albedo_color = Color("#30363b")
-	asphalt_material.roughness = 0.98
+	# Deep charcoal-black, matte asphalt that stays visually distinct from the green plots.
+	asphalt_material.albedo_color = Color("#17191b")
+	asphalt_material.roughness = 1.0
 	asphalt_material.metallic = 0.0
 
 	var road_surface := SurfaceTool.new()
@@ -1777,10 +1778,10 @@ func _build_overlay_batched() -> void:
 	movement_joystick.name = "MovementJoystick"
 	movement_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	movement_joystick.offset_left = 22.0
-	movement_joystick.offset_top = -218.0
-	movement_joystick.offset_right = 218.0
+	movement_joystick.offset_top = -257.2
+	movement_joystick.offset_right = 257.2
 	movement_joystick.offset_bottom = -22.0
-	movement_joystick.custom_minimum_size = Vector2(196.0, 196.0)
+	movement_joystick.custom_minimum_size = Vector2(235.2, 235.2)
 	root.add_child(movement_joystick)
 	setup_progress.emit("Setting up first-person campus controls", 55.0)
 	await get_tree().process_frame

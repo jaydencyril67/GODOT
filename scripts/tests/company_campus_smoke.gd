@@ -312,6 +312,16 @@ func _run_test() -> void:
 	if shadow_check_trunks == null or shadow_check_canopies == null or shadow_check_trunks.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or shadow_check_canopies.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
 		_fail("Instanced campus trees must preserve their geometry without rendering real-time shadows.")
 		return
+	var road_surface := campus.get_node_or_null("Campus_Asphalt_Roads") as MeshInstance3D
+	var road_material := road_surface.material_override as StandardMaterial3D if road_surface != null else null
+	if road_material == null or road_material.albedo_color != Color("#17191b") or road_material.roughness < 0.99:
+		_fail("Campus roads must render as deep black, matte asphalt.")
+		return
+	var terrain_surface := campus.get_node_or_null("Terrain") as MeshInstance3D
+	var terrain_material := terrain_surface.material_override as StandardMaterial3D if terrain_surface != null else null
+	if terrain_material == null or terrain_material.albedo_texture == null:
+		_fail("The campus plot ground must retain its green grass texture beneath the asphalt road network.")
+		return
 	for road_x in [-200.0, 0.0, 200.0]:
 		if not bool(campus.call("_is_on_asphalt_road", road_x, 100.0)):
 			_fail("The asphalt exclusion mask missed a vertical road corridor.")
@@ -444,10 +454,14 @@ func _run_test() -> void:
 		return
 
 	var joystick := campus.find_child("MovementJoystick", true, false) as Control
-	if joystick == null or joystick.custom_minimum_size.x < 190.0:
-		_fail("The left movement joystick is missing or too small.")
-	if not is_equal_approx(float(joystick.get_meta("knob_radius", 0.0)), 44.2) or not is_equal_approx(float(joystick.get_meta("knob_scale_factor", 0.0)), 1.3):
-		_fail("The joystick inner knob must be enlarged to exactly 1.3 times its previous radius.")
+	if joystick == null or joystick.custom_minimum_size != Vector2(235.2, 235.2):
+		_fail("The movement joystick must be enlarged uniformly to 1.2 times its previous 196-by-196 size.")
+		return
+	if not is_equal_approx(float(joystick.get_meta("joystick_scale_factor", 0.0)), 1.2):
+		_fail("The movement joystick scale factor must remain exactly 1.2.")
+		return
+	if not is_equal_approx(float(joystick.get_meta("knob_radius", 0.0)), 53.04) or not is_equal_approx(float(joystick.get_meta("knob_scale_factor", 0.0)), 1.3):
+		_fail("The joystick knob must retain its 1.3-times relationship while scaling with the larger control.")
 		return
 	if campus.find_child("BackToMenuButton", true, false) != null:
 		_fail("The campus overlay must not display a return-to-menu button.")
