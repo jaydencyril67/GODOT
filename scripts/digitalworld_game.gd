@@ -2211,6 +2211,7 @@ func _open_research_from_phone_creation_worksite() -> void:
 	# The worksite runs without the normal screen UI root, so open research in
 	# a dedicated top-layer CanvasLayer and restore the same worksite on return.
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	phone_creation_worksite.call("set_defer_initial_setup", true)
 	phone_creation_worksite.hide()
 	for child in phone_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2237,6 +2238,7 @@ func _open_research_from_processor_creation_worksite() -> void:
 	research_dashboard_return_to_camera_worksite = false
 	research_dashboard_return_to_processor_worksite = true
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	processor_creation_worksite.call("set_defer_initial_setup", true)
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2264,6 +2266,7 @@ func _open_research_from_camera_creation_worksite() -> void:
 	research_dashboard_return_to_camera_worksite = true
 	research_dashboard_return_to_processor_worksite = false
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	camera_creation_worksite.call("set_defer_initial_setup", true)
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
