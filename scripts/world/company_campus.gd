@@ -735,8 +735,8 @@ func _build_asphalt_road_network() -> void:
 	for vertical_x in ROAD_VERTICAL_CENTERS:
 		var z_start := campus_min_z
 		for horizontal_z in ROAD_HORIZONTAL_CENTERS:
-			var intersection_min_z := horizontal_z - INTERNAL_ROAD_WIDTH * 0.5
-			var intersection_max_z := horizontal_z + INTERNAL_ROAD_WIDTH * 0.5
+			var intersection_min_z: float = float(horizontal_z) - INTERNAL_ROAD_WIDTH * 0.5
+			var intersection_max_z: float = float(horizontal_z) + INTERNAL_ROAD_WIDTH * 0.5
 			if intersection_min_z > z_start:
 				_append_road_quad(road_surface, vertical_x - INTERNAL_ROAD_WIDTH * 0.5, vertical_x + INTERNAL_ROAD_WIDTH * 0.5, z_start, intersection_min_z)
 			z_start = intersection_max_z
