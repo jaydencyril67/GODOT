@@ -14,6 +14,8 @@ const SCREEN_HEIGHT := HANDSET_SIZE.y - BEZEL_HEIGHT * 2.0
 const SCREEN_CORNER_RADIUS := OUTER_CORNER_RADIUS - BEZEL_WIDTH
 const DISPLAY_INSET_MARGIN := 0.002
 const BODY_COLOR := Color("#A5ADB6")
+const POWER_KEY_CENTER_Y := 0.55
+const VOLUME_KEY_VERTICAL_OFFSET := 0.12
 
 var chassis: MeshInstance3D
 var screen_surface: MeshInstance3D
@@ -232,9 +234,11 @@ func _build_side_controls() -> void:
 	# Power key on the right; the two separate volume keys are on the left.
 	# Each key is aligned to the side plane and slightly overlaps it so it
 	# looks physically fitted, not like a decal placed on the front glass.
-	_add_side_key(controls, "PowerButton", 1.0, 0.55, 0.19, frame_material, key_material)
-	_add_side_key(controls, "VolumeUpButton", -1.0, 0.39, 0.15, frame_material, key_material)
-	_add_side_key(controls, "VolumeDownButton", -1.0, 0.15, 0.15, frame_material, key_material)
+	_add_side_key(controls, "PowerButton", 1.0, POWER_KEY_CENTER_Y, 0.19, frame_material, key_material)
+	# Keep the volume pair on the opposite edge, centered as a group directly
+	# across from the power key, like a conventional modern phone layout.
+	_add_side_key(controls, "VolumeUpButton", -1.0, POWER_KEY_CENTER_Y + VOLUME_KEY_VERTICAL_OFFSET, 0.15, frame_material, key_material)
+	_add_side_key(controls, "VolumeDownButton", -1.0, POWER_KEY_CENTER_Y - VOLUME_KEY_VERTICAL_OFFSET, 0.15, frame_material, key_material)
 
 
 func _add_side_key(
