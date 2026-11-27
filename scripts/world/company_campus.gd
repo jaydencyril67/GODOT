@@ -477,9 +477,8 @@ func _build_environment_batched() -> void:
 	sun.shadow_enabled = false
 	sun.directional_shadow_max_distance = 72.0
 	add_child(sun)
-	setup_progress.emit("Preparing campus environment", 15.0)
+	setup_progress.emit("Preparing campus environment", 100.0)
 	await get_tree().process_frame
-	await _build_cloud_layer_batched()
 
 
 func _build_terrain_batched() -> void:
@@ -519,80 +518,6 @@ func _build_terrain_batched() -> void:
 	await _build_campus_trees_batched(65.0, 72.0)
 	await _build_campus_sections_batched(72.0, 100.0)
 
-
-
-func _build_cloud_layer_batched() -> void:
-	var cloud_material := StandardMaterial3D.new()
-	cloud_material.albedo_color = Color.WHITE
-	cloud_material.vertex_color_use_as_albedo = true
-	cloud_material.roughness = 1.0
-	cloud_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-
-	var cloud_mesh := SphereMesh.new()
-	cloud_mesh.radius = 1.0
-	cloud_mesh.height = 2.0
-	cloud_mesh.radial_segments = 12
-	cloud_mesh.rings = 6
-	cloud_mesh.material = cloud_material
-
-	var cloud_multi := MultiMesh.new()
-	cloud_multi.transform_format = MultiMesh.TRANSFORM_3D
-	cloud_multi.use_colors = true
-	cloud_multi.mesh = cloud_mesh
-	var cloud_transforms: Array[Transform3D] = []
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 20261126
-	const CLOUD_CLUSTER_COUNT := 22
-
-	for cloud_index in range(CLOUD_CLUSTER_COUNT):
-		var center := Vector3(
-			rng.randf_range(-455.0, 455.0),
-			rng.randf_range(94.0, 132.0),
-			rng.randf_range(-390.0, 390.0)
-		)
-		var puff_count := rng.randi_range(6, 8)
-		var cloud_yaw := rng.randf_range(0.0, TAU)
-		var along_axis := Vector3(cos(cloud_yaw), 0.0, sin(cloud_yaw))
-		var across_axis := Vector3(-along_axis.z, 0.0, along_axis.x)
-		var cloud_span := rng.randf_range(24.0, 38.0)
-
-		for puff_index in range(puff_count):
-			var centered_index := float(puff_index) - float(puff_count - 1) * 0.5
-			var along := centered_index * cloud_span / float(puff_count - 1)
-			var puff_position := center
-			puff_position += along_axis * along
-			puff_position += across_axis * rng.randf_range(-5.5, 5.5)
-			puff_position.y += rng.randf_range(-2.2, 2.2)
-
-			var puff_scale := Vector3(
-				rng.randf_range(8.0, 13.5),
-				rng.randf_range(3.5, 5.8),
-				rng.randf_range(6.5, 10.5)
-			)
-			var cloud_basis := Basis.IDENTITY.scaled(puff_scale)
-			cloud_transforms.append(Transform3D(cloud_basis, puff_position))
-		if (cloud_index + 1) % 2 == 0 or cloud_index + 1 == CLOUD_CLUSTER_COUNT:
-			setup_progress.emit("Preparing campus environment", 15.0 + 55.0 * float(cloud_index + 1) / float(CLOUD_CLUSTER_COUNT))
-			await get_tree().process_frame
-
-	cloud_multi.instance_count = cloud_transforms.size()
-	for index in range(cloud_transforms.size()):
-		cloud_multi.set_instance_transform(index, cloud_transforms[index])
-		var brightness := rng.randf_range(0.91, 1.0)
-		cloud_multi.set_instance_color(index, Color(brightness, brightness, minf(1.0, brightness + 0.015), 1.0))
-		if (index + 1) % 64 == 0 or index + 1 == cloud_transforms.size():
-			setup_progress.emit("Preparing campus environment", 70.0 + 29.0 * float(index + 1) / maxf(float(cloud_transforms.size()), 1.0))
-			await get_tree().process_frame
-
-	var clouds := MultiMeshInstance3D.new()
-	clouds.name = "Campus_Clouds"
-	clouds.multimesh = cloud_multi
-	clouds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	clouds.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	clouds.set_meta("cloud_cluster_count", CLOUD_CLUSTER_COUNT)
-	clouds.set_meta("cloud_puff_count", cloud_transforms.size())
-	clouds.set_meta("cloud_layer_height_range", Vector2(94.0, 132.0))
-	add_child(clouds)
 
 
 func _build_campus_sections_batched(progress_start: float, progress_end: float) -> void:

@@ -261,12 +261,8 @@ func _run_test() -> void:
 		_fail("The internal plot gate count does not total 48, or an outer-perimeter gate was added.")
 		return
 
-	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
-	if clouds == null or clouds.multimesh == null:
-		_fail("The campus 3D cloud layer is missing.")
-		return
-	if int(clouds.get_meta("cloud_cluster_count", 0)) != 22 or clouds.multimesh.instance_count < 120:
-		_fail("The campus cloud layer does not contain the expected instanced cloud formations.")
+	if campus.get_node_or_null("Campus_Clouds") != null:
+		_fail("The campus is still generating a 3D cloud layer.")
 		return
 	var world_environment := campus.get_node_or_null("Campus_World_Environment") as WorldEnvironment
 	if world_environment == null or world_environment.environment == null:
