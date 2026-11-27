@@ -223,18 +223,18 @@ func _run_test() -> void:
 	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
 		_fail("Project-wide physics interpolation must be enabled for smooth rendered movement.")
 		return
-	if campus.get_meta("movement_response", "") != "direct_analog_slide_no_acceleration_ramp":
+	if campus.get_meta("movement_response", "") != "direct_constant_speed_no_deadzone_no_acceleration":
 		_fail("Player movement must use direct continuous joystick velocity without an acceleration ramp.")
 		return
 	var full_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 1.0))
-	var half_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.5))
+	var slight_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.001))
 	var diagonal_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.7071068, 0.7071068))
 	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
 	if not is_equal_approx(full_input_velocity.length(), 1.5):
 		_fail("Full joystick input must produce the calibrated 1.5 m/s slide speed.")
 		return
-	if not is_equal_approx(half_input_velocity.length(), 0.75):
-		_fail("Half joystick input must produce exactly half speed, without squared analog input.")
+	if not is_equal_approx(slight_input_velocity.length(), 1.5):
+		_fail("Any non-zero joystick input, however small, must immediately produce the full 1.5 m/s speed.")
 		return
 	if not is_equal_approx(diagonal_input_velocity.length(), 1.5):
 		_fail("Diagonal movement must remain normalized and must not move faster.")
@@ -278,6 +278,8 @@ func _run_test() -> void:
 	var joystick := campus.find_child("MovementJoystick", true, false) as Control
 	if joystick == null or joystick.custom_minimum_size.x < 190.0:
 		_fail("The left movement joystick is missing or too small.")
+	if not is_equal_approx(float(joystick.get_meta("knob_radius", 0.0)), 44.2) or not is_equal_approx(float(joystick.get_meta("knob_scale_factor", 0.0)), 1.3):
+		_fail("The joystick inner knob must be enlarged to exactly 1.3 times its previous radius.")
 		return
 	if campus.find_child("BackToMenuButton", true, false) != null:
 		_fail("The campus overlay must not display a return-to-menu button.")
