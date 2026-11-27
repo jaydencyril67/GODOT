@@ -65,7 +65,11 @@ const SECTION_ROW_CENTERS := [150.0, -150.0]
 const SECTION_HALF_WIDTH := 94.0
 const SECTION_HALF_DEPTH := 144.0
 const SECTION_GATE_WIDTH := 8.0
+const STARTER_LAND_PARCEL_ID := "LAND-01"
+const LAND_PARCEL_COUNT := 8
 
+var land_parcels: Array[Dictionary] = []
+var active_land_parcel_id := STARTER_LAND_PARCEL_ID
 var player: CharacterBody3D
 var player_camera: Camera3D
 var movement_joystick: Control
@@ -139,10 +143,94 @@ func update_career_hud(
 			career_clock_button.text = "▶  PLAY" if career_clock_paused else "Ⅱ  PAUSE"
 
 
+func configure_land_parcels(parcel_values: Array, selected_parcel_id: String) -> void:
+	land_parcels.clear()
+	for parcel_value in parcel_values:
+		if parcel_value is Dictionary:
+			land_parcels.append(parcel_value.duplicate(true))
+	_ensure_default_land_parcels()
+	active_land_parcel_id = selected_parcel_id if _is_land_parcel_accessible(selected_parcel_id) else STARTER_LAND_PARCEL_ID
+	_refresh_explore_section_buttons()
+
+
+func _ensure_default_land_parcels() -> void:
+	if not land_parcels.is_empty():
+		return
+	for section_index in range(LAND_PARCEL_COUNT):
+		var parcel_id := "LAND-%02d" % (section_index + 1)
+		var is_starter := section_index == 0
+		land_parcels.append({
+			"id": parcel_id,
+			"section_index": section_index,
+			"access_granted": is_starter,
+			"access_status": "accessible" if is_starter else "locked",
+			"tenure_status": "starter_access" if is_starter else "not_acquired"
+		})
+
+
+func _is_land_parcel_accessible(parcel_id: String) -> bool:
+	for parcel in land_parcels:
+		if str(parcel.get("id", "")) == parcel_id:
+			return bool(parcel.get("access_granted", false))
+	return false
+
+
+func _is_section_accessible(section_index: int) -> bool:
+	if section_index < 0 or section_index >= LAND_PARCEL_COUNT:
+		return false
+	return _is_land_parcel_accessible("LAND-%02d" % (section_index + 1))
+
+
+func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_status: String = "owned") -> bool:
+	var section_index := -1
+	for index in range(land_parcels.size()):
+		if str(land_parcels[index].get("id", "")) == parcel_id:
+			section_index = int(land_parcels[index].get("section_index", index))
+			break
+	if section_index < 0 or (not access_granted and parcel_id == active_land_parcel_id):
+		return false
+	for index in range(land_parcels.size()):
+		if str(land_parcels[index].get("id", "")) == parcel_id:
+			land_parcels[index]["access_granted"] = access_granted
+			land_parcels[index]["access_status"] = "accessible" if access_granted else "locked"
+			land_parcels[index]["tenure_status"] = tenure_status if access_granted else "not_acquired"
+			break
+	var section_root := get_node_or_null("Campus_Sections") as Node3D
+	var section := section_root.get_node_or_null("Section_%02d" % (section_index + 1)) as Node3D if is_instance_valid(section_root) else null
+	if is_instance_valid(section):
+		section.set_meta("access_granted", access_granted)
+		section.set_meta("access_status", "accessible" if access_granted else "locked")
+		section.set_meta("tenure_status", tenure_status if access_granted else "not_acquired")
+	var gates_root := get_node_or_null("Campus_Wooden_Fences/Property_Gates") as Node3D
+	var gate := gates_root.get_node_or_null("PropertyGate_%02d" % (section_index + 1)) as StaticBody3D if is_instance_valid(gates_root) else null
+	if is_instance_valid(gate):
+		gate.visible = not access_granted
+		gate.set_meta("gate_locked", not access_granted)
+		var gate_collision := gate.get_node_or_null("GateCollision") as CollisionShape3D
+		if is_instance_valid(gate_collision):
+			gate_collision.disabled = access_granted
+	_refresh_explore_section_buttons()
+	return true
+
+
+func _refresh_explore_section_buttons() -> void:
+	for section_index in range(explore_section_buttons.size()):
+		var button := explore_section_buttons[section_index]
+		var accessible := _is_section_accessible(section_index)
+		var parcel_id := "LAND-%02d" % (section_index + 1)
+		button.set_meta("property_access", "accessible" if accessible else "locked")
+		button.set_meta("property_id", parcel_id)
+		button.tooltip_text = "%s - %s" % [parcel_id, "Access available" if accessible else "Locked: acquire or rent this land"]
+
+
 func _ready() -> void:
+	_ensure_default_land_parcels()
 	set_meta("career_home_scene", true)
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
+	set_meta("land_parcel_count", LAND_PARCEL_COUNT)
+	set_meta("initially_accessible_land_parcel_count", 1)
+	set_meta("active_land_parcel_id", active_land_parcel_id)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
 	set_meta("movement_response", "direct_constant_speed_no_deadzone_no_acceleration")
 	set_meta("movement_grass_follow_enabled", false)
@@ -419,6 +507,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	section_root.name = "Campus_Sections"
 	section_root.set_meta("section_count", CAMPUS_SECTION_NAMES.size())
 	section_root.set_meta("layout", "four_columns_two_rows")
+	section_root.set_meta("property_model", "eight_independent_land_parcels")
 	add_child(section_root)
 
 	var fence_root := Node3D.new()
@@ -426,6 +515,12 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	fence_root.set_meta("wooden_fence", true)
 	fence_root.set_meta("gate_opening_width_metres", SECTION_GATE_WIDTH)
 	add_child(fence_root)
+
+	var gates_root := Node3D.new()
+	gates_root.name = "Property_Gates"
+	gates_root.set_meta("gate_system", "individual_land_parcel_entrances")
+	fence_root.add_child(gates_root)
+	var locked_gate_count := 0
 
 	var post_material := StandardMaterial3D.new()
 	post_material.albedo_color = Color("#67452e")
@@ -470,8 +565,21 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var section := Node3D.new()
 		section.name = "Section_%02d" % (section_index + 1)
 		section.position = center
+			var parcel_id := "LAND-%02d" % (section_index + 1)
+		var parcel_accessible := _is_section_accessible(section_index)
+		var parcel_tenure := "starter_access" if section_index == 0 else "not_acquired"
+		for parcel in land_parcels:
+			if str(parcel.get("id", "")) == parcel_id:
+				parcel_tenure = str(parcel.get("tenure_status", parcel_tenure))
+				break
 		section.set_meta("section_number", section_index + 1)
 		section.set_meta("section_name", CAMPUS_SECTION_NAMES[section_index])
+		section.set_meta("property_id", parcel_id)
+		section.set_meta("is_individual_land_parcel", true)
+		section.set_meta("property_area_square_metres", SECTION_HALF_WIDTH * 2.0 * SECTION_HALF_DEPTH * 2.0)
+		section.set_meta("access_granted", parcel_accessible)
+		section.set_meta("access_status", "accessible" if parcel_accessible else "locked")
+		section.set_meta("tenure_status", parcel_tenure)
 		section.set_meta("section_bounds_local", Vector4(-SECTION_HALF_WIDTH, -SECTION_HALF_DEPTH, SECTION_HALF_WIDTH, SECTION_HALF_DEPTH))
 		section_root.add_child(section)
 
@@ -481,10 +589,13 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
 		var side_progress_span := (progress_end - progress_start) * 0.55 / float(CAMPUS_SECTION_NAMES.size() * 4)
 		var side_progress_base := progress_start + float(section_index * 4) * side_progress_span
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, false)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, false)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, false)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, true)
+		if not parcel_accessible:
+			_build_locked_property_gate(gates_root, center, section_index)
+			locked_gate_count += 1
 		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
 		await get_tree().process_frame
 	var picket_material := StandardMaterial3D.new()
@@ -501,6 +612,9 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	fence_root.set_meta("rail_segment_count", rail_transforms.size())
 	fence_root.set_meta("picket_count", picket_transforms.size())
 	fence_root.set_meta("collision_segment_count", fence_collisions.get_child_count())
+	fence_root.set_meta("locked_gate_count", locked_gate_count)
+	gates_root.set_meta("locked_gate_count", locked_gate_count)
+	gates_root.set_meta("gate_count", locked_gate_count)
 
 
 func _append_fence_side(
@@ -510,15 +624,15 @@ func _append_fence_side(
 	fence_collisions: StaticBody3D,
 	start: Vector3,
 	direction: Vector3,
-	length: float
+	length: float,
+	has_entrance: bool = false
 ) -> void:
 	var normalized_direction := direction.normalized()
 	var gate_start := (length - SECTION_GATE_WIDTH) * 0.5
 	var gate_end := gate_start + SECTION_GATE_WIDTH
-	var segments := [
-		Vector2(0.0, gate_start),
-		Vector2(gate_end, length)
-	]
+	var segments: Array[Vector2] = [Vector2(0.0, length)]
+	if has_entrance:
+		segments = [Vector2(0.0, gate_start), Vector2(gate_end, length)]
 	var yaw := 0.0 if absf(normalized_direction.x) > 0.5 else PI * 0.5
 
 	for segment in segments:
@@ -567,12 +681,15 @@ func _append_fence_side_batched(
 	direction: Vector3,
 	length: float,
 	progress_start: float,
-	progress_end: float
+	progress_end: float,
+	has_entrance: bool = false
 ) -> void:
 	var normalized_direction := direction.normalized()
 	var gate_start := (length - SECTION_GATE_WIDTH) * 0.5
 	var gate_end := gate_start + SECTION_GATE_WIDTH
-	var segments := [Vector2(0.0, gate_start), Vector2(gate_end, length)]
+	var segments: Array[Vector2] = [Vector2(0.0, length)]
+	if has_entrance:
+		segments = [Vector2(0.0, gate_start), Vector2(gate_end, length)]
 	var yaw := 0.0 if absf(normalized_direction.x) > 0.5 else PI * 0.5
 	var total_pickets := 0
 	for segment_value in segments:
@@ -671,6 +788,55 @@ func _add_fence_multimesh(
 	instance.set_meta("instance_count", transforms.size())
 	parent.add_child(instance)
 	return instance
+
+
+func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, section_index: int) -> StaticBody3D:
+	var parcel_id := "LAND-%02d" % (section_index + 1)
+	var gate := StaticBody3D.new()
+	gate.name = "PropertyGate_%02d" % (section_index + 1)
+	gate.position = section_center + Vector3(0.0, 0.0, SECTION_HALF_DEPTH)
+	gate.collision_layer = 1
+	gate.collision_mask = 1
+	gate.set_meta("property_id", parcel_id)
+	gate.set_meta("gate_locked", true)
+	gate.set_meta("blocks_player", true)
+	gate.add_to_group("locked_land_gates")
+	gates_root.add_child(gate)
+
+	var gate_collision := CollisionShape3D.new()
+	gate_collision.name = "GateCollision"
+	var gate_shape := BoxShape3D.new()
+	gate_shape.size = Vector3(SECTION_GATE_WIDTH, 1.95, 0.40)
+	gate_collision.shape = gate_shape
+	gate_collision.position = Vector3(0.0, 0.98, 0.0)
+	gate.add_child(gate_collision)
+
+	var timber_material := _material(Color("#563922"), 0.94)
+	var slat_material := _material(Color("#8A5B38"), 0.92)
+	var sign_material := _material(Color("#2D2118"), 0.95)
+	_add_box(gate, "Gate_Left_Frame", Vector3(0.22, 1.92, 0.24), Vector3(-3.86, 0.96, 0.0), timber_material)
+	_add_box(gate, "Gate_Right_Frame", Vector3(0.22, 1.92, 0.24), Vector3(3.86, 0.96, 0.0), timber_material)
+	_add_box(gate, "Gate_Top_Rail", Vector3(7.72, 0.20, 0.24), Vector3(0.0, 1.78, 0.0), timber_material)
+	_add_box(gate, "Gate_Bottom_Rail", Vector3(7.72, 0.20, 0.24), Vector3(0.0, 0.22, 0.0), timber_material)
+	for slat_index in range(11):
+		var slat_x := lerpf(-3.35, 3.35, float(slat_index) / 10.0)
+		_add_box(gate, "Gate_Vertical_Slat_%02d" % slat_index, Vector3(0.15, 1.42, 0.14), Vector3(slat_x, 1.0, 0.0), slat_material)
+	_add_box(gate, "Gate_Locked_Signboard", Vector3(5.8, 0.62, 0.18), Vector3(0.0, 2.36, 0.0), sign_material)
+	for face_index in range(2):
+		var label := Label3D.new()
+		label.name = "Gate_Locked_Label_%d" % face_index
+		label.text = "LAND %02d  -  NOT ACQUIRED" % (section_index + 1)
+		label.font_size = 31
+		label.pixel_size = 0.009
+		label.outline_size = 6
+		label.modulate = Color("#FFF0D5")
+		label.outline_modulate = Color("#2D2118")
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.position = Vector3(0.0, 2.36, 0.105 if face_index == 0 else -0.105)
+		label.rotation.y = PI if face_index == 1 else 0.0
+		gate.add_child(label)
+	return gate
 
 
 func _build_section_sign(
@@ -1465,7 +1631,9 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 		section_button.tooltip_text = CAMPUS_SECTION_NAMES[section_index]
 		section_button.custom_minimum_size.y = 34.0
 		section_button.set_meta("campus_section_index", section_index)
+		section_button.set_meta("property_id", "LAND-%02d" % (section_index + 1))
 		explore_section_buttons.append(section_button)
+		_refresh_explore_section_buttons()
 		if (section_index + 1) % 2 == 0 or section_index + 1 == CAMPUS_SECTION_NAMES.size():
 			setup_progress.emit("Setting up first-person campus controls", 72.0 + 4.0 * float(section_index + 1) / float(CAMPUS_SECTION_NAMES.size()))
 			await get_tree().process_frame
@@ -1703,14 +1871,15 @@ func _launch_phone_feature_app(app_id: String) -> void:
 
 
 func _launch_office_shortcut() -> void:
+	_open_phone_app("explore")
 	_transport_to_campus_section(1)
-	_return_to_phone_home()
 
 
 func _launch_explore_app() -> void:
 	_open_phone_app("explore")
+	_refresh_explore_section_buttons()
 	if is_instance_valid(explore_status_label):
-		explore_status_label.text = "Select a section to travel there"
+		explore_status_label.text = "LAND-01 is your starter compound. Seven other parcels remain visible and gated."
 
 
 func _launch_worksite_app() -> void:
@@ -1776,6 +1945,12 @@ func _request_staff_launch(staff_screen_id: String) -> void:
 
 func _transport_to_campus_section(section_index: int) -> void:
 	if not is_instance_valid(player) or section_index < 0 or section_index >= CAMPUS_SECTION_NAMES.size():
+		return
+	if not _is_section_accessible(section_index):
+		var locked_parcel_id := "LAND-%02d" % (section_index + 1)
+		set_meta("last_locked_land_request", locked_parcel_id)
+		if is_instance_valid(explore_status_label):
+			explore_status_label.text = "ACCESS RESTRICTED: %s is not acquired. Its entrance gate is locked." % locked_parcel_id
 		return
 	var row_index := floori(float(section_index) / 4.0)
 	var column_index := section_index % 4
