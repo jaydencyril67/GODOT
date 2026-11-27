@@ -61,6 +61,10 @@ const CAMERA_SENSOR_COMPONENTS := [
 
 signal back_requested
 signal research_requested
+signal startup_progress(message: String, progress: float)
+
+var defer_initial_setup := false
+var startup_setup_complete := false
 
 var worksite_root: Control
 var worksite_body: BoxContainer
@@ -209,14 +213,31 @@ class GlassArrowButton extends Button:
 		draw_line(centre + Vector2(-direction * 5.0, 0), centre + Vector2(direction * 6.0, 0), arrow_color, 2.8, true)
 
 
+func set_defer_initial_setup(value: bool) -> void:
+	defer_initial_setup = value
+
+
 func _ready() -> void:
-	_build_preview_world()
-	_build_interface()
+	if defer_initial_setup:
+		return
+	await prepare_for_initial_load()
+
+
+func prepare_for_initial_load() -> bool:
+	if startup_setup_complete:
+		return true
+	startup_progress.emit("Building Camera Worksite preview", 0.0)
+	await _build_preview_world_batched()
+	startup_progress.emit("Building Camera Worksite interface", 0.0)
+	await _build_interface_batched()
 	_set_wizard_step(1)
 	_initialize_rear_view()
+	startup_setup_complete = true
+	startup_progress.emit("Building Camera Worksite interface", 100.0)
+	return true
 
 
-func _build_preview_world() -> void:
+func _build_preview_world_batched() -> void:
 	preview_container = SubViewportContainer.new()
 	preview_container.name = "CameraPreviewViewportContainer"
 	preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -235,18 +256,24 @@ func _build_preview_world() -> void:
 	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
 	preview_container.add_child(preview_viewport)
+	startup_progress.emit("Building Camera Worksite preview", 12.0)
+	await get_tree().process_frame
 
 	preview_world = Node3D.new()
 	preview_world.name = "CameraStudioPreviewWorld"
 	preview_viewport.add_child(preview_world)
 
 	_build_preview_environment()
+	startup_progress.emit("Building Camera Worksite preview", 35.0)
+	await get_tree().process_frame
 	_build_preview_lighting()
 
 	phone_model = CameraLessPhoneModelScript.new() as Node3D
 	phone_model.name = "CameraLessPhoneModel"
 	phone_model.call("build_camera_less", _create_inactive_screen_texture())
 	preview_world.add_child(phone_model)
+	startup_progress.emit("Building Camera Worksite preview", 55.0)
+	await get_tree().process_frame
 
 	camera_preview_studio = CameraPreviewStudioScript.new()
 	camera_preview_studio.name = "CameraPreviewStudio"
@@ -261,6 +288,8 @@ func _build_preview_world() -> void:
 	preview_camera.far = 100.0
 	preview_world.add_child(preview_camera)
 	preview_camera.current = true
+	startup_progress.emit("Building Camera Worksite preview", 100.0)
+	await get_tree().process_frame
 
 
 func _create_inactive_screen_texture() -> Texture2D:
@@ -331,7 +360,7 @@ func _build_preview_lighting() -> void:
 	preview_world.add_child(fill_light)
 
 
-func _build_interface() -> void:
+func _build_interface_batched() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "CameraCreationWorksiteInterface"
 	layer.layer = 40
@@ -373,6 +402,8 @@ func _build_interface() -> void:
 	preview_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_camera_preview_controls()
+	startup_progress.emit("Building Camera Worksite interface", 20.0)
+	await get_tree().process_frame
 	# SubViewportContainer switches attached viewports to UPDATE_ALWAYS while
 	# mounting. Restore visibility-based rendering after the viewport is mounted
 	# so the studio does not waste frames when the worksite is hidden.
@@ -397,6 +428,8 @@ func _build_interface() -> void:
 	scroll_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right_panel_column.add_child(selection_scroll)
 	_build_camera_technology_level_footer()
+	startup_progress.emit("Building Camera Worksite interface", 32.0)
+	await get_tree().process_frame
 
 	var selection_region := MarginContainer.new()
 	selection_region.name = "CameraSelectionRegion"
@@ -428,11 +461,21 @@ func _build_interface() -> void:
 	selection_stack.add_child(divider)
 
 	_build_rear_hardware_step_controls()
+	startup_progress.emit("Building Camera Worksite interface", 48.0)
+	await get_tree().process_frame
 	_build_rear_camera_mp_step_controls()
+	startup_progress.emit("Building Camera Worksite interface", 60.0)
+	await get_tree().process_frame
 	_build_front_camera_step_controls()
+	startup_progress.emit("Building Camera Worksite interface", 72.0)
+	await get_tree().process_frame
 	_build_front_camera_mp_step_controls()
+	startup_progress.emit("Building Camera Worksite interface", 84.0)
+	await get_tree().process_frame
 	_build_camera_sensor_step_controls()
 	_refresh_camera_technology_level_display()
+	startup_progress.emit("Building Camera Worksite interface", 93.0)
+	await get_tree().process_frame
 
 
 	var progress := VBoxContainer.new()
@@ -516,6 +559,8 @@ func _build_interface() -> void:
 	worksite_root.add_child(next_button)
 
 	_apply_responsive_layout()
+	startup_progress.emit("Building Camera Worksite interface", 100.0)
+	await get_tree().process_frame
 
 
 func _build_camera_technology_level_footer() -> void:
