@@ -214,7 +214,7 @@ func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
 	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
 	var right := Vector3(cos(camera_yaw), 0.0, sin(camera_yaw))
 	var move_direction := right * movement.x + forward * movement.y
-	if move_direction.length_squared() <= 0.000001:
+	if move_direction == Vector3.ZERO:
 		return Vector3.ZERO
 
 	# Normalize direction first, then apply analog strength once. This keeps
