@@ -14,6 +14,8 @@ var _mouse_active := false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(196.0, 196.0)
+	set_meta("knob_radius", KNOB_RADIUS)
+	set_meta("knob_scale_factor", 1.3)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	queue_redraw()
 
