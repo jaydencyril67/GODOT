@@ -203,6 +203,17 @@ func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_stat
 		section.set_meta("tenure_status", tenure_status if access_granted else "not_acquired")
 	var gates_root := get_node_or_null("Campus_Wooden_Fences/Property_Gates") as Node3D
 	var gate := gates_root.get_node_or_null("PropertyGate_%02d" % (section_index + 1)) as StaticBody3D if is_instance_valid(gates_root) else null
+	if not access_granted and not is_instance_valid(gate) and is_instance_valid(gates_root):
+		var row_index := floori(float(section_index) / 4.0)
+		var column_index := section_index % 4
+		var section_center := Vector3(SECTION_COLUMN_CENTERS[column_index], 0.0, SECTION_ROW_CENTERS[row_index])
+		gate = _build_locked_property_gate(gates_root, section_center, section_index)
+		var gate_count := int(gates_root.get_meta("gate_count", 0)) + 1
+		gates_root.set_meta("gate_count", gate_count)
+		gates_root.set_meta("locked_gate_count", gate_count)
+		var fence_root := get_node_or_null("Campus_Wooden_Fences") as Node3D
+		if is_instance_valid(fence_root):
+			fence_root.set_meta("locked_gate_count", gate_count)
 	if is_instance_valid(gate):
 		gate.visible = not access_granted
 		gate.set_meta("gate_locked", not access_granted)
