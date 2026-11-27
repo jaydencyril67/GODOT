@@ -2346,6 +2346,7 @@ func _open_research_from_camera_creation_worksite() -> void:
 		return
 	research_dashboard_return_to_camera_worksite = true
 	research_dashboard_return_to_processor_worksite = false
+	camera_creation_worksite.call("set_preview_active", false)
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
@@ -2648,6 +2649,7 @@ func _return_from_research_allocation_dashboard() -> void:
 				camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
 				camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 				camera_creation_worksite.show()
+				camera_creation_worksite.call("set_preview_active", true)
 				for child in camera_creation_worksite.get_children():
 					if child is CanvasLayer:
 						child.show()
@@ -2988,6 +2990,7 @@ func _activate_camera_creation_worksite() -> void:
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
 			child.show()
+	camera_creation_worksite.call("set_preview_active", true)
 
 
 func _return_from_camera_creation_worksite() -> void:
@@ -2996,6 +2999,7 @@ func _return_from_camera_creation_worksite() -> void:
 	current_screen = "create"
 	camera_worksite_open_pending = false
 	if is_instance_valid(camera_creation_worksite):
+		camera_creation_worksite.call("set_preview_active", false)
 		camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 		camera_creation_worksite.hide()
 		for child in camera_creation_worksite.get_children():
