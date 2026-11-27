@@ -118,38 +118,60 @@ func _run_test() -> void:
 		return
 
 	var sections := campus.get_node_or_null("Campus_Sections") as Node3D
-	if sections == null or int(sections.get_meta("section_count", 0)) != 8:
-		_fail("The campus does not contain all eight planned sections.")
+	if sections == null or int(sections.get_meta("section_count", 0)) != 16:
+		_fail("The campus does not contain all sixteen planned plots.")
 		return
-	if sections.get_meta("layout", "") != "four_columns_two_rows":
-		_fail("The campus section layout is not the planned 4 by 2 arrangement.")
+	if sections.get_meta("layout", "") != "four_columns_four_rows" or int(sections.get_meta("grid_columns", 0)) != 4 or int(sections.get_meta("grid_rows", 0)) != 4:
+		_fail("The campus plot layout is not the planned 4 by 4 arrangement.")
 		return
-	for section_index in range(1, 9):
+	var expected_columns := [-300.0, -100.0, 100.0, 300.0]
+	var expected_rows := [225.0, 75.0, -75.0, -225.0]
+	for section_index in range(1, 17):
+		var zero_based_index := section_index - 1
+		var row_index := floori(float(zero_based_index) / 4.0)
+		var column_index := zero_based_index % 4
 		var section := sections.get_node_or_null("Section_%02d" % section_index) as Node3D
 		if section == null or str(section.get_meta("section_name", "")).is_empty():
-			_fail("Campus section %d or its name metadata is missing." % section_index)
+			_fail("Campus plot %d or its name metadata is missing." % section_index)
 			return
 		if str(section.get_meta("property_id", "")) != "LAND-%02d" % section_index or not bool(section.get_meta("is_individual_land_parcel", false)):
-			_fail("Campus section %d is not represented as its own independent land parcel." % section_index)
+			_fail("Campus plot %d is not represented as its own independent parcel." % section_index)
 			return
-		if not is_equal_approx(float(section.get_meta("property_area_square_metres", 0.0)), 54144.0):
-			_fail("Campus land parcel %d has an incorrect independently measured area." % section_index)
+		if not is_equal_approx(float(section.get_meta("property_area_square_metres", 0.0)), 25944.0):
+			_fail("Campus plot %d has an incorrect independently measured area." % section_index)
+			return
+		if section.position.distance_to(Vector3(expected_columns[column_index], 0.0, expected_rows[row_index])) > 0.001:
+			_fail("Campus plot %d is not in its expected 4 by 4 grid position." % section_index)
 			return
 		if bool(section.get_meta("access_granted", false)) != (section_index == 1):
-			_fail("Only the first land parcel should have starter access when a new career begins.")
+			_fail("Only Plot 1 should have starter access when a new career begins.")
 			return
 		var section_sign := section.get_node_or_null("SectionSign/SectionName") as Label3D
-		if section_sign == null or section_sign.text.is_empty():
-			_fail("Campus section %d does not have a visible 3D sign." % section_index)
+		if section_sign == null or not section_sign.text.contains("PLOT %02d" % section_index):
+			_fail("Campus plot %d does not have its own visible plot sign." % section_index)
 			return
-		var expected_sign_on_positive_z := section_index <= 4
-		if (expected_sign_on_positive_z and section_sign.position.z < 130.0) or (not expected_sign_on_positive_z and section_sign.position.z > -130.0):
-			_fail("Campus section %d signage must stay on the side opposite its central-aisle entrance." % section_index)
+		var expected_sides: Array[String] = []
+		if column_index > 0:
+			expected_sides.append("west")
+		if column_index < 3:
+			expected_sides.append("east")
+		if row_index > 0:
+			expected_sides.append("north")
+		if row_index < 3:
+			expected_sides.append("south")
+		var actual_sides: Array = section.get_meta("entrance_sides", [])
+		if actual_sides != expected_sides:
+			_fail("Plot %d has an outward-facing entrance or is missing an inward-facing entrance." % section_index)
 			return
-		var expected_entrance_side := "north" if expected_sign_on_positive_z else "south"
-		if str(section.get_meta("entrance_side", "")) != expected_entrance_side or not bool(section.get_meta("faces_central_dividing_aisle", false)):
-			_fail("Campus section %d does not expose its entrance toward the central dividing aisle." % section_index)
-			return
+
+	var asphalt_roads := campus.get_node_or_null("Campus_Asphalt_Roads") as MeshInstance3D
+	var road_markings := campus.get_node_or_null("Campus_Road_Markings") as MultiMeshInstance3D
+	if asphalt_roads == null or asphalt_roads.mesh == null or int(asphalt_roads.get_meta("road_corridor_count", 0)) != 6 or int(asphalt_roads.get_meta("asphalt_surface_quad_count", 0)) != 15:
+		_fail("The six-corridor merged asphalt road network is missing or incomplete.")
+		return
+	if road_markings == null or road_markings.multimesh == null or int(road_markings.get_meta("dash_count", 0)) < 100 or int(road_markings.get_meta("dash_count", 0)) > 500:
+		_fail("The lightweight instanced asphalt road markings are missing or exceed their intended budget.")
+		return
 
 	var fences := campus.get_node_or_null("Campus_Wooden_Fences") as Node3D
 	if fences == null or not bool(fences.get_meta("wooden_fence", false)):
@@ -168,37 +190,73 @@ func _run_test() -> void:
 	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
 		_fail("The wooden fence post instances are missing or incomplete.")
 		return
-	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 80:
+	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 100:
 		_fail("The wooden fence rail instances are missing or incomplete.")
 		return
-	if fence_pickets.multimesh == null or fence_pickets.multimesh.instance_count < 20000:
+	if fence_pickets.multimesh == null or fence_pickets.multimesh.instance_count < 25000:
 		_fail("The vertical wooden picket panels are missing or incomplete.")
 		return
-	if fence_collisions.get_child_count() < 32 or not bool(fence_collisions.get_meta("blocks_player", false)):
-		_fail("The wooden fence boundaries do not have complete player-blocking collision.")
+	if fence_collisions.get_child_count() < 80 or not bool(fence_collisions.get_meta("blocks_player", false)):
+		_fail("The wooden plot boundaries do not have complete player-blocking collision.")
 		return
+
 	var property_gates := fences.get_node_or_null("Property_Gates") as Node3D
-	if property_gates == null or property_gates.get_child_count() != 7 or int(property_gates.get_meta("locked_gate_count", 0)) != 7:
-		_fail("The seven unacquired land parcels must each have one visible locked entrance gate.")
+	if property_gates == null or property_gates.get_child_count() != 48 or int(property_gates.get_meta("gate_count", 0)) != 48 or int(property_gates.get_meta("locked_gate_count", 0)) != 46:
+		_fail("The campus must have 48 individual internal-facing plot gates, with only Plot 1's two entrances open.")
 		return
-	if property_gates.get_node_or_null("PropertyGate_01") != null:
-		_fail("The starter land parcel must have an open entrance, not a locked gate.")
+
+	var expected_gate_total := 0
+	for parcel_number in range(1, 17):
+		var zero_based_index := parcel_number - 1
+		var row_index := floori(float(zero_based_index) / 4.0)
+		var column_index := zero_based_index % 4
+		var center := Vector3(expected_columns[column_index], 0.0, expected_rows[row_index])
+		var expected_sides: Array[String] = []
+		if column_index > 0:
+			expected_sides.append("west")
+		if column_index < 3:
+			expected_sides.append("east")
+		if row_index > 0:
+			expected_sides.append("north")
+		if row_index < 3:
+			expected_sides.append("south")
+		for side in expected_sides:
+			expected_gate_total += 1
+			var gate_name := "PropertyGate_%02d_%s" % [parcel_number, side.capitalize()]
+			var property_gate := property_gates.get_node_or_null(gate_name) as StaticBody3D
+			var gate_collision := property_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(property_gate) else null
+			var gate_mesh := property_gate.get_node_or_null("GateMesh") as MeshInstance3D if is_instance_valid(property_gate) else null
+			if property_gate == null or gate_collision == null or gate_mesh == null or gate_mesh.mesh == null:
+				_fail("Plot %02d is missing its own physical 3D %s gate or blocking collision." % [parcel_number, side])
+				return
+			var should_be_locked := parcel_number != 1
+			if property_gate.visible != should_be_locked or gate_collision.disabled == should_be_locked:
+				_fail("Plot %02d has an incorrect initial gate visibility or collision state." % parcel_number)
+				return
+			if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or str(property_gate.get_meta("entrance_side", "")) != side or not bool(property_gate.get_meta("faces_campus_interior", false)) or bool(property_gate.get_meta("gate_locked", false)) != should_be_locked:
+				_fail("Plot %02d has a wrongly assigned or outward-facing gate." % parcel_number)
+				return
+			var expected_gate_position := center
+			var expected_gate_yaw := 0.0
+			match side:
+				"north":
+					expected_gate_position += Vector3(0.0, 0.0, 69.0)
+					expected_gate_yaw = 0.0
+				"south":
+					expected_gate_position += Vector3(0.0, 0.0, -69.0)
+					expected_gate_yaw = PI
+				"east":
+					expected_gate_position += Vector3(94.0, 0.0, 0.0)
+					expected_gate_yaw = PI * 0.5
+				"west":
+					expected_gate_position += Vector3(-94.0, 0.0, 0.0)
+					expected_gate_yaw = -PI * 0.5
+			if property_gate.position.distance_to(expected_gate_position) > 0.001 or not is_equal_approx(property_gate.rotation.y, expected_gate_yaw):
+				_fail("Plot %02d's %s gate is not mounted on its own inward-facing plot boundary." % [parcel_number, side])
+				return
+	if expected_gate_total != 48:
+		_fail("The internal plot gate count does not total 48, or an outer-perimeter gate was added.")
 		return
-	for parcel_number in range(2, 9):
-		var property_gate := property_gates.get_node_or_null("PropertyGate_%02d" % parcel_number) as StaticBody3D
-		var gate_collision := property_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(property_gate) else null
-		if property_gate == null or not property_gate.visible or gate_collision == null or gate_collision.disabled:
-			_fail("Land parcel %02d is missing its visible, collision-blocking entrance gate." % parcel_number)
-			return
-		if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or not bool(property_gate.get_meta("gate_locked", false)):
-			_fail("Land parcel %02d has an incorrectly assigned entrance gate." % parcel_number)
-			return
-		var expected_columns := [-300.0, -100.0, 100.0, 300.0]
-		var expected_gate_z := 6.0 if parcel_number <= 4 else -6.0
-		var expected_gate_position := Vector3(expected_columns[(parcel_number - 1) % 4], 0.0, expected_gate_z)
-		if property_gate.position.distance_to(expected_gate_position) > 0.001 or not bool(property_gate.get_meta("faces_central_dividing_aisle", false)):
-			_fail("Land parcel %02d gate is not mounted on its central-aisle-facing plot edge." % parcel_number)
-			return
 
 	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
 	if clouds == null or clouds.multimesh == null:
@@ -235,6 +293,12 @@ func _run_test() -> void:
 	if int(grass.get_meta("maintained_core_instance_count", 0)) != 5472 or int(grass.get_meta("natural_edge_instance_count", 0)) != 2128:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
+	var grass_instances := grass.multimesh
+	for grass_index in range(grass_instances.instance_count):
+		var grass_position := grass_instances.get_instance_transform(grass_index).origin
+		if bool(campus.call("_is_on_asphalt_road", grass_position.x, grass_position.z)):
+			_fail("Grass clumps must remain off the asphalt corridors so the roads stay visibly paved.")
+			return
 	if campus.get_node_or_null("NearPlayer_Grass") != null or bool(campus.get_meta("movement_grass_follow_enabled", true)):
 		_fail("Player movement must not trigger or carry a regenerating near-player grass layer.")
 		return
@@ -318,14 +382,14 @@ func _run_test() -> void:
 	if fence_hit.is_empty() or fence_hit.get("collider") != fence_collisions:
 		_fail("A physics ray passed through a solid wooden fence section.")
 		return
-	var gate_ray := PhysicsRayQueryParameters3D.create(Vector3(-100.0, 1.0, 12.0), Vector3(-100.0, 1.0, 0.0))
+	var gate_ray := PhysicsRayQueryParameters3D.create(Vector3(-100.0, 1.0, 150.0), Vector3(-100.0, 1.0, 162.0))
 	gate_ray.collision_mask = 1
 	gate_ray.collide_with_bodies = true
 	gate_ray.collide_with_areas = false
 	var gate_hit := campus.get_world_3d().direct_space_state.intersect_ray(gate_ray)
-	var expected_gate := property_gates.get_node_or_null("PropertyGate_02")
+	var expected_gate := property_gates.get_node_or_null("PropertyGate_02_South")
 	if gate_hit.is_empty() or gate_hit.get("collider") != expected_gate:
-		_fail("A physics ray passed through the locked gate at the second land parcel entrance.")
+		_fail("A physics ray passed through Plot 2's own gate on its south-facing internal fence.")
 		return
 	var camera := campus.get_node_or_null("PlayerCamera") as Camera3D
 	if camera == null:
@@ -518,10 +582,10 @@ func _run_test() -> void:
 	if phone_home_view.visible or not explore_app_view.visible or phone_screen_ui.get_meta("active_app") != "Explore":
 		_fail("Tapping the Explore icon did not launch the app inside the phone.")
 		return
-	if campus.find_children("ExploreSectionButton_*", "Button", true, false).size() != 8:
-		_fail("The Explore app must list all eight campus sections.")
+	if campus.find_children("ExploreSectionButton_*", "Button", true, false).size() != 16:
+		_fail("The Explore app must list all sixteen campus plots.")
 		return
-	for section_index in range(8):
+	for section_index in range(16):
 		var section_button := campus.find_child("ExploreSectionButton_%02d" % (section_index + 1), true, false) as Button
 		if section_button == null or int(section_button.get_meta("campus_section_index", -1)) != section_index:
 			_fail("The Explore destination list is missing or has an incorrect section index.")
@@ -602,27 +666,51 @@ func _run_test() -> void:
 		_fail("The Office shortcut bypassed the locked corporate-office land gate instead of showing the access restriction.")
 		return
 
-	var seventh_gate := property_gates.get_node_or_null("PropertyGate_07") as StaticBody3D
+	var seventh_gate := property_gates.get_node_or_null("PropertyGate_07_North") as StaticBody3D
 	var seventh_gate_collision := seventh_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(seventh_gate) else null
 	if not bool(campus.call("set_land_parcel_access", "LAND-07", true, "rented")):
 		_fail("The parcel access API rejected a valid rental access update.")
 		return
 	var seventh_section := sections.get_node_or_null("Section_07") as Node3D
 	var seventh_explore_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
-	if seventh_gate.visible or not seventh_gate_collision.disabled or not bool(seventh_section.get_meta("access_granted", false)) or not seventh_explore_button.text.contains("OPEN"):
-		_fail("Granting parcel access did not open its gate, disable collision, and refresh its Explore status.")
+	var opened_seventh_gate_count := 0
+	for gate_value in property_gates.get_children():
+		var gate := gate_value as StaticBody3D
+		if is_instance_valid(gate) and str(gate.get_meta("property_id", "")) == "LAND-07":
+			opened_seventh_gate_count += 1
+			var collision := gate.get_node_or_null("GateCollision") as CollisionShape3D
+			if gate.visible or collision == null or not collision.disabled:
+				_fail("Granting Plot 7 access did not open and disable all of its individual gates.")
+				return
+	if opened_seventh_gate_count != 4 or seventh_gate.visible or not seventh_gate_collision.disabled or not bool(seventh_section.get_meta("access_granted", false)) or not seventh_explore_button.text.contains("OPEN"):
+		_fail("Granting Plot 7 access did not open its four gates, disable their colliders, and refresh Explore.")
 		return
 	if not bool(campus.call("set_land_parcel_access", "LAND-07", false, "not_acquired")):
 		_fail("The parcel access API could not re-lock an inactive parcel.")
 		return
-	if not seventh_gate.visible or seventh_gate_collision.disabled or bool(seventh_section.get_meta("access_granted", true)) or not seventh_explore_button.text.contains("LOCKED"):
-		_fail("Re-locking a parcel did not restore its gate collision and Explore status.")
+	var relocked_seventh_gate_count := 0
+	for gate_value in property_gates.get_children():
+		var gate := gate_value as StaticBody3D
+		if is_instance_valid(gate) and str(gate.get_meta("property_id", "")) == "LAND-07":
+			relocked_seventh_gate_count += 1
+			var collision := gate.get_node_or_null("GateCollision") as CollisionShape3D
+			if not gate.visible or collision == null or collision.disabled:
+				_fail("Re-locking Plot 7 did not restore all four visible blocking gates.")
+				return
+	if relocked_seventh_gate_count != 4 or not seventh_gate.visible or seventh_gate_collision.disabled or bool(seventh_section.get_meta("access_granted", true)) or not seventh_explore_button.text.contains("LOCKED"):
+		_fail("Re-locking Plot 7 did not restore its four gates and locked Explore status.")
 		return
 	if bool(campus.call("set_land_parcel_access", "LAND-01", false, "not_acquired")):
-		_fail("The campus access API allowed the currently active starter parcel to be locked.")
+		_fail("The campus access API allowed the currently active starter plot to be locked.")
 		return
-	if not bool(sections.get_node("Section_01").get_meta("access_granted", false)) or property_gates.get_node_or_null("PropertyGate_01") != null:
-		_fail("Rejecting a lock on the active starter parcel changed its access state or created an unwanted gate.")
+	for starter_side in ["East", "South"]:
+		var starter_gate := property_gates.get_node_or_null("PropertyGate_01_%s" % starter_side) as StaticBody3D
+		var starter_collision := starter_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(starter_gate) else null
+		if starter_gate == null or starter_gate.visible or starter_collision == null or not starter_collision.disabled:
+			_fail("Rejecting a lock on Plot 1 changed one of its open internal entrances.")
+			return
+	if not bool(sections.get_node("Section_01").get_meta("access_granted", false)):
+		_fail("Rejecting a lock on the active starter plot changed its access state.")
 		return
 
 	project_app_icon.emit_signal("pressed")
