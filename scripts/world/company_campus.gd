@@ -166,7 +166,7 @@ func _ready() -> void:
 	_update_camera()
 	setup_progress.emit("Setting up first-person campus controls", 35.0)
 	await get_tree().process_frame
-	_build_overlay()
+	await _build_overlay_batched()
 	setup_progress.emit("Setting up first-person campus controls", 100.0)
 	set_meta("campus_generation_complete", true)
 	setup_completed.emit()
@@ -1281,7 +1281,7 @@ func _make_career_metric_card(card_name: String, caption: String) -> PanelContai
 	return card
 
 
-func _build_overlay() -> void:
+func _build_overlay_batched() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "Campus_Controls_Layer"
 	layer.layer = 30
@@ -1298,6 +1298,8 @@ func _build_overlay() -> void:
 	overlay_root = root
 	root.resized.connect(_layout_phone_controls)
 	_build_career_hud(root)
+	setup_progress.emit("Setting up first-person campus controls", 45.0)
+	await get_tree().process_frame
 
 	movement_joystick = JoystickScript.new() as Control
 	movement_joystick.name = "MovementJoystick"
@@ -1308,13 +1310,17 @@ func _build_overlay() -> void:
 	movement_joystick.offset_bottom = -22.0
 	movement_joystick.custom_minimum_size = Vector2(196.0, 196.0)
 	root.add_child(movement_joystick)
+	setup_progress.emit("Setting up first-person campus controls", 55.0)
+	await get_tree().process_frame
 
-	_build_phone_controls(root)
+	await _build_phone_controls_batched(root)
 	_layout_phone_controls()
 	call_deferred("_layout_phone_controls")
+	setup_progress.emit("Setting up first-person campus controls", 100.0)
+	await get_tree().process_frame
 
 
-func _build_phone_controls(root: Control) -> void:
+func _build_phone_controls_batched(root: Control) -> void:
 	phone_control_buttons.clear()
 
 	var first_action_button := _create_phone_control_button(root, "PhoneActionButton1", "···")
@@ -1369,7 +1375,9 @@ func _build_phone_controls(root: Control) -> void:
 	phone_viewport.add_child(phone_model)
 	phone_model.call("build", _create_phone_screen_texture())
 	phone_model.rotation = Vector3.ZERO
-	_build_phone_screen_ui(root)
+	setup_progress.emit("Setting up first-person campus controls", 62.0)
+	await get_tree().process_frame
+	await _build_phone_screen_ui_batched(root)
 
 
 func _create_phone_control_button(root: Control, button_name: String, button_text: String) -> Button:
@@ -1397,7 +1405,7 @@ func _create_phone_screen_texture() -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
-func _build_phone_screen_ui(root: Control) -> void:
+func _build_phone_screen_ui_batched(root: Control) -> void:
 	phone_screen_ui = Panel.new()
 	phone_screen_ui.name = "PhoneScreenUI"
 	phone_screen_ui.visible = false
@@ -1455,10 +1463,14 @@ func _build_phone_screen_ui(root: Control) -> void:
 	_add_phone_home_app(app_grid, "Staffs", "StaffsAppIcon", "♙", Callable(self, "_launch_staffs_app"))
 	_add_phone_home_app(app_grid, "Create", "CreateAppIcon", "✚", Callable(self, "_request_legacy_app_launch").bind("create"))
 	_add_phone_home_app(app_grid, "Products", "ProductsAppIcon", "▣", Callable(self, "_launch_phone_feature_app").bind("products"))
+	setup_progress.emit("Setting up first-person campus controls", 68.0)
+	await get_tree().process_frame
 	_add_phone_home_app(app_grid, "Marketing", "MarketingAppIcon", "↗", Callable(self, "_launch_phone_feature_app").bind("marketing"))
 	_add_phone_home_app(app_grid, "Media", "MediaAppIcon", "▧", Callable(self, "_launch_phone_feature_app").bind("media"))
 	_add_phone_home_app(app_grid, "Office", "OfficeAppIcon", "⌂", Callable(self, "_launch_office_shortcut"))
 	_add_phone_home_app(app_grid, "Statistics", "StatisticsAppIcon", "▥", Callable(self, "_launch_phone_feature_app").bind("statistics"))
+	setup_progress.emit("Setting up first-person campus controls", 72.0)
+	await get_tree().process_frame
 
 	var home_footer := Label.new()
 	home_footer.name = "PhoneHomeFooter"
@@ -1486,6 +1498,9 @@ func _build_phone_screen_ui(root: Control) -> void:
 		section_button.custom_minimum_size.y = 34.0
 		section_button.set_meta("campus_section_index", section_index)
 		explore_section_buttons.append(section_button)
+		if (section_index + 1) % 2 == 0 or section_index + 1 == CAMPUS_SECTION_NAMES.size():
+			setup_progress.emit("Setting up first-person campus controls", 72.0 + 4.0 * float(section_index + 1) / float(CAMPUS_SECTION_NAMES.size()))
+			await get_tree().process_frame
 
 	explore_status_label = Label.new()
 	explore_status_label.name = "ExploreStatusLabel"
@@ -1517,6 +1532,8 @@ func _build_phone_screen_ui(root: Control) -> void:
 			Callable(self, "_request_worksite_launch").bind(option_id)
 		)
 		worksite_app_buttons.append(worksite_button)
+		setup_progress.emit("Setting up first-person campus controls", 80.0)
+		await get_tree().process_frame
 
 	var research_page := _create_phone_app_page("ResearchAppScreen", "Research", "Open a research workspace", "ResearchBackToHomeButton")
 	phone_screen_ui.add_child(research_page["page"])
@@ -1539,6 +1556,8 @@ func _build_phone_screen_ui(root: Control) -> void:
 			Callable(self, "_request_research_launch").bind(option_id)
 		)
 		research_app_buttons.append(research_button)
+		setup_progress.emit("Setting up first-person campus controls", 86.0)
+		await get_tree().process_frame
 
 	var staffs_page := _create_phone_app_page("StaffsAppScreen", "Staffs", "Choose a staff area to open", "StaffsBackToHomeButton")
 	phone_screen_ui.add_child(staffs_page["page"])
@@ -1559,11 +1578,17 @@ func _build_phone_screen_ui(root: Control) -> void:
 			Callable(self, "_request_staff_launch").bind(option_id)
 		)
 		staffs_app_buttons.append(staff_button)
+		setup_progress.emit("Setting up first-person campus controls", 92.0)
+		await get_tree().process_frame
 
 	_add_phone_feature_page("ProductsAppScreen", "Products", "Company product catalogue", "ProductsBackToHomeButton", "Your product catalogue will appear here.")
 	_add_phone_feature_page("MarketingAppScreen", "Marketing", "Promote your company's products", "MarketingBackToHomeButton", "Marketing tools will appear here.")
+	setup_progress.emit("Setting up first-person campus controls", 96.0)
+	await get_tree().process_frame
 	_add_phone_feature_page("MediaAppScreen", "Media", "Company media and campaigns", "MediaBackToHomeButton", "Media tools will appear here.")
 	_add_phone_feature_page("StatisticsAppScreen", "Statistics", "Company performance overview", "StatisticsBackToHomeButton", "Company statistics will appear here.")
+	setup_progress.emit("Setting up first-person campus controls", 100.0)
+	await get_tree().process_frame
 
 
 func _add_phone_feature_page(page_name: String, title_text: String, description_text: String, back_button_name: String, message: String) -> void:
