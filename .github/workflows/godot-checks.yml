@@ -125,6 +125,15 @@ jobs:
       pass_marker: "PHONE_CAMERA_PROCESSOR_RESEARCH_DASHBOARD_SMOKE_TEST: PASS"
       log_name: research-dashboard-smoke.log
 
+  project-dashboard-smoke:
+    name: Project app and 3D fence catalogue
+    uses: ./.github/workflows/godot-smoke-test.yml
+    with:
+      test_name: Project app and 3D fence catalogue
+      script_path: scripts/tests/project_dashboard_smoke.gd
+      pass_marker: "PROJECT_DASHBOARD_SMOKE_TEST: PASS"
+      log_name: project-dashboard-smoke.log
+
   processor-worksite-smoke:
     name: Processor Worksite and 3D chip preview
     uses: ./.github/workflows/godot-smoke-test.yml

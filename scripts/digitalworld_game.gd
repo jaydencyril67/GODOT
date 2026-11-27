@@ -7,6 +7,7 @@ const CameraCreationWorksiteScene: PackedScene = preload("res://scenes/camera_cr
 const ResearchAllocationDashboardScene: PackedScene = preload("res://scenes/research_allocation_dashboard.tscn")
 const CameraResearchDashboardScene: PackedScene = preload("res://scenes/camera_research_dashboard.tscn")
 const ProcessorResearchDashboardScene: PackedScene = preload("res://scenes/processor_research_dashboard.tscn")
+const ProjectDashboardScene: PackedScene = preload("res://scenes/project_dashboard.tscn")
 const ResearchManagerScript = preload("res://scripts/digitalworld_research_manager.gd")
 const StaffMarketScene: PackedScene = preload("res://scenes/staff_market.tscn")
 const LandingCampusScene: PackedScene = preload("res://scenes/landing_campus.tscn")
@@ -40,6 +41,7 @@ var company_campus: Node3D
 var campus_phone_return_active := false
 var world_globe: Node3D
 var research_allocation_dashboard: Control
+var project_dashboard: Control
 var phone_creation_worksite: Node3D
 var os_creation_worksite: Node3D
 var processor_creation_worksite: Node3D
@@ -300,6 +302,9 @@ func _clear_world() -> void:
 	if is_instance_valid(company_campus):
 		company_campus.queue_free()
 	company_campus = null
+	if is_instance_valid(project_dashboard):
+		project_dashboard.queue_free()
+	project_dashboard = null
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.queue_free()
 	staff_ui_layer = null
@@ -540,6 +545,7 @@ func _show_home_scene() -> void:
 	campus.connect("game_clock_toggle_requested", Callable(self, "_toggle_game_clock"))
 	campus.connect("worksite_launch_requested", Callable(self, "_open_worksite_from_campus"))
 	campus.connect("research_launch_requested", Callable(self, "_open_research_from_campus"))
+	campus.connect("project_launch_requested", Callable(self, "_open_project_from_campus"))
 	campus.connect("staff_launch_requested", Callable(self, "_open_staff_from_campus"))
 	campus.connect("legacy_app_launch_requested", Callable(self, "_open_legacy_app_from_campus"))
 	campus.visible = false
@@ -602,6 +608,36 @@ func _open_research_from_campus(research_id: String) -> void:
 			_show_research_allocation_dashboard(false, true)
 		_:
 			_resume_company_campus_after_phone_app()
+
+
+func _open_project_from_campus() -> void:
+	if not is_instance_valid(company_campus):
+		return
+	_suspend_company_campus_for_phone_app()
+	var root := _new_screen()
+	root.name = "ProjectDevelopmentScreen"
+	root.modulate.a = 0.0
+	project_dashboard = ProjectDashboardScene.instantiate() as Control
+	if not is_instance_valid(project_dashboard):
+		push_error("The Project development screen could not be instantiated.")
+		_resume_company_campus_after_phone_app()
+		return
+	project_dashboard.name = "CompanyProjectDashboard"
+	project_dashboard.connect("back_requested", Callable(self, "_return_from_project_dashboard"))
+	root.add_child(project_dashboard)
+	current_screen = "project_development"
+	var entrance := create_tween()
+	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func _return_from_project_dashboard() -> void:
+	if is_instance_valid(project_dashboard):
+		project_dashboard.queue_free()
+	project_dashboard = null
+	if _resume_company_campus_after_phone_app():
+		return
+	_restore_home_after_standalone_screen()
 
 
 func _open_staff_from_campus(staff_screen_id: String) -> void:

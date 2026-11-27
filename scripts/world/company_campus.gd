@@ -6,6 +6,7 @@ signal setup_completed
 signal game_clock_toggle_requested
 signal worksite_launch_requested(worksite_id: String)
 signal research_launch_requested(research_id: String)
+signal project_launch_requested
 signal staff_launch_requested(staff_screen_id: String)
 signal legacy_app_launch_requested(app_id: String)
 
@@ -1385,7 +1386,7 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	phone_screen_ui.clip_contents = true
 	phone_screen_ui.z_index = 8
 	phone_screen_ui.set_meta("screen_powered", true)
-	phone_screen_ui.set_meta("home_app_count", 10)
+	phone_screen_ui.set_meta("home_app_count", 11)
 	phone_screen_ui.set_meta("active_app", "home")
 	phone_screen_ui.add_theme_stylebox_override(
 		"panel",
@@ -1429,6 +1430,7 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	phone_home_view.add_child(app_grid)
 
 	_add_phone_home_app(app_grid, "Explore", "ExploreAppIcon", "⌖", Callable(self, "_launch_explore_app"))
+	_add_phone_home_app(app_grid, "Project", "ProjectAppIcon", "▤", Callable(self, "_request_project_launch"))
 	_add_phone_home_app(app_grid, "Worksite", "WorksiteAppIcon", "▦", Callable(self, "_launch_worksite_app"))
 	_add_phone_home_app(app_grid, "Research", "ResearchAppIcon", "◈", Callable(self, "_launch_research_app"))
 	_add_phone_home_app(app_grid, "Staffs", "StaffsAppIcon", "♙", Callable(self, "_launch_staffs_app"))
@@ -1791,6 +1793,11 @@ func _launch_worksite_app() -> void:
 
 func _launch_research_app() -> void:
 	_open_phone_app("research")
+
+
+func _request_project_launch() -> void:
+	_close_phone_for_external_scene()
+	project_launch_requested.emit()
 
 
 func _launch_staffs_app() -> void:
