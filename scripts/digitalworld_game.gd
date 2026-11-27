@@ -311,6 +311,43 @@ func _normalize_land_parcel_state() -> void:
 	career["active_land_parcel_id"] = active_id if active_is_accessible else first_accessible_id
 
 
+func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_status: String = "owned") -> bool:
+	# Central write path for future purchase/rental systems. Save the updated
+	# career state first, then apply the matching physical gate state in-world.
+	_normalize_land_parcel_state()
+	if not access_granted and str(career.get("active_land_parcel_id", "LAND-01")) == parcel_id:
+		return false
+
+	var parcels: Array = career.get("land_parcels", [])
+	var parcel_index := -1
+	for index in range(parcels.size()):
+		if str(parcels[index].get("id", "")) == parcel_id:
+			parcel_index = index
+			break
+	if parcel_index < 0:
+		return false
+
+	var previous_parcels: Array = parcels.duplicate(true)
+	var updated_parcel: Dictionary = parcels[parcel_index].duplicate(true)
+	updated_parcel["access_granted"] = access_granted
+	updated_parcel["access_status"] = "accessible" if access_granted else "locked"
+	updated_parcel["tenure_status"] = tenure_status if access_granted else "not_acquired"
+	parcels[parcel_index] = updated_parcel
+	career["land_parcels"] = parcels
+
+	if not _save_career():
+		career["land_parcels"] = previous_parcels
+		return false
+
+	if is_instance_valid(company_campus):
+		var campus_updated: bool = bool(company_campus.call("set_land_parcel_access", parcel_id, access_granted, tenure_status))
+		if not campus_updated:
+			career["land_parcels"] = previous_parcels
+			_save_career()
+			return false
+	return true
+
+
 func _normalize_phone_identity() -> void:
 	var phone_name_value: Variant = career.get("phone_name", "")
 	var phone_model_value: Variant = career.get("phone_model", "")
