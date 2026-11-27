@@ -499,17 +499,17 @@ func _show_home_scene() -> void:
 	# batches. The same instances are reused after the loading screen closes.
 	_update_campus_loading_range("Preparing Phone Creation Worksite", 0.0, 0.0, 10.0)
 	_prepare_phone_creation_worksite()
-	phone_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(0.0, 10.0))
+	phone_creation_worksite.connect("startup_progress", Callable(self, "_update_phone_startup_loading"))
 	await phone_creation_worksite.call("prepare_for_initial_load")
 
 	_update_campus_loading_range("Preparing Processor Creation Worksite", 0.0, 10.0, 20.0)
 	_prepare_processor_creation_worksite()
-	processor_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(10.0, 20.0))
+	processor_creation_worksite.connect("startup_progress", Callable(self, "_update_processor_startup_loading"))
 	await processor_creation_worksite.call("prepare_for_initial_load")
 
 	_update_campus_loading_range("Preparing Camera Creation Worksite", 0.0, 20.0, 30.0)
 	_prepare_camera_creation_worksite()
-	camera_creation_worksite.connect("startup_progress", Callable(self, "_update_campus_loading_range").bind(20.0, 30.0))
+	camera_creation_worksite.connect("startup_progress", Callable(self, "_update_camera_startup_loading"))
 	await camera_creation_worksite.call("prepare_for_initial_load")
 
 	await _prepare_staff_scenes_batched()
@@ -1745,6 +1745,42 @@ void fragment() {
 
 func _update_campus_loading(message: String, progress: float) -> void:
 	_update_campus_loading_absolute(message, maxf(campus_loading_progress_value, clampf(progress, 0.0, 100.0)))
+
+
+func _update_workspace_startup_loading(
+	message: String,
+	progress: float,
+	stage_start: float,
+	stage_end: float,
+	global_start: float,
+	global_end: float
+) -> void:
+	var stage_progress := lerpf(stage_start, stage_end, clampf(progress, 0.0, 100.0) / 100.0)
+	var global_progress := lerpf(global_start, global_end, stage_progress / 100.0)
+	_update_campus_loading_absolute(message, global_progress)
+
+
+func _update_phone_startup_loading(message: String, progress: float) -> void:
+	if message == "Building Phone Creation preview":
+		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 0.0, 10.0)
+	else:
+		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 0.0, 10.0)
+
+
+func _update_processor_startup_loading(message: String, progress: float) -> void:
+	if message == "Building Processor Creation Worksite interface":
+		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 10.0, 20.0)
+	elif message == "Building processor preview models":
+		_update_workspace_startup_loading(message, progress, 30.0, 95.0, 10.0, 20.0)
+	else:
+		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 10.0, 20.0)
+
+
+func _update_camera_startup_loading(message: String, progress: float) -> void:
+	if message == "Building Camera Worksite preview":
+		_update_workspace_startup_loading(message, progress, 0.0, 25.0, 20.0, 30.0)
+	else:
+		_update_workspace_startup_loading(message, progress, 25.0, 100.0, 20.0, 30.0)
 
 
 func _update_campus_loading_range(message: String, progress: float, range_start: float, range_end: float) -> void:
