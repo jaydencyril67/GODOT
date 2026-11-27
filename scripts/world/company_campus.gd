@@ -565,7 +565,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var section := Node3D.new()
 		section.name = "Section_%02d" % (section_index + 1)
 		section.position = center
-			var parcel_id := "LAND-%02d" % (section_index + 1)
+		var parcel_id := "LAND-%02d" % (section_index + 1)
 		var parcel_accessible := _is_section_accessible(section_index)
 		var parcel_tenure := "starter_access" if section_index == 0 else "not_acquired"
 		for parcel in land_parcels:
