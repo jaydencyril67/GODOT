@@ -391,6 +391,14 @@ func _run_test() -> void:
 	if chassis == null or inset == null or screen == null or power_key == null or volume_up == null or volume_down == null or phone_camera == null:
 		_fail("The campus phone does not contain the shared OS Worksite chassis, glass, side keys, and fixed preview camera.")
 		return
+	if power_key.position.x <= 0.0 or volume_up.position.x >= 0.0 or volume_down.position.x >= 0.0:
+		_fail("Campus phone volume keys must sit on the handset edge directly opposite the power key.")
+		return
+	var volume_pair_center_y := (volume_up.position.y + volume_down.position.y) * 0.5
+	if not is_equal_approx(volume_pair_center_y, power_key.position.y) or volume_up.position.y <= power_key.position.y or volume_down.position.y >= power_key.position.y or not is_equal_approx(volume_up.position.y - volume_down.position.y, 0.24):
+		_fail("Campus phone volume keys are not raised and centered opposite the power key.")
+		return
+
 	var body_bounds := chassis.mesh.get_aabb()
 	if not is_equal_approx(body_bounds.size.x, 1.45) or not is_equal_approx(body_bounds.size.y, 2.92) or not is_equal_approx(body_bounds.size.z, 0.13):
 		_fail("The campus handset no longer matches the physical OS Worksite phone dimensions.")
