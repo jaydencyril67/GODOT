@@ -15,8 +15,14 @@ func _run_camera_worksite_test() -> void:
 		return
 
 	root.add_child(worksite)
-	await process_frame
-	await process_frame
+	var setup_frames := 0
+	while not bool(worksite.get("startup_setup_complete")) and setup_frames < 300:
+		await process_frame
+		setup_frames += 1
+	if not bool(worksite.get("startup_setup_complete")):
+		_fail("Camera Worksite did not finish its batched first-load preparation.")
+		worksite.free()
+		return
 	worksite.call("_apply_responsive_layout")
 
 	var worksite_root := worksite.find_child("WorksiteRoot", true, false) as Control
