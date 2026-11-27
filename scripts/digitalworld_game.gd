@@ -2290,7 +2290,6 @@ func _open_research_from_phone_creation_worksite() -> void:
 	# The worksite runs without the normal screen UI root, so open research in
 	# a dedicated top-layer CanvasLayer and restore the same worksite on return.
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	phone_creation_worksite.call("set_defer_initial_setup", true)
 	phone_creation_worksite.hide()
 	for child in phone_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2317,7 +2316,6 @@ func _open_research_from_processor_creation_worksite() -> void:
 	research_dashboard_return_to_camera_worksite = false
 	research_dashboard_return_to_processor_worksite = true
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	processor_creation_worksite.call("set_defer_initial_setup", true)
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2345,7 +2343,6 @@ func _open_research_from_camera_creation_worksite() -> void:
 	research_dashboard_return_to_camera_worksite = true
 	research_dashboard_return_to_processor_worksite = false
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	camera_creation_worksite.call("set_defer_initial_setup", true)
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2925,6 +2922,7 @@ func _prepare_camera_creation_worksite() -> void:
 		return
 	camera_creation_worksite.name = "Camera_Creation_Worksite"
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	camera_creation_worksite.call("set_defer_initial_setup", true)
 	camera_creation_worksite.connect("back_requested", Callable(self, "_return_from_camera_creation_worksite"))
 	camera_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_camera_creation_worksite"))
 	add_child(camera_creation_worksite)
@@ -3016,6 +3014,7 @@ func _prepare_processor_creation_worksite() -> void:
 		return
 	processor_creation_worksite.name = "Processor_Creation_Worksite"
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	processor_creation_worksite.call("set_defer_initial_setup", true)
 	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
 	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
 	processor_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_processor_creation_worksite"))
@@ -3127,6 +3126,7 @@ func _prepare_phone_creation_worksite() -> void:
 		return
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	phone_creation_worksite.call("set_defer_initial_setup", true)
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	phone_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
