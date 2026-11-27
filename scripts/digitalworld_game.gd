@@ -89,6 +89,7 @@ var loading_percent_label: Label
 var loading_progress_tween: Tween
 var loading_accent_tween: Tween
 var campus_loading_finish_started := false
+var campus_loading_progress_value := 0.0
 var graphics_quality := "High"
 var sound_enabled := true
 
@@ -515,7 +516,7 @@ func _show_home_scene() -> void:
 		_format_game_date(game_date_unix),
 		game_clock_paused
 	)
-	campus.connect("setup_progress", Callable(self, "_update_campus_loading"))
+	campus.connect("setup_progress", Callable(self, "_update_campus_loading_range").bind(38.0, 74.0))
 	campus.connect("setup_completed", Callable(self, "_on_company_campus_setup_completed"))
 	campus.connect("back_requested", Callable(self, "_show_menu"))
 	campus.connect("game_clock_toggle_requested", Callable(self, "_toggle_game_clock"))
@@ -1411,6 +1412,7 @@ func _create_company() -> void:
 func _show_city() -> void:
 	# Generate the campus from the initial career preparation screen.
 	campus_loading_finish_started = false
+	campus_loading_progress_value = 0.0
 	_show_campus_loading_screen()
 	await RenderingServer.frame_post_draw
 	_process_pending_monthly_expenses()
@@ -1730,15 +1732,21 @@ void fragment() {
 
 
 func _update_campus_loading(message: String, progress: float) -> void:
-	var safe_progress := clampf(progress, 0.0, 100.0)
+	_update_campus_loading_absolute(message, maxf(campus_loading_progress_value, clampf(progress, 0.0, 100.0)))
+
+
+func _update_campus_loading_range(message: String, progress: float, range_start: float, range_end: float) -> void:
+	var mapped_progress := lerpf(range_start, range_end, clampf(progress, 0.0, 100.0) / 100.0)
+	_update_campus_loading_absolute(message, mapped_progress)
+
+
+func _update_campus_loading_absolute(message: String, progress: float) -> void:
+	var safe_progress := clampf(maxf(campus_loading_progress_value, progress), 0.0, 100.0)
+	campus_loading_progress_value = safe_progress
 	var stage_changed := is_instance_valid(loading_status_label) and loading_status_label.text != message
 	if stage_changed:
 		if loading_progress_tween != null and loading_progress_tween.is_running():
 			loading_progress_tween.kill()
-		if is_instance_valid(loading_progress_bar):
-			loading_progress_bar.value = 0.0
-		if is_instance_valid(loading_percent_label):
-			loading_percent_label.text = "0%"
 		var status_fade := create_tween()
 		status_fade.tween_property(loading_status_label, "modulate:a", 0.35, 0.07)
 		status_fade.tween_callback(func():
@@ -2612,7 +2620,7 @@ func _prepare_os_creation_worksite() -> void:
 	os_creation_worksite.set_company_logo_texture(_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
-	os_creation_worksite.connect("setup_progress", Callable(self, "_update_campus_loading"))
+	os_creation_worksite.connect("setup_progress", Callable(self, "_update_campus_loading_range").bind(74.0, 100.0))
 	os_creation_worksite.connect("setup_completed", Callable(self, "_finish_campus_loading"))
 	os_creation_worksite.connect("setup_failed", Callable(self, "_on_os_worksite_setup_failed"))
 	os_creation_worksite.hide()
