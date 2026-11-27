@@ -62,6 +62,7 @@ var staff_ui_layer: CanvasLayer
 var staff_screen
 var staff_market_screen
 var staff_management_screen
+var staff_gateway_active := false
 var confirm_modal: CanvasLayer
 var game_date_unix := GAME_START_DATE_UNIX
 var game_clock_paused := false
@@ -115,7 +116,7 @@ func _process(delta: float) -> void:
 		return
 	# Keep the in-game clock and monthly staff refresh running on all company screens,
 	# including while the player is browsing products, research, or other HQ features.
-	if current_screen not in ["company_campus", "create", "research", "research_allocation", "camera_research_allocation", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite", "os_creation_worksite"]:
+	if current_screen not in ["company_campus", "create", "research", "research_allocation", "camera_research_allocation", "staffs", "staff_market", "staff_management", "phone_creation_worksite", "processor_creation_worksite", "camera_creation_worksite", "os_creation_worksite"]:
 		return
 	var previous_day := floori(game_date_unix / 86400.0)
 	var previous_month := _get_game_month_key(game_date_unix)
@@ -618,12 +619,12 @@ func _return_from_project_dashboard() -> void:
 	_restore_home_after_standalone_screen()
 
 
-func _open_staff_from_campus(staff_screen_id: String) -> void:
+func _open_staff_from_campus(_staff_screen_id: String) -> void:
 	if not is_instance_valid(company_campus):
 		return
 	_suspend_company_campus_for_phone_app()
 	_ensure_staff_data()
-	_open_staff_screen("market" if staff_screen_id == "market" else "management")
+	_show_staff_scene()
 
 
 func _show_world_globe() -> void:
@@ -3474,15 +3475,205 @@ func _connect_staff_screen_signals(screen: Control) -> void:
 	screen.dismiss_requested.connect(_request_staff_dismissal)
 
 
+func _show_staff_scene() -> void:
+	current_screen = "staffs"
+	staff_gateway_active = true
+	var root := _new_screen()
+	root.name = "StaffManagementGatewayScreen"
+	root.modulate.a = 0.0
+
+	var vignette := ColorRect.new()
+	vignette.name = "StaffGatewayVignette"
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vignette_shader := Shader.new()
+	vignette_shader.code = """
+shader_type canvas_item;
+void fragment() {
+	vec2 p = SCREEN_UV - vec2(0.5);
+	float edge = smoothstep(0.22, 0.88, length(p));
+	float top_shade = smoothstep(0.0, 0.75, SCREEN_UV.y) * 0.12;
+	COLOR = vec4(vec3(0.0), edge * 0.42 + top_shade);
+}
+"""
+	var vignette_material := ShaderMaterial.new()
+	vignette_material.shader = vignette_shader
+	vignette.material = vignette_material
+	root.add_child(vignette)
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var compact := viewport_size.x < 820.0 or viewport_size.y < 560.0
+	var margin_x := 14 if compact else 48
+	var margin_y := 12 if compact else 24
+	var frame := MarginContainer.new()
+	frame.name = "StaffGatewayFrame"
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	frame.add_theme_constant_override("margin_left", margin_x)
+	frame.add_theme_constant_override("margin_right", margin_x)
+	frame.add_theme_constant_override("margin_top", margin_y)
+	frame.add_theme_constant_override("margin_bottom", margin_y)
+	root.add_child(frame)
+
+	var page := VBoxContainer.new()
+	page.name = "StaffGatewayContent"
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_theme_constant_override("separation", 10 if compact else 16)
+	frame.add_child(page)
+
+	var top_bar := HBoxContainer.new()
+	top_bar.name = "StaffGatewayTopBar"
+	top_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.alignment = BoxContainer.ALIGNMENT_END
+	page.add_child(top_bar)
+
+	var back_button := _add_action_button(top_bar, "BACK  ‹", false, _return_home_from_staff_gateway)
+	back_button.custom_minimum_size = Vector2(94 if compact else 124, 40 if compact else 48)
+	back_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_style_landing_command_button(back_button, false)
+	_apply_shared_page_typography(back_button, 13 if compact else 15)
+
+	var heading := VBoxContainer.new()
+	heading.name = "StaffGatewayHeading"
+	heading.add_theme_constant_override("separation", 2 if compact else 5)
+	page.add_child(heading)
+	heading.add_child(_label("PEOPLE & OPERATIONS", 8 if compact else 10, Color("#D2A15C")))
+	var title := _label("STAFF MANAGEMENT", 19 if compact else 28, Color("#F4F6FA"))
+	title.name = "StaffGatewayTitle"
+	heading.add_child(title)
+	var subtitle := _label("Recruit your team or manage the employees already working for your company.", 9 if compact else 13, Color("#CFC7BA"))
+	subtitle.name = "StaffGatewayDescription"
+	heading.add_child(subtitle)
+
+	var grid := GridContainer.new()
+	grid.name = "StaffGatewayCardGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10 if compact else 18)
+	grid.add_theme_constant_override("v_separation", 10 if compact else 18)
+	page.add_child(grid)
+
+	var horizontal_page_width := maxf(0.0, viewport_size.x - float(margin_x * 2))
+	var card_width := maxf(1.0, (horizontal_page_width - (10.0 if compact else 18.0)) * 0.5)
+	var available_grid_height := viewport_size.y - float(margin_y * 2) - (40.0 if compact else 48.0) - (76.0 if compact else 104.0) - (10.0 if compact else 16.0)
+	var card_height := maxf(112.0 if compact else 190.0, available_grid_height)
+
+	_add_staff_gateway_card(
+		grid,
+		"01",
+		"STAFF MARKET",
+		"RECRUIT YOUR TEAM",
+		"Browse available candidates, compare their skills and hire employees for your company.",
+		"OPEN STAFF MARKET  ›",
+		card_width,
+		card_height,
+		compact,
+		Callable(self, "_open_staff_screen").bind("market")
+	)
+	_add_staff_gateway_card(
+		grid,
+		"02",
+		"STAFF MANAGEMENT",
+		"MANAGE YOUR TEAM",
+		"Review your employees, monitor your workforce and manage existing staff.",
+		"OPEN STAFF MANAGEMENT  ›",
+		card_width,
+		card_height,
+		compact,
+		Callable(self, "_open_staff_screen").bind("management")
+	)
+
+	var entrance := create_tween()
+	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	entrance.tween_property(root, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func _add_staff_gateway_card(
+	parent: GridContainer,
+	number: String,
+	title_text: String,
+	descriptor: String,
+	description_text: String,
+	button_text: String,
+	card_width: float,
+	card_height: float,
+	compact: bool,
+	action: Callable
+) -> void:
+	var card := PanelContainer.new()
+	card.name = title_text.replace(" ", "") + "GatewayCard"
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(card_width, card_height)
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.018, 0.065, 0.039, 0.84)
+	card_style.border_color = Color(0.58, 0.46, 0.29, 0.62)
+	card_style.set_border_width_all(1)
+	card_style.border_width_top = 2
+	card_style.set_corner_radius_all(18)
+	card_style.shadow_color = Color(0.0, 0.025, 0.008, 0.48)
+	card_style.shadow_size = 14
+	card_style.shadow_offset = Vector2(0.0, 5.0)
+	card_style.anti_aliasing = true
+	card_style.content_margin_left = 12 if compact else 22
+	card_style.content_margin_right = 12 if compact else 22
+	card_style.content_margin_top = 10 if compact else 20
+	card_style.content_margin_bottom = 10 if compact else 20
+	card.add_theme_stylebox_override("panel", card_style)
+	parent.add_child(card)
+
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 4 if compact else 7)
+	card.add_child(content)
+
+	var top_line := HBoxContainer.new()
+	top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(top_line)
+	var index := _label(number + "  /  STAFF SERVICES", 8 if compact else 10, Color("#D2A15C"))
+	index.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_line.add_child(index)
+	top_line.add_child(_label("✦", 12, Color("#D2A15C")))
+
+	var card_title := _label(title_text, 15 if compact else 22, Color("#F4F6FA"))
+	card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_menu_3d_label(card_title, 1)
+	content.add_child(card_title)
+	content.add_child(_label(descriptor, 8 if compact else 10, Color("#BFA579")))
+
+	var separator := ColorRect.new()
+	separator.custom_minimum_size = Vector2(0, 1)
+	separator.color = Color(0.58, 0.46, 0.29, 0.30)
+	content.add_child(separator)
+
+	var description := _label(description_text, 9 if compact else 13, Color("#CFC7BA"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(description)
+
+	var open_button := _add_action_button(content, button_text, true, action)
+	open_button.custom_minimum_size = Vector2(0, 34 if compact else 48)
+	open_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_landing_command_button(open_button, true)
+	_apply_shared_page_typography(open_button, 10 if compact else 13)
+
+
 func _open_staff_screen(screen_mode: String) -> void:
 	current_screen = "staff_market" if screen_mode == "market" else "staff_management"
-	# Staff is a standalone page opened from the campus phone.
-	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
-		ui_layer.hide()
-		ui_layer.queue_free()
-	ui_layer = null
+	# Keep the standalone Staff gateway visible behind the selected destination.
+	# Other callers retain the legacy cleanup path if no gateway is active.
+	if not staff_gateway_active:
+		if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
+			ui_layer.hide()
+			ui_layer.queue_free()
+		ui_layer = null
+		ui_root = null
 	if not is_instance_valid(staff_market_screen) or not is_instance_valid(staff_management_screen):
 		_prepare_staff_scenes()
+	if is_instance_valid(ui_layer) and staff_gateway_active:
+		ui_layer.show()
 	if is_instance_valid(staff_ui_layer):
 		staff_ui_layer.show()
 	staff_market_screen.hide()
@@ -3501,6 +3692,19 @@ func _close_staff_overlay() -> void:
 
 
 func _return_home_from_staff() -> void:
+	_close_staff_overlay()
+	if staff_gateway_active and is_instance_valid(ui_layer):
+		ui_layer.show()
+		current_screen = "staffs"
+		return
+	staff_gateway_active = false
+	if _resume_company_campus_after_phone_app():
+		return
+	_restore_home_after_standalone_screen()
+
+
+func _return_home_from_staff_gateway() -> void:
+	staff_gateway_active = false
 	_close_staff_overlay()
 	if _resume_company_campus_after_phone_app():
 		return
