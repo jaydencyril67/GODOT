@@ -425,7 +425,7 @@ func _run_test() -> void:
 	campus.research_launch_requested.connect(func(research_id: String): app_route_requests.append("research:" + research_id))
 	campus.project_launch_requested.connect(func(): app_route_requests.append("project"))
 	campus.staff_launch_requested.connect(func(staff_screen_id: String): app_route_requests.append("staffs:" + staff_screen_id))
-	campus.legacy_app_launch_requested.connect(func(app_id: String): app_route_requests.append("legacy:" + app_id))
+
 	var phone_viewport_ratio := float(phone_viewport.size.x) / maxf(float(phone_viewport.size.y), 1.0)
 	if not phone_viewport.transparent_bg or phone_viewport_ratio < 0.49 or phone_viewport_ratio > 0.51:
 		_fail("The handset must render in its own transparent, portrait SubViewport matching the physical handset ratio.")
