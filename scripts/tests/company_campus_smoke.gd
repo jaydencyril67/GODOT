@@ -142,6 +142,9 @@ func _run_test() -> void:
 		if section_sign == null or section_sign.text.is_empty():
 			_fail("Campus section %d does not have a visible 3D sign." % section_index)
 			return
+		if section_sign.position.z > -130.0:
+			_fail("Campus section %d signage must stay clear of the new south entrance gate." % section_index)
+			return
 
 	var fences := campus.get_node_or_null("Campus_Wooden_Fences") as Node3D
 	if fences == null or not bool(fences.get_meta("wooden_fence", false)):
@@ -600,6 +603,12 @@ func _run_test() -> void:
 		return
 	if not seventh_gate.visible or seventh_gate_collision.disabled or bool(seventh_section.get_meta("access_granted", true)) or not seventh_explore_button.text.contains("LOCKED"):
 		_fail("Re-locking a parcel did not restore its gate collision and Explore status.")
+		return
+	if bool(campus.call("set_land_parcel_access", "LAND-01", false, "not_acquired")):
+		_fail("The campus access API allowed the currently active starter parcel to be locked.")
+		return
+	if not bool(sections.get_node("Section_01").get_meta("access_granted", false)) or property_gates.get_node_or_null("PropertyGate_01") != null:
+		_fail("Rejecting a lock on the active starter parcel changed its access state or created an unwanted gate.")
 		return
 
 	project_app_icon.emit_signal("pressed")
