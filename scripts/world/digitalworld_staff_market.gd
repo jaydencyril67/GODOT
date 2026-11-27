@@ -3,6 +3,9 @@ extends Control
 signal back_requested
 signal hire_requested(candidate_id: String)
 signal dismiss_requested(employee_id: String)
+signal startup_progress(message: String, progress: float)
+
+var _defer_staff_body_build := false
 
 const DEPARTMENTS := ["Development", "Marketing", "Research"]
 const BG := Color("#111315")
@@ -37,6 +40,26 @@ func open(screen_mode: String, candidate_data: Array, employee_data: Array, staf
 	company_name = business_name
 	company_balance = balance
 	_build()
+
+
+func open_batched(screen_mode: String, candidate_data: Array, employee_data: Array, staff_capacity: int, business_name: String, balance: float) -> bool:
+	mode = screen_mode
+	candidates = candidate_data.duplicate(true)
+	employees = employee_data.duplicate(true)
+	capacity = staff_capacity
+	company_name = business_name
+	company_balance = balance
+	_defer_staff_body_build = true
+	_build()
+	_defer_staff_body_build = false
+	startup_progress.emit("Building staff screen layout", 15.0)
+	await get_tree().process_frame
+	if mode == "market":
+		await _build_market_batched()
+	else:
+		await _build_management_batched()
+	startup_progress.emit("Building staff screen layout", 100.0)
+	return true
 
 
 func update_balance(amount: float) -> void:
@@ -135,6 +158,8 @@ func _build() -> void:
 	page.add_child(content)
 
 	# Dedicated screens: no navigation switcher between market and management.
+	if _defer_staff_body_build:
+		return
 	if mode == "market":
 		_build_market()
 	else:
@@ -201,6 +226,119 @@ func _animate_staff_horizontal_scroll(row: ScrollContainer, target: int, duratio
 	staff_horizontal_tween.set_trans(Tween.TRANS_QUAD)
 	staff_horizontal_tween.set_ease(Tween.EASE_OUT)
 	staff_horizontal_tween.tween_property(row, "scroll_horizontal", target, duration)
+
+
+func _build_market_batched() -> void:
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	_build_department_selector(compact)
+	startup_progress.emit("Building Staff Market", 25.0)
+	await get_tree().process_frame
+	await _build_department_candidate_row_batched(department_view, compact)
+
+
+func _build_management_batched() -> void:
+	var compact := get_viewport().get_visible_rect().size.x < 900.0
+	_build_department_selector(compact)
+	startup_progress.emit("Building Staff Management", 25.0)
+	await get_tree().process_frame
+	await _build_department_employee_row_batched(department_view, compact)
+
+
+func _build_department_candidate_row_batched(department: String, compact: bool) -> void:
+	var section := VBoxContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 6)
+	content.add_child(section)
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#C8A36C"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_child(heading)
+	var horizontal_scroll := ScrollContainer.new()
+	horizontal_scroll.name = "Market_" + department.replace(" ", "") + "_HorizontalRow"
+	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.custom_minimum_size.y = 366 if compact else 356
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	horizontal_scroll.follow_focus = false
+	horizontal_scroll.clip_contents = true
+	section.add_child(horizontal_scroll)
+	staff_horizontal_rows.append(horizontal_scroll)
+	var candidate_row := HBoxContainer.new()
+	candidate_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	candidate_row.add_theme_constant_override("separation", 10)
+	horizontal_scroll.add_child(candidate_row)
+	var department_count := 0
+	var matching_count := 0
+	for candidate in candidates:
+		if str(candidate.get("department", "")) == department:
+			matching_count += 1
+	var market_card_width := _market_candidate_card_width(compact)
+	var built_count := 0
+	for candidate in candidates:
+		if str(candidate.get("department", "")) != department:
+			continue
+		var candidate_card := _candidate_card(candidate)
+		candidate_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		candidate_card.custom_minimum_size.x = market_card_width
+		candidate_row.add_child(candidate_card)
+		department_count += 1
+		built_count += 1
+		if built_count % 3 == 0 or built_count == matching_count:
+			startup_progress.emit("Building Staff Market", 25.0 + 70.0 * float(built_count) / maxf(float(matching_count), 1.0))
+			await get_tree().process_frame
+	if department_count == 0:
+		var empty_card := _glass_card_message("NO " + department.to_upper() + " CANDIDATES", "New candidates for this department will appear here.")
+		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		empty_card.custom_minimum_size = Vector2(market_card_width, 340 if compact else 330)
+		candidate_row.add_child(empty_card)
+	startup_progress.emit("Building Staff Market", 100.0)
+	await get_tree().process_frame
+
+
+func _build_department_employee_row_batched(department: String, compact: bool) -> void:
+	var section := VBoxContainer.new()
+	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_theme_constant_override("separation", 7)
+	content.add_child(section)
+	var heading := _label(department.to_upper(), 16 if compact else 18, Color("#C8A36C"))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section.add_child(heading)
+	var horizontal_scroll := ScrollContainer.new()
+	horizontal_scroll.name = "Staff_" + department.replace(" ", "") + "_HorizontalRow"
+	horizontal_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	horizontal_scroll.custom_minimum_size.y = 366 if compact else 356
+	horizontal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	horizontal_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	horizontal_scroll.follow_focus = false
+	horizontal_scroll.clip_contents = true
+	section.add_child(horizontal_scroll)
+	staff_horizontal_rows.append(horizontal_scroll)
+	var employee_row := HBoxContainer.new()
+	employee_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	employee_row.add_theme_constant_override("separation", 10)
+	horizontal_scroll.add_child(employee_row)
+	var matching_count := 0
+	for employee in employees:
+		if str(employee.get("department", "")) == department:
+			matching_count += 1
+	var built_count := 0
+	for employee in employees:
+		if str(employee.get("department", "")) != department:
+			continue
+		var employee_card := _employee_card(employee)
+		employee_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		employee_card.custom_minimum_size.x = _market_candidate_card_width(compact)
+		employee_row.add_child(employee_card)
+		built_count += 1
+		if built_count % 3 == 0 or built_count == matching_count:
+			startup_progress.emit("Building Staff Management", 25.0 + 70.0 * float(built_count) / maxf(float(matching_count), 1.0))
+			await get_tree().process_frame
+	if built_count == 0:
+		var empty_card := _glass_card_message("NO " + department.to_upper() + " STAFF", "Employees assigned to this department will appear here.")
+		empty_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		empty_card.custom_minimum_size = Vector2(_market_candidate_card_width(compact), 300 if compact else 290)
+		employee_row.add_child(empty_card)
+	startup_progress.emit("Building Staff Management", 100.0)
+	await get_tree().process_frame
 
 
 func _build_market() -> void:
