@@ -1805,10 +1805,12 @@ func _update_campus_loading_absolute(message: String, progress: float) -> void:
 	if is_instance_valid(loading_percent_label):
 		loading_percent_label.text = "%d%%" % roundi(safe_progress)
 	if is_instance_valid(loading_progress_bar):
+		# Setup batches can report every rendered frame. Apply each value directly
+		# so repeatedly restarted tweens cannot hide fast batch-by-batch progress.
 		if loading_progress_tween != null and loading_progress_tween.is_running():
 			loading_progress_tween.kill()
-		loading_progress_tween = create_tween()
-		loading_progress_tween.tween_property(loading_progress_bar, "value", safe_progress, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		loading_progress_tween = null
+		loading_progress_bar.value = safe_progress
 
 
 func _are_career_startup_scenes_ready() -> bool:
