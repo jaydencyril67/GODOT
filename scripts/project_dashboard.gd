@@ -156,7 +156,8 @@ func _apply_shell_layout() -> void:
 	frame_container.add_theme_constant_override("margin_top", vertical_margin)
 	frame_container.add_theme_constant_override("margin_bottom", vertical_margin)
 	if is_instance_valid(catalogue_grid):
-		catalogue_grid.columns = 1 if viewport_size.x < 760.0 else 2
+		# The four approved fence options always share one landscape row.
+		catalogue_grid.columns = FENCE_DESIGNS.size()
 
 
 func _show_category_page() -> void:
@@ -258,22 +259,17 @@ func _show_fencing_catalogue() -> void:
 	design_count.custom_minimum_size.x = 90.0
 	intro.add_child(design_count)
 
-	var scroll := ScrollContainer.new()
-	scroll.name = "FenceCatalogueScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	content_body.add_child(scroll)
-
+	# Four compact cards sit directly in one horizontal row. There is no
+	# ScrollContainer: the catalogue must remain fully visible on the phone.
 	catalogue_grid = GridContainer.new()
 	catalogue_grid.name = "FenceCatalogueGrid"
 	catalogue_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	catalogue_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	catalogue_grid.columns = 1 if get_viewport_rect().size.x < 760.0 else 2
-	catalogue_grid.add_theme_constant_override("h_separation", 14)
-	catalogue_grid.add_theme_constant_override("v_separation", 14)
-	scroll.add_child(catalogue_grid)
+	catalogue_grid.columns = FENCE_DESIGNS.size()
+	catalogue_grid.add_theme_constant_override("h_separation", 10)
+	catalogue_grid.add_theme_constant_override("v_separation", 0)
+	catalogue_grid.set_meta("single_horizontal_row", true)
+	content_body.add_child(catalogue_grid)
 
 	for design_value in FENCE_DESIGNS:
 		var design: Dictionary = design_value
@@ -282,48 +278,60 @@ func _show_fencing_catalogue() -> void:
 
 func _add_fence_design_card(design: Dictionary) -> void:
 	var design_id := str(design.get("id", ""))
+	var viewport_size := get_viewport_rect().size
+	var compact_catalogue := viewport_size.x < 1100.0 or viewport_size.y < 600.0
+	var preview_height := clampf(viewport_size.y * 0.27, 88.0, 118.0)
 	var card := PanelContainer.new()
 	card.name = "FenceCard_" + design_id
-	card.custom_minimum_size = Vector2(300.0, 268.0)
+	# No fixed 300 px width: GridContainer divides the available landscape
+	# width evenly between all four cards.
+	card.custom_minimum_size = Vector2.ZERO
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", _make_panel_style())
-	catalogue_grid.add_child(card)
+	var card_style := _make_panel_style()
+	card_style.content_margin_left = 9.0
+	card_style.content_margin_right = 9.0
+	card_style.content_margin_top = 8.0
+	card_style.content_margin_bottom = 8.0
+	card.add_theme_stylebox_override("panel", card_style)
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 4)
 	card.add_child(content)
 
 	var top_line := HBoxContainer.new()
 	top_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(top_line)
-	var level_label := _label(str(design.get("level", "")), 9, ACCENT_SOFT)
+	var level_label := _label(str(design.get("level", "")), 8, ACCENT_SOFT)
 	level_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_line.add_child(level_label)
-	top_line.add_child(_label("3D DESIGN", 8, TEXT_MUTED, HORIZONTAL_ALIGNMENT_RIGHT))
+	top_line.add_child(_label("3D", 7, TEXT_MUTED, HORIZONTAL_ALIGNMENT_RIGHT))
 
 	var preview := _create_fence_preview(design_id)
 	preview.name = "Fence3DPreview_" + design_id
-	preview.custom_minimum_size = Vector2(0.0, 138.0)
+	preview.custom_minimum_size = Vector2(0.0, preview_height)
 	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(preview)
 
-	var title := _label(str(design.get("name", "")), 15, TEXT_MAIN)
-	title.add_theme_font_size_override("font_size", 15)
+	var title_font_size := 12 if compact_catalogue else 14
+	var title := _label(str(design.get("name", "")), title_font_size, TEXT_MAIN)
+	title.add_theme_font_size_override("font_size", title_font_size)
 	title.name = "FenceTitle_" + design_id
 	content.add_child(title)
 	content.add_child(_label(str(design.get("descriptor", "")), 8, ACCENT_SOFT))
 
-	var description := _label(str(design.get("description", "")), 10, TEXT_MUTED)
+	var description_font_size := 8 if compact_catalogue else 9
+	var description := _label(str(design.get("description", "")), description_font_size, TEXT_MUTED)
 	description.name = "FenceDescription_" + design_id
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
 
 	card.set_meta("fence_design_id", design_id)
 	card.set_meta("preview_is_3d", true)
+	card.set_meta("single_row_card", true)
 
 
 func _create_fence_preview(design_id: String) -> SubViewportContainer:

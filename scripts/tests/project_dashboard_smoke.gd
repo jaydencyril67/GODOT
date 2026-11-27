@@ -57,6 +57,30 @@ func _run_test() -> void:
 	if int(dashboard.get_meta("fence_catalogue_count", 0)) != EXPECTED_DESIGNS.size():
 		_fail("The Project dashboard does not report the approved four-design catalogue.")
 		return
+	if grid.columns != EXPECTED_DESIGNS.size() or not bool(grid.get_meta("single_horizontal_row", false)):
+		_fail("All four fence designs must be aligned in one horizontal row.")
+		return
+	if dashboard.find_child("FenceCatalogueScroll", true, false) != null or dashboard.find_children("*", "ScrollContainer", true, false).size() > 0:
+		_fail("The fence catalogue must fit without vertical or horizontal scrolling.")
+		return
+	for _layout_frame in range(3):
+		await process_frame
+	var grid_rect := grid.get_global_rect()
+	var expected_row_y := -1.0
+	for design_index in range(EXPECTED_DESIGNS.size()):
+		var row_card := grid.get_child(design_index) as Control
+		var row_rect := row_card.get_global_rect()
+		if row_rect.size.x <= 0.0 or row_rect.size.y <= 0.0:
+			_fail("Fence cards must receive a usable on-screen layout.")
+			return
+		if expected_row_y < 0.0:
+			expected_row_y = row_rect.position.y
+		elif absf(row_rect.position.y - expected_row_y) > 1.0:
+			_fail("All four fence cards must share the same horizontal row.")
+			return
+		if row_rect.position.x < grid_rect.position.x - 1.0 or row_rect.end.x > grid_rect.end.x + 1.0:
+			_fail("Fence cards must fit inside the visible catalogue width.")
+			return
 
 	for design_id in EXPECTED_DESIGNS:
 		var card := dashboard.find_child("FenceCard_" + design_id, true, false) as PanelContainer
