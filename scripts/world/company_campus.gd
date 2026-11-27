@@ -822,6 +822,53 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	add_child(grass)
 
 
+func _create_grass_clump_mesh(material: Material, max_height: float, blade_count: int) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_material(material)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = blade_count * 731 + roundi(max_height * 1000.0)
+	for blade_index in range(blade_count):
+		var angle := TAU * float(blade_index) / float(blade_count) + rng.randf_range(-0.24, 0.24)
+		var direction := Vector3(cos(angle), 0.0, sin(angle))
+		var side := Vector3(-direction.z, 0.0, direction.x)
+		var base := direction * rng.randf_range(0.0, 0.022)
+		var height := rng.randf_range(max_height * 0.62, max_height)
+		var bend := direction * rng.randf_range(0.025, 0.085) + side * rng.randf_range(-0.025, 0.025)
+		var width := rng.randf_range(0.010, 0.018)
+		var base_left := base - side * width
+		var base_right := base + side * width
+		var middle := base + bend * 0.42 + Vector3.UP * height * 0.56
+		var middle_width := width * 0.58
+		var middle_left := middle - side * middle_width
+		var middle_right := middle + side * middle_width
+		var tip := base + bend + Vector3.UP * height
+		var tip_left := tip - side * 0.0015
+		var tip_right := tip + side * 0.0015
+		var brightness := rng.randf_range(0.82, 1.16)
+		var root_color := Color(0.12, 0.25, 0.07, 1.0) * brightness
+		var middle_color := Color(0.31, 0.53, 0.15, 1.0) * brightness
+		var tip_color := Color(0.56, 0.68, 0.28, 1.0) * brightness
+		_add_grass_quad(surface, base_left, base_right, middle_right, middle_left, root_color, middle_color)
+		_add_grass_quad(surface, middle_left, middle_right, tip_right, tip_left, middle_color, tip_color)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _add_grass_quad(surface: SurfaceTool, left_base: Vector3, right_base: Vector3, right_top: Vector3, left_top: Vector3, base_color: Color, top_color: Color) -> void:
+	surface.set_color(base_color)
+	surface.add_vertex(left_base)
+	surface.set_color(base_color)
+	surface.add_vertex(right_base)
+	surface.set_color(top_color)
+	surface.add_vertex(right_top)
+	surface.set_color(base_color)
+	surface.add_vertex(left_base)
+	surface.set_color(top_color)
+	surface.add_vertex(right_top)
+	surface.set_color(top_color)
+	surface.add_vertex(left_top)
+
 func _build_campus_trees_batched(progress_start: float, progress_end: float) -> void:
 	var trunk_material := StandardMaterial3D.new()
 	trunk_material.albedo_color = Color("#60432e")
