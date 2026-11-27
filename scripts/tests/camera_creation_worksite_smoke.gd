@@ -57,6 +57,8 @@ func _run_camera_worksite_test() -> void:
 	var screen := worksite.find_child("PhoneScreenSurface", true, false) as MeshInstance3D
 	var side_controls := worksite.find_child("SideControls", true, false) as Node3D
 	var power_button := worksite.find_child("PowerButton", true, false) as MeshInstance3D
+	var volume_up_button := worksite.find_child("VolumeUpButton", true, false) as MeshInstance3D
+	var volume_down_button := worksite.find_child("VolumeDownButton", true, false) as MeshInstance3D
 	var charging_port := worksite.find_child("ChargingPortFrame", true, false) as MeshInstance3D
 	var bottom_speaker := worksite.find_child("BottomSpeaker_L_01", true, false) as MeshInstance3D
 	var selection_scroll := worksite.find_child("CameraSelectionScroll", true, false) as ScrollContainer
@@ -74,8 +76,18 @@ func _run_camera_worksite_test() -> void:
 	var gallery_button := worksite.find_child("CameraPreviewGalleryButton", true, false) as Button
 	var night_mode_button := worksite.find_child("CameraPreviewNightModeButton", true, false) as Button
 
-	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or selection_scroll == null or technology_level_panel == null or technology_level_value == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
+	if worksite_root == null or backdrop == null or worksite_body == null or preview_region == null or preview_container == null or viewport == null or preview_world == null or phone_model == null or chassis == null or screen == null or side_controls == null or power_button == null or volume_up_button == null or volume_down_button == null or selection_scroll == null or technology_level_panel == null or technology_level_value == null or selection_controls == null or progress_bar == null or back_step_button == null or next_step_button == null or camera == null:
 		_fail("Camera Worksite is missing part of the shared Phone Creation Worksite layout or 3D handset preview.")
+		worksite.free()
+		return
+
+	if power_button.position.x <= 0.0 or volume_up_button.position.x >= 0.0 or volume_down_button.position.x >= 0.0:
+		_fail("Camera Worksite volume keys must sit on the handset edge directly opposite the power key.")
+		worksite.free()
+		return
+	var volume_pair_center_y := (volume_up_button.position.y + volume_down_button.position.y) * 0.5
+	if not is_equal_approx(volume_pair_center_y, power_button.position.y) or volume_up_button.position.y <= power_button.position.y or volume_down_button.position.y >= power_button.position.y or not is_equal_approx(volume_up_button.position.y - volume_down_button.position.y, 0.24):
+		_fail("Camera Worksite volume keys are not raised and centered opposite the power key.")
 		worksite.free()
 		return
 
