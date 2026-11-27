@@ -33,6 +33,9 @@ func _run_camera_worksite_test() -> void:
 	worksite.show()
 	interface_layer.show()
 	worksite.call("_apply_responsive_layout")
+	# Re-enable processing and allow Godot to complete container/viewport layout
+	# before checking rendering dimensions and update modes.
+	await process_frame
 
 	var worksite_root := worksite.find_child("WorksiteRoot", true, false) as Control
 	var backdrop := worksite.find_child("WorksiteBackdrop", true, false) as ColorRect
