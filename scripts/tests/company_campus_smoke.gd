@@ -578,7 +578,7 @@ func _run_test() -> void:
 		return
 	var seventh_section := sections.get_node_or_null("Section_07") as Node3D
 	var seventh_explore_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
-	if seventh_gate.visible or seventh_gate_collision.disabled or not bool(seventh_section.get_meta("access_granted", false)) or not seventh_explore_button.text.contains("OPEN"):
+	if seventh_gate.visible or not seventh_gate_collision.disabled or not bool(seventh_section.get_meta("access_granted", false)) or not seventh_explore_button.text.contains("OPEN"):
 		_fail("Granting parcel access did not open its gate, disable collision, and refresh its Explore status.")
 		return
 	if not bool(campus.call("set_land_parcel_access", "LAND-07", false, "not_acquired")):
