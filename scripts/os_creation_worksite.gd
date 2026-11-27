@@ -692,17 +692,19 @@ func _build_all_step_content_panels_batched() -> void:
 		var panel := VBoxContainer.new()
 		panel.name = "OSStepControls_%02d" % step_index
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		panel.alignment = BoxContainer.ALIGNMENT_CENTER
 		panel.add_theme_constant_override("separation", 28)
 		panel.visible = false
 		_step_content_host.add_child(panel)
 		_step_content_panels[step_index] = panel
-		_emit_setup_progress("Building OS worksite step panels", 45.0 * float(step_index + 1) / float(total_steps))
+		_emit_setup_progress("Building OS worksite step panels", 20.0 * float(step_index + 1) / float(total_steps))
 		await get_tree().process_frame
 
 	for step_index in range(STEP_NAMES.size()):
 		content_column = _step_content_panels[step_index] as VBoxContainer
+		var panel_progress_start := 20.0 + 80.0 * float(step_index) / float(total_steps)
+		var panel_progress_end := 20.0 + 80.0 * float(step_index + 1) / float(total_steps)
 		match step_index:
 			0:
 				_show_boot_display_controls()
@@ -713,8 +715,8 @@ func _build_all_step_content_panels_batched() -> void:
 			6:
 				_show_status_bar_style_controls()
 			_:
-				_show_asset_browser(step_index)
-		_emit_setup_progress("Building OS worksite step panels", 45.0 + 54.0 * float(step_index + 1) / float(total_steps))
+				await _show_asset_browser_batched(step_index, panel_progress_start, panel_progress_end)
+		_emit_setup_progress("Building OS worksite step panels", panel_progress_end)
 		await get_tree().process_frame
 
 	_step_content_panels_built = true
@@ -1304,6 +1306,47 @@ func _update_phone_preview_mode() -> void:
 			home_screen_designer.visible = true
 		else:
 			home_screen_designer.visible = false
+
+func _show_asset_browser_batched(step_index: int, progress_start: float, progress_end: float) -> void:
+	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
+	var path_label := _make_label(path.replace("res://", ""), 10, Color("#D3AA6B"))
+	path_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	content_column.add_child(path_label)
+
+	var files: Array[String] = []
+	if step_index == 5 and is_instance_valid(lock_screen_designer):
+		var wallpaper_paths: Array = lock_screen_designer.call("get_wallpaper_paths")
+		for wallpaper_path in wallpaper_paths:
+			files.append(str(wallpaper_path))
+	else:
+		var cached_files: Variant = _asset_file_cache.get(step_index, null)
+		if cached_files is Array:
+			for cached_path in cached_files:
+				files.append(str(cached_path))
+		else:
+			await _collect_files_batched(path, files, STEP_NAMES[step_index].to_lower())
+			files.sort()
+
+	if files.is_empty():
+		_add_note("No collected files are present in this category yet. This category is ready for its assets.")
+		_emit_setup_progress("Building OS worksite step panels", progress_end)
+		await get_tree().process_frame
+		return
+
+	var total_files := files.size()
+	for file_index in range(total_files):
+		var file_path := files[file_index]
+		var item := _make_button(file_path.trim_prefix(path + "/"))
+		item.custom_minimum_size.y = 48
+		item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		item.pressed.connect(_select_asset.bind(file_path))
+		content_column.add_child(item)
+		if (file_index + 1) % 16 == 0 or file_index + 1 == total_files:
+			var ratio := float(file_index + 1) / float(total_files)
+			_emit_setup_progress("Building OS worksite step panels", lerpf(progress_start, progress_end, ratio))
+			await get_tree().process_frame
+
 
 func _show_asset_browser(step_index: int) -> void:
 	var path := str(STEP_ASSET_PATHS.get(step_index, ""))
