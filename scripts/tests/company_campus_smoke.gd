@@ -160,9 +160,13 @@ func _run_test() -> void:
 		if row_index < 3:
 			expected_sides.append("south")
 		var actual_sides: Array = section.get_meta("entrance_sides", [])
-		if actual_sides != expected_sides:
+		if actual_sides.size() != expected_sides.size():
 			_fail("Plot %d has an outward-facing entrance or is missing an inward-facing entrance." % section_index)
 			return
+		for side_index in range(expected_sides.size()):
+			if str(actual_sides[side_index]) != expected_sides[side_index]:
+				_fail("Plot %d has an incorrect inward-facing entrance side." % section_index)
+				return
 
 	var asphalt_roads := campus.get_node_or_null("Campus_Asphalt_Roads") as MeshInstance3D
 	var road_markings := campus.get_node_or_null("Campus_Road_Markings") as MultiMeshInstance3D
