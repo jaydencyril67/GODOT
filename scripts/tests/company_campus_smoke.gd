@@ -414,7 +414,7 @@ func _run_test() -> void:
 		_fail("The Worksite, Research, and Staffs app launch icons are missing from the phone home screen.")
 		return
 	if int(phone_screen_ui.get_meta("home_app_count", 0)) != 10:
-		_fail("The phone home screen must contain the eleven career navigation apps.")
+		_fail("The phone home screen must contain the ten current career navigation apps.")
 		return
 	var app_grid := campus.find_child("PhoneHomeAppGrid", true, false) as GridContainer
 	if app_grid == null or app_grid.columns != 3:
@@ -600,9 +600,6 @@ func _run_test() -> void:
 		return
 	if phone_screen_ui.get_meta("active_app") != "home" or not phone_home_view.visible:
 		_fail("Launching Project did not leave the phone on its home screen.")
-		return
-	if phone_screen_ui.get_meta("active_app") != "home" or not phone_home_view.visible:
-		_fail("External app launches did not leave the phone at its home screen.")
 		return
 
 	print("COMPANY_CAMPUS_SMOKE_TEST: PASS")
