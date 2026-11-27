@@ -150,16 +150,18 @@ func _run_test() -> void:
 		_fail("The digital clock set must retain unique designs and a broad range of imported time fonts.")
 		return
 
-	# Production initially keeps the digital renderer hidden while Analog is selected.
-	# Its cached labels must still be measurable, rather than waiting for the 12-frame invalid-bounds fallback.
+	# Production keeps the lock-screen clock host visible while the DigitalClock
+	# child is hidden whenever Analog is selected. Keep that exact visibility
+	# hierarchy here: hiding the host itself prevents Godot from resolving the
+	# hidden child's Control layout and does not model the production scene.
 	var hidden_host := Control.new()
-	hidden_host.name = "HiddenAnalogClockHost"
+	hidden_host.name = "AnalogClockHost"
 	hidden_host.size = Vector2(680.0, 1360.0)
-	hidden_host.visible = false
 	root.add_child(hidden_host)
 	var hidden_clock: Control = DigitalClockScript.new()
 	hidden_clock.name = "HiddenDigitalClockAssetSmokeTest"
 	hidden_clock.size = Vector2(680.0, 1360.0)
+	hidden_clock.visible = false
 	hidden_host.add_child(hidden_clock)
 	hidden_clock.call("configure", 41, test_palette, {"show_details": true})
 	var hidden_progress_values: Array[float] = []
