@@ -16,7 +16,7 @@ const CAMPUS_WIDTH := 800.0
 const CAMPUS_DEPTH := 600.0
 const HALF_WIDTH := CAMPUS_WIDTH * 0.5
 const HALF_DEPTH := CAMPUS_DEPTH * 0.5
-const WALK_SPEED := 1.5
+const WALK_SPEED := 2.0
 const GRAVITY := 9.8
 const FIRST_PERSON_EYE_HEIGHT := 1.62
 const CAMERA_SENSITIVITY := 0.0055
@@ -901,6 +901,12 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 72519
+	var tree_collision_body := StaticBody3D.new()
+	tree_collision_body.name = "Campus_Tree_Collisions"
+	tree_collision_body.collision_layer = 1
+	tree_collision_body.collision_mask = 0
+	tree_collision_body.set_meta("blocks_player", true)
+	tree_collision_body.set_meta("tree_collision_count", positions.size())
 	for index in range(positions.size()):
 		var size_x := rng.randf_range(0.82, 1.18)
 		var size_y := rng.randf_range(0.88, 1.24)
@@ -910,9 +916,18 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 		var tree_instance_transform := Transform3D(tree_instance_basis, positions[index])
 		trunk_multi.set_instance_transform(index, tree_instance_transform)
 		canopy_multi.set_instance_transform(index, tree_instance_transform)
+		var trunk_collision := CollisionShape3D.new()
+		trunk_collision.name = "TreeTrunkCollision_%02d" % (index + 1)
+		var trunk_shape := CylinderShape3D.new()
+		trunk_shape.radius = 0.25 * maxf(size_x, size_z)
+		trunk_shape.height = 4.35 * size_y
+		trunk_collision.shape = trunk_shape
+		trunk_collision.position = positions[index] + Vector3.UP * (trunk_shape.height * 0.5)
+		tree_collision_body.add_child(trunk_collision)
 		if (index + 1) % 8 == 0 or index + 1 == positions.size():
 			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, float(index + 1) / float(positions.size())))
 			await get_tree().process_frame
+	add_child(tree_collision_body)
 	var trunks := MultiMeshInstance3D.new()
 	trunks.name = "Campus_Tree_Trunks"
 	trunks.multimesh = trunk_multi
