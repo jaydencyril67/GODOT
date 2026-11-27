@@ -147,7 +147,7 @@ func _ready() -> void:
 	set_meta("map_dimensions", Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH))
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
-	set_meta("movement_response", "direct_analog_slide_no_acceleration_ramp")
+	set_meta("movement_response", "direct_constant_speed_no_deadzone_no_acceleration")
 	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
 
@@ -189,7 +189,7 @@ func _physics_process(delta: float) -> void:
 		if joystick_value is Vector2:
 			movement = joystick_value
 
-	if movement.length() < 0.05:
+	if movement == Vector2.ZERO:
 		movement = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
 	var horizontal_velocity := _calculate_horizontal_velocity(movement)
@@ -208,8 +208,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
-	var input_strength := minf(movement.length(), 1.0)
-	if input_strength <= 0.001:
+	if movement == Vector2.ZERO:
 		return Vector3.ZERO
 
 	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
@@ -220,7 +219,7 @@ func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
 
 	# Normalize direction first, then apply analog strength once. This keeps
 	# partial joystick input linear instead of squaring its magnitude.
-	return move_direction.normalized() * WALK_SPEED * input_strength
+	return move_direction.normalized() * WALK_SPEED
 
 
 func _process(_delta: float) -> void:
