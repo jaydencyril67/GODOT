@@ -63,6 +63,7 @@ var staff_management_screen
 var confirm_modal: CanvasLayer
 var game_date_unix := GAME_START_DATE_UNIX
 var game_clock_paused := false
+var research_update_elapsed_seconds := 0.0
 var last_saved_game_day := -1
 var career: Dictionary = {}
 var current_screen := "menu"
@@ -119,7 +120,12 @@ func _process(delta: float) -> void:
 	# One complete in-game day passes every three real-world seconds.
 	var game_time_delta := delta * 28800.0
 	game_date_unix += game_time_delta
-	var completed_rd_projects: Array = ResearchManagerScript.advance_projects(career, game_time_delta, game_date_unix)
+	research_update_elapsed_seconds += delta
+	var completed_rd_projects: Array[String] = []
+	if research_update_elapsed_seconds >= 0.25:
+		var research_game_time_delta := research_update_elapsed_seconds * 28800.0
+		research_update_elapsed_seconds = 0.0
+		completed_rd_projects = ResearchManagerScript.advance_projects(career, research_game_time_delta, game_date_unix)
 	if not completed_rd_projects.is_empty():
 		_save_career()
 		for completed_id in completed_rd_projects:
@@ -1495,15 +1501,19 @@ func _update_home_status_bar() -> void:
 	var company_name := str(career.get("company_name", "YOUR COMPANY"))
 	var balance_text := _format_balance(float(career.get("balance", 10000000.0)))
 	var date_text := _format_game_date(game_date_unix)
-	if is_instance_valid(home_date_label):
+	if is_instance_valid(home_date_label) and home_date_label.text != date_text:
 		home_date_label.text = date_text
-	if is_instance_valid(home_balance_label):
+	if is_instance_valid(home_balance_label) and home_balance_label.text != balance_text:
 		home_balance_label.text = balance_text
 	if is_instance_valid(home_company_label):
-		home_company_label.text = company_name
-		home_company_label.tooltip_text = company_name
+		if home_company_label.text != company_name:
+			home_company_label.text = company_name
+		if home_company_label.tooltip_text != company_name:
+			home_company_label.tooltip_text = company_name
 	if is_instance_valid(home_time_button):
-		home_time_button.text = "▶  PLAY" if game_clock_paused else "Ⅱ  PAUSE"
+		var clock_text := "▶  PLAY" if game_clock_paused else "Ⅱ  PAUSE"
+		if home_time_button.text != clock_text:
+			home_time_button.text = clock_text
 	if is_instance_valid(company_campus):
 		company_campus.call("update_career_hud", company_name, balance_text, date_text, game_clock_paused)
 
