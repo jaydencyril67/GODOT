@@ -6,6 +6,10 @@ const ResearchManagerScript = preload("res://scripts/digitalworld_research_manag
 signal back_requested
 signal research_requested
 signal design_saved(design: Dictionary)
+signal startup_progress(message: String, progress: float)
+
+var defer_initial_setup := false
+var startup_setup_complete := false
 
 const ACCENT := Color("#C58A3A")
 const TEXT := Color("#EEEAE2")
@@ -296,10 +300,27 @@ var processor_design := {
 	"l3_cache_kb": 1024
 }
 
+func set_defer_initial_setup(value: bool) -> void:
+	defer_initial_setup = value
+
+
 func _ready() -> void:
-	_build_interface()
-	_build_processor_preview()
+	if defer_initial_setup:
+		return
+	await prepare_for_initial_load()
+
+
+func prepare_for_initial_load() -> bool:
+	if startup_setup_complete:
+		return true
+	startup_progress.emit("Building Processor Creation Worksite interface", 0.0)
+	await _build_interface_batched()
+	startup_progress.emit("Preparing the processor 3D preview", 0.0)
+	await _build_processor_preview_batched()
 	_apply_design()
+	startup_setup_complete = true
+	startup_progress.emit("Preparing the processor 3D preview", 100.0)
+	return true
 
 func configure_design(design: Dictionary) -> void:
 	if design.is_empty():
@@ -343,7 +364,7 @@ func _select_option(option: OptionButton, value: String) -> void:
 			option.select(index)
 			return
 
-func _build_interface() -> void:
+func _build_interface_batched() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "ProcessorCreationWorksiteInterface"
 	layer.layer = 40
@@ -476,7 +497,8 @@ func _build_interface() -> void:
 	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	preview_holder.add_child(preview_viewport)
-
+	startup_progress.emit("Building Processor Creation Worksite interface", 10.0)
+	await get_tree().process_frame
 
 	selection_scroll = ScrollContainer.new()
 	selection_scroll.name = "ProcessorSelectionScroll"
@@ -496,6 +518,8 @@ func _build_interface() -> void:
 	worksite_body.add_child(right_panel_column)
 	right_panel_column.add_child(selection_scroll)
 	_build_processor_technology_level_footer()
+	startup_progress.emit("Building Processor Creation Worksite interface", 20.0)
+	await get_tree().process_frame
 
 	selection_region = MarginContainer.new()
 	selection_region.name = "ProcessorSelectionRegion"
@@ -560,8 +584,8 @@ func _build_interface() -> void:
 	_style_design_selector_button(design_increase_button)
 	design_increase_button.pressed.connect(_on_processor_design_increase_pressed)
 	selector_row.add_child(design_increase_button)
-
-
+	startup_progress.emit("Building Processor Creation Worksite interface", 30.0)
+	await get_tree().process_frame
 
 	var color_page := _create_step_page("PROCESSOR COLOR")
 	color_page.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -573,6 +597,8 @@ func _build_interface() -> void:
 	processor_color_step_host.add_theme_constant_override("separation", 6)
 	color_page.add_child(processor_color_step_host)
 	_build_processor_color_controls()
+	startup_progress.emit("Building Processor Creation Worksite interface", 40.0)
+	await get_tree().process_frame
 
 	status_label = _label("DESIGN NOT YET SAVED", 10, MUTED)
 	status_label.name = "ProcessorDesignStatus"
@@ -590,6 +616,8 @@ func _build_interface() -> void:
 
 	var technologies_page := _create_step_page("TECHNOLOGIES")
 	_build_processor_technology_controls(technologies_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 50.0)
+	await get_tree().process_frame
 	var save_technology_settings_button := Button.new()
 	save_technology_settings_button.name = "SaveProcessorTechnologySettingsButton"
 	save_technology_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -601,6 +629,8 @@ func _build_interface() -> void:
 
 	var cpu_cores_page := _create_step_page("CPU CORES")
 	_build_processor_cpu_core_controls(cpu_cores_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 60.0)
+	await get_tree().process_frame
 	var save_cpu_core_settings_button := Button.new()
 	save_cpu_core_settings_button.name = "SaveProcessorCpuCoreSettingsButton"
 	save_cpu_core_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -612,6 +642,8 @@ func _build_interface() -> void:
 
 	var instruction_scheduler_page := _create_step_page("INSTRUCTION SCHEDULER")
 	_build_processor_instruction_scheduler_controls(instruction_scheduler_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 68.0)
+	await get_tree().process_frame
 	var save_instruction_scheduler_settings_button := Button.new()
 	save_instruction_scheduler_settings_button.name = "SaveProcessorInstructionSchedulerSettingsButton"
 	save_instruction_scheduler_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -623,6 +655,8 @@ func _build_interface() -> void:
 
 	var l1_cache_page := _create_step_page("L1 CACHE")
 	_build_processor_l1_cache_controls(l1_cache_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 76.0)
+	await get_tree().process_frame
 	var save_l1_cache_settings_button := Button.new()
 	save_l1_cache_settings_button.name = "SaveProcessorL1CacheSettingsButton"
 	save_l1_cache_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -634,6 +668,8 @@ func _build_interface() -> void:
 
 	var l2_cache_page := _create_step_page("L2 CACHE")
 	_build_processor_l2_cache_controls(l2_cache_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 84.0)
+	await get_tree().process_frame
 	var save_l2_cache_settings_button := Button.new()
 	save_l2_cache_settings_button.name = "SaveProcessorL2CacheSettingsButton"
 	save_l2_cache_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -645,6 +681,8 @@ func _build_interface() -> void:
 
 	var l3_cache_page := _create_step_page("L3 CACHE")
 	_build_processor_l3_cache_controls(l3_cache_page)
+	startup_progress.emit("Building Processor Creation Worksite interface", 92.0)
+	await get_tree().process_frame
 	var save_l3_cache_settings_button := Button.new()
 	save_l3_cache_settings_button.name = "SaveProcessorL3CacheSettingsButton"
 	save_l3_cache_settings_button.text = "SAVE PROCESSOR DESIGN"
@@ -684,6 +722,8 @@ func _build_interface() -> void:
 
 	_apply_responsive_layout()
 	_set_wizard_step(1)
+	startup_progress.emit("Building Processor Creation Worksite interface", 100.0)
+	await get_tree().process_frame
 
 
 func _create_step_page(title_text: String) -> VBoxContainer:
@@ -1384,7 +1424,7 @@ func _on_next_pressed() -> void:
 		_set_wizard_step(current_wizard_step + 1)
 
 
-func _build_processor_preview() -> void:
+func _build_processor_preview_batched() -> void:
 	# Match the Phone Creation Worksite preview composition:
 	# a transparent SubViewport reveals the shared charcoal WorksiteBackdrop,
 	# while a procedural studio sky remains available for ambient/reflected light.
@@ -1468,8 +1508,15 @@ func _build_processor_preview() -> void:
 	var prebuilt_designs_root := Node3D.new()
 	prebuilt_designs_root.name = "PrebuiltProcessorDesigns"
 	processor_preview_world.add_child(prebuilt_designs_root)
-	processor_models_data = ProcessorDesignLibrary.build_all(prebuilt_designs_root)
+	processor_models_data = await ProcessorDesignLibrary.build_all_batched(
+		prebuilt_designs_root,
+		Callable(self, "_on_processor_model_batch_progress")
+	)
 	_select_processor_design(0, true)
+
+
+func _on_processor_model_batch_progress(_message: String, progress: float) -> void:
+	startup_progress.emit("Building processor preview models", progress)
 
 
 func _style_design_selector_button(button: Button) -> void:
