@@ -497,18 +497,18 @@ func _show_home_scene() -> void:
 	await _refresh_staff_market_on_startup_batched()
 	# Every first-load destination is prepared off-screen in its own yielding
 	# batches. The same instances are reused after the loading screen closes.
-	_update_campus_loading_range("Preparing Phone Creation Worksite", 0.0, 2.0, 10.0)
 	_prepare_phone_creation_worksite()
+	await _apply_phone_startup_settings_batched()
 	phone_creation_worksite.connect("startup_progress", Callable(self, "_update_phone_startup_loading"))
 	await phone_creation_worksite.call("prepare_for_initial_load")
 
-	_update_campus_loading_range("Preparing Processor Creation Worksite", 0.0, 10.0, 20.0)
 	_prepare_processor_creation_worksite()
+	await _apply_processor_startup_settings_batched()
 	processor_creation_worksite.connect("startup_progress", Callable(self, "_update_processor_startup_loading"))
 	await processor_creation_worksite.call("prepare_for_initial_load")
 
-	_update_campus_loading_range("Preparing Camera Creation Worksite", 0.0, 20.0, 30.0)
 	_prepare_camera_creation_worksite()
+	await _apply_camera_startup_settings_batched()
 	camera_creation_worksite.connect("startup_progress", Callable(self, "_update_camera_startup_loading"))
 	await camera_creation_worksite.call("prepare_for_initial_load")
 
@@ -1762,25 +1762,25 @@ func _update_workspace_startup_loading(
 
 func _update_phone_startup_loading(message: String, progress: float) -> void:
 	if message == "Building Phone Creation preview":
-		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 2.0, 10.0)
+		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 3.0, 10.0)
 	else:
-		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 2.0, 10.0)
+		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 3.0, 10.0)
 
 
 func _update_processor_startup_loading(message: String, progress: float) -> void:
 	if message == "Building Processor Creation Worksite interface":
-		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 10.0, 20.0)
+		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 11.0, 20.0)
 	elif message == "Building processor preview models":
-		_update_workspace_startup_loading(message, progress, 30.0, 95.0, 10.0, 20.0)
+		_update_workspace_startup_loading(message, progress, 30.0, 95.0, 11.0, 20.0)
 	else:
-		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 10.0, 20.0)
+		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 11.0, 20.0)
 
 
 func _update_camera_startup_loading(message: String, progress: float) -> void:
 	if message == "Building Camera Worksite preview":
-		_update_workspace_startup_loading(message, progress, 0.0, 25.0, 20.0, 30.0)
+		_update_workspace_startup_loading(message, progress, 0.0, 25.0, 21.0, 30.0)
 	else:
-		_update_workspace_startup_loading(message, progress, 25.0, 100.0, 20.0, 30.0)
+		_update_workspace_startup_loading(message, progress, 25.0, 100.0, 21.0, 30.0)
 
 
 func _update_campus_loading_range(message: String, progress: float, range_start: float, range_end: float) -> void:
@@ -2730,6 +2730,110 @@ func _return_from_os_creation_worksite() -> void:
 		ui_root = create_ui_root
 
 
+func _apply_worksite_settings_batched(
+	target: Node,
+	settings: Array,
+	message: String,
+	range_start: float,
+	range_end: float
+) -> void:
+	if not is_instance_valid(target):
+		return
+	var total_settings := maxi(1, settings.size())
+	_update_campus_loading_range(message, 0.0, range_start, range_end)
+	for setting_index in range(settings.size()):
+		var setting: Array = settings[setting_index]
+		var arguments: Array = setting[1]
+		target.callv(str(setting[0]), arguments)
+		if (setting_index + 1) % 5 == 0 or setting_index + 1 == total_settings:
+			_update_campus_loading_range(
+				message,
+				float(setting_index + 1) * 100.0 / float(total_settings),
+				range_start,
+				range_end
+			)
+			await get_tree().process_frame
+
+
+func _apply_phone_startup_settings_batched() -> void:
+	var levels: Dictionary = career.get("research_component_levels", {})
+	var settings: Array = [
+		["set_screen_technology_research_level", [int(levels.get("Screen Technology", 0))]],
+		["set_screen_width_research_level", [int(levels.get("Screen Width", 0))]],
+		["set_screen_height_research_level", [int(levels.get("Screen Height", 0))]],
+		["set_curved_screen_horizontal_research_level", [int(levels.get("Curved Screen Horizontal", 0))]],
+		["set_curved_screen_vertical_research_level", [int(levels.get("Curved Screen Vertical", 0))]],
+		["set_curved_screen_both_research_level", [int(levels.get("Curved Screen Both", 0))]],
+		["set_ram_technology_research_level", [int(levels.get("RAM Technology", 0))]],
+		["set_memory_clock_research_level", [int(levels.get("Memory Clock", 0))]],
+		["set_ram_capacity_research_level", [int(levels.get("RAM", 0))]],
+		["set_internal_storage_research_level", [int(levels.get("Internal Storage", 0))]],
+		["set_cooling_system_research_level", [int(levels.get("Cooling System Design", 0))]],
+		["set_charge_port_research_level", [int(levels.get("Charge Port", 0))]],
+		["set_home_button_research_level", [int(levels.get("Home Button", 0))]],
+		["set_front_camera_research_level", [int(levels.get("Front Camera", 0))]],
+		["set_front_camera_mp_research_level", [int(levels.get("Front Camera MP", 0))]],
+		["set_rear_camera_mp_research_level", [int(levels.get("Rear Camera MP", 0))]],
+		["set_rear_camera_count_research_level", [int(levels.get("Rear Camera Count", 0))]],
+		["set_rear_flash_count_research_level", [int(levels.get("Rear Flash Count", 0))]],
+		["set_rear_camera_size_research_level", [int(levels.get("Rear Camera Size", 0))]],
+		["set_rear_flash_size_research_level", [int(levels.get("Rear Flash Size", 0))]],
+		["set_back_raised_design_research_level", [int(levels.get("Back Raised Design", 0))]],
+		["set_device_color_research_level", [int(levels.get("Device Color", 0))]],
+		["set_phone_case_research_level", [int(levels.get("Phone Case", 0))]],
+		["set_box_package_research_level", [int(levels.get("Box Package", 0))]],
+		["set_protection_glass_research_level", [int(levels.get("Protection Glass", 0))]],
+		["set_speaker_research_level", [int(levels.get("Speakers", 0))]],
+		["set_speaker_quality_research_level", [int(levels.get("Speaker Quality", 0))]],
+		["set_battery_capacity_research_level", [int(levels.get("Battery Capacity", 0))]],
+		["set_power_bank_research_level", [int(levels.get("Power Bank", 0))]],
+		["set_wireless_earbuds_research_level", [int(levels.get("Wireless Earbuds", 0))]],
+		["set_charger_research_level", [int(levels.get("Charger", 0))]],
+		["set_charging_speed_research_level", [int(levels.get("Charging Speed", 0))]],
+		["set_wireless_charging_research_level", [int(levels.get("Wireless Charging", 0))]],
+		["set_phone_thickness_research_level", [int(levels.get("Phone Thickness", 0))]],
+		["set_border_radius_research_level", [int(levels.get("Border Radius", 0))]],
+		["set_wifi_research_level", [int(levels.get("Wi-Fi", 0))]],
+		["set_bluetooth_research_level", [int(levels.get("Bluetooth", 0))]],
+		["set_mobile_network_research_level", [int(levels.get("Mobile Network", 0))]],
+		["set_phone_type_research_level", [int(levels.get("Phone Type", 0))]],
+		["set_phone_sensor_research_levels", [levels]],
+		["set_side_button_research_levels", [levels]],
+		["set_power_volume_button_research_levels", [levels]],
+		["set_company_branding", [str(career.get("company_name", "")), int(career.get("logo_id", 1))]]
+	]
+	await _apply_worksite_settings_batched(phone_creation_worksite, settings, "Applying Phone Worksite settings", 2.0, 3.0)
+
+
+func _apply_processor_startup_settings_batched() -> void:
+	var levels: Dictionary = career.get("research_component_levels", {})
+	var settings: Array = [
+		["configure_design", [career.get("processor_design", {})]],
+		["set_processor_technology_research_levels", [levels]],
+		["set_cpu_core_research_level", [int(levels.get("CPU Cores", 0))]],
+		["set_instruction_scheduler_research_level", [int(levels.get("Instruction Scheduler", 0))]],
+		["set_l1_cache_research_level", [int(levels.get("L1 Cache", 0))]],
+		["set_l2_cache_research_level", [int(levels.get("L2 Cache", 0))]],
+		["set_l3_cache_research_level", [int(levels.get("L3 Cache", 0))]],
+		["set_processor_design_research_level", [int(levels.get("Processor Design", 0))]]
+	]
+	await _apply_worksite_settings_batched(processor_creation_worksite, settings, "Applying Processor Worksite settings", 10.0, 11.0)
+
+
+func _apply_camera_startup_settings_batched() -> void:
+	var levels: Dictionary = career.get("research_component_levels", {})
+	var settings: Array = [
+		["set_back_raised_design_research_level", [int(levels.get("Back Raised Design", 0))]],
+		["set_rear_camera_mp_research_level", [int(levels.get("Rear Camera MP", 0))]],
+		["set_rear_camera_count_research_level", [int(levels.get("Rear Camera Count", 0))]],
+		["set_rear_flash_count_research_level", [int(levels.get("Rear Flash Count", 0))]],
+		["set_front_camera_research_level", [int(levels.get("Front Camera", 0))]],
+		["set_front_camera_mp_research_level", [int(levels.get("Front Camera MP", 0))]],
+		["set_camera_sensor_research_levels", [levels]]
+	]
+	await _apply_worksite_settings_batched(camera_creation_worksite, settings, "Applying Camera Worksite settings", 20.0, 21.0)
+
+
 func _prepare_camera_creation_worksite() -> void:
 	if is_instance_valid(camera_creation_worksite):
 		return
@@ -2739,17 +2843,9 @@ func _prepare_camera_creation_worksite() -> void:
 		return
 	camera_creation_worksite.name = "Camera_Creation_Worksite"
 	camera_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	camera_creation_worksite.call("set_defer_initial_setup", true)
 	camera_creation_worksite.connect("back_requested", Callable(self, "_return_from_camera_creation_worksite"))
 	camera_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_camera_creation_worksite"))
 	add_child(camera_creation_worksite)
-	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
-	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
-	camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
-	camera_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
-	camera_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
-	camera_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
-	camera_creation_worksite.call("set_camera_sensor_research_levels", career.get("research_component_levels", {}))
 	camera_creation_worksite.hide()
 	for child in camera_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2835,19 +2931,10 @@ func _prepare_processor_creation_worksite() -> void:
 		return
 	processor_creation_worksite.name = "Processor_Creation_Worksite"
 	processor_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	processor_creation_worksite.call("set_defer_initial_setup", true)
 	processor_creation_worksite.connect("back_requested", Callable(self, "_return_from_processor_creation_worksite"))
 	processor_creation_worksite.connect("design_saved", Callable(self, "_on_processor_design_saved"))
 	processor_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_processor_creation_worksite"))
 	add_child(processor_creation_worksite)
-	processor_creation_worksite.call("configure_design", career.get("processor_design", {}))
-	processor_creation_worksite.call("set_processor_technology_research_levels", career.get("research_component_levels", {}))
-	processor_creation_worksite.call("set_cpu_core_research_level", int(career.get("research_component_levels", {}).get("CPU Cores", 0)))
-	processor_creation_worksite.call("set_instruction_scheduler_research_level", int(career.get("research_component_levels", {}).get("Instruction Scheduler", 0)))
-	processor_creation_worksite.call("set_l1_cache_research_level", int(career.get("research_component_levels", {}).get("L1 Cache", 0)))
-	processor_creation_worksite.call("set_l2_cache_research_level", int(career.get("research_component_levels", {}).get("L2 Cache", 0)))
-	processor_creation_worksite.call("set_l3_cache_research_level", int(career.get("research_component_levels", {}).get("L3 Cache", 0)))
-	processor_creation_worksite.call("set_processor_design_research_level", int(career.get("research_component_levels", {}).get("Processor Design", 0)))
 	processor_creation_worksite.hide()
 	for child in processor_creation_worksite.get_children():
 		if child is CanvasLayer:
@@ -2952,7 +3039,6 @@ func _prepare_phone_creation_worksite() -> void:
 		return
 	phone_creation_worksite.name = "Phone_Creation_Worksite"
 	phone_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
-	phone_creation_worksite.call("set_defer_initial_setup", true)
 	phone_creation_worksite.connect("back_requested", Callable(self, "_return_from_phone_creation_worksite"))
 	phone_creation_worksite.connect("research_requested", Callable(self, "_open_research_from_phone_creation_worksite"))
 	add_child(phone_creation_worksite)
@@ -2960,50 +3046,6 @@ func _prepare_phone_creation_worksite() -> void:
 	for child in phone_creation_worksite.get_children():
 		if child is CanvasLayer:
 			child.hide()
-	phone_creation_worksite.call("set_screen_technology_research_level", int(career.get("research_component_levels", {}).get("Screen Technology", 0)))
-	phone_creation_worksite.call("set_screen_width_research_level", int(career.get("research_component_levels", {}).get("Screen Width", 0)))
-	phone_creation_worksite.call("set_screen_height_research_level", int(career.get("research_component_levels", {}).get("Screen Height", 0)))
-	phone_creation_worksite.call("set_curved_screen_horizontal_research_level", int(career.get("research_component_levels", {}).get("Curved Screen Horizontal", 0)))
-	phone_creation_worksite.call("set_curved_screen_vertical_research_level", int(career.get("research_component_levels", {}).get("Curved Screen Vertical", 0)))
-	phone_creation_worksite.call("set_curved_screen_both_research_level", int(career.get("research_component_levels", {}).get("Curved Screen Both", 0)))
-	phone_creation_worksite.call("set_ram_technology_research_level", int(career.get("research_component_levels", {}).get("RAM Technology", 0)))
-	phone_creation_worksite.call("set_memory_clock_research_level", int(career.get("research_component_levels", {}).get("Memory Clock", 0)))
-	phone_creation_worksite.call("set_ram_capacity_research_level", int(career.get("research_component_levels", {}).get("RAM", 0)))
-	phone_creation_worksite.call("set_internal_storage_research_level", int(career.get("research_component_levels", {}).get("Internal Storage", 0)))
-	phone_creation_worksite.call("set_cooling_system_research_level", int(career.get("research_component_levels", {}).get("Cooling System Design", 0)))
-	phone_creation_worksite.call("set_charge_port_research_level", int(career.get("research_component_levels", {}).get("Charge Port", 0)))
-	phone_creation_worksite.call("set_home_button_research_level", int(career.get("research_component_levels", {}).get("Home Button", 0)))
-	phone_creation_worksite.call("set_front_camera_research_level", int(career.get("research_component_levels", {}).get("Front Camera", 0)))
-	phone_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
-	phone_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
-	phone_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
-	phone_creation_worksite.call("set_rear_flash_count_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Count", 0)))
-	phone_creation_worksite.call("set_rear_camera_size_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Size", 0)))
-	phone_creation_worksite.call("set_rear_flash_size_research_level", int(career.get("research_component_levels", {}).get("Rear Flash Size", 0)))
-	phone_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
-	phone_creation_worksite.call("set_device_color_research_level", int(career.get("research_component_levels", {}).get("Device Color", 0)))
-	phone_creation_worksite.call("set_phone_case_research_level", int(career.get("research_component_levels", {}).get("Phone Case", 0)))
-	phone_creation_worksite.call("set_box_package_research_level", int(career.get("research_component_levels", {}).get("Box Package", 0)))
-	phone_creation_worksite.call("set_protection_glass_research_level", int(career.get("research_component_levels", {}).get("Protection Glass", 0)))
-	phone_creation_worksite.call("set_speaker_research_level", int(career.get("research_component_levels", {}).get("Speakers", 0)))
-	phone_creation_worksite.call("set_speaker_quality_research_level", int(career.get("research_component_levels", {}).get("Speaker Quality", 0)))
-	phone_creation_worksite.call("set_battery_capacity_research_level", int(career.get("research_component_levels", {}).get("Battery Capacity", 0)))
-	phone_creation_worksite.call("set_power_bank_research_level", int(career.get("research_component_levels", {}).get("Power Bank", 0)))
-	phone_creation_worksite.call("set_wireless_earbuds_research_level", int(career.get("research_component_levels", {}).get("Wireless Earbuds", 0)))
-	phone_creation_worksite.call("set_charger_research_level", int(career.get("research_component_levels", {}).get("Charger", 0)))
-	phone_creation_worksite.call("set_charging_speed_research_level", int(career.get("research_component_levels", {}).get("Charging Speed", 0)))
-	phone_creation_worksite.call("set_wireless_charging_research_level", int(career.get("research_component_levels", {}).get("Wireless Charging", 0)))
-	phone_creation_worksite.call("set_front_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Front Camera MP", 0)))
-	phone_creation_worksite.call("set_phone_thickness_research_level", int(career.get("research_component_levels", {}).get("Phone Thickness", 0)))
-	phone_creation_worksite.call("set_border_radius_research_level", int(career.get("research_component_levels", {}).get("Border Radius", 0)))
-	phone_creation_worksite.call("set_wifi_research_level", int(career.get("research_component_levels", {}).get("Wi-Fi", 0)))
-	phone_creation_worksite.call("set_bluetooth_research_level", int(career.get("research_component_levels", {}).get("Bluetooth", 0)))
-	phone_creation_worksite.call("set_mobile_network_research_level", int(career.get("research_component_levels", {}).get("Mobile Network", 0)))
-	phone_creation_worksite.call("set_phone_type_research_level", int(career.get("research_component_levels", {}).get("Phone Type", 0)))
-	phone_creation_worksite.call("set_phone_sensor_research_levels", career.get("research_component_levels", {}))
-	phone_creation_worksite.call("set_side_button_research_levels", career.get("research_component_levels", {}))
-	phone_creation_worksite.call("set_power_volume_button_research_levels", career.get("research_component_levels", {}))
-	phone_creation_worksite.call("set_company_branding", str(career.get("company_name", "")), int(career.get("logo_id", 1)))
 
 
 func _show_phone_creation_worksite() -> void:
