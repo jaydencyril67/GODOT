@@ -301,7 +301,7 @@ func _run_test() -> void:
 	for grass_index in range(grass_instances.instance_count):
 		var grass_position := grass_instances.get_instance_transform(grass_index).origin
 		if bool(campus.call("_is_on_asphalt_road", grass_position.x, grass_position.z)):
-			_fail("Grass clumps must remain off the asphalt corridors so the roads stay visibly paved.")
+			_fail("Grass clump %d at (%.3f, %.3f) overlaps an asphalt corridor." % [grass_index, grass_position.x, grass_position.z])
 			return
 	if campus.get_node_or_null("NearPlayer_Grass") != null or bool(campus.get_meta("movement_grass_follow_enabled", true)):
 		_fail("Player movement must not trigger or carry a regenerating near-player grass layer.")
