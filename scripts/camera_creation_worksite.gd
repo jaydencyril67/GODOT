@@ -223,6 +223,11 @@ func _ready() -> void:
 	await prepare_for_initial_load()
 
 
+func set_preview_active(active: bool) -> void:
+	if is_instance_valid(camera_preview_studio) and camera_preview_studio.has_method("set_preview_active"):
+		camera_preview_studio.call("set_preview_active", active)
+
+
 func prepare_for_initial_load() -> bool:
 	if startup_setup_complete:
 		return true
