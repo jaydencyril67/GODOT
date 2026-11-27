@@ -528,7 +528,7 @@ func _show_home_scene() -> void:
 		_format_game_date(game_date_unix),
 		game_clock_paused
 	)
-	campus.connect("setup_progress", Callable(self, "_update_campus_loading_range").bind(38.0, 74.0))
+	campus.connect("setup_progress", Callable(self, "_update_campus_startup_loading"))
 	campus.connect("setup_completed", Callable(self, "_on_company_campus_setup_completed"))
 	campus.connect("back_requested", Callable(self, "_show_menu"))
 	campus.connect("game_clock_toggle_requested", Callable(self, "_toggle_game_clock"))
@@ -1783,6 +1783,83 @@ func _update_camera_startup_loading(message: String, progress: float) -> void:
 		_update_workspace_startup_loading(message, progress, 25.0, 100.0, 21.0, 30.0)
 
 
+func _update_campus_startup_loading(message: String, progress: float) -> void:
+	match message:
+		"Preparing campus environment":
+			_update_campus_loading_range(message, progress, 38.0, 43.0)
+		"Generating campus grounds and landscaping":
+			_update_campus_loading_range(message, progress, 43.0, 69.0)
+		"Setting up first-person campus controls":
+			_update_campus_loading_range(message, progress, 69.0, 74.0)
+		_:
+			_update_campus_loading_range(message, progress, 38.0, 74.0)
+
+
+func _update_os_startup_loading(message: String, progress: float) -> void:
+	var stage_start := 74.0
+	var stage_end := 75.5
+	match message:
+		"Building OS worksite screen layout":
+			stage_start = 74.0
+			stage_end = 75.5
+		"Preparing handset screen and boot interface":
+			stage_start = 75.5
+			stage_end = 77.0
+		"Preparing handset scene connection":
+			stage_start = 77.0
+			stage_end = 77.3
+		"Building OS worksite controls and navigation":
+			stage_start = 77.3
+			stage_end = 79.0
+		"Generating the default lock screen":
+			stage_start = 84.7
+			stage_end = 85.2
+		"Preparing lock-screen clock styles":
+			stage_start = 85.2
+			stage_end = 90.8
+		"Loading Papirus app catalogue":
+			stage_start = 90.8
+			stage_end = 91.5
+		"Building the One UI homepage and dock":
+			stage_start = 91.5
+			stage_end = 92.5
+		"Building app drawer icons":
+			stage_start = 92.5
+			stage_end = 96.5
+		"Building OS worksite step panels":
+			stage_start = 96.5
+			stage_end = 100.0
+		_:
+			var handset_stages := [
+				"Building handset studio environment",
+				"Setting up handset studio lighting",
+				"Preparing handset preview camera",
+				"Constructing handset chassis",
+				"Building handset glass display",
+				"Building handset front hardware",
+				"Building handset side controls",
+				"Building handset bottom hardware"
+			]
+			var handset_index := handset_stages.find(message)
+			if handset_index >= 0:
+				stage_start = 79.0 + float(handset_index) * 0.35
+				stage_end = stage_start + 0.35
+			else:
+				var asset_categories := [
+					"app icons", "widgets", "wallpapers", "status bar",
+					"quick settings", "notifications", "navigation", "recent apps"
+				]
+				var asset_index := -1
+				for index in range(asset_categories.size()):
+					if message == "Indexing " + asset_categories[index] + " assets":
+						asset_index = index
+						break
+				if asset_index >= 0:
+					stage_start = 81.8 + float(asset_index) * 0.36
+					stage_end = stage_start + 0.36
+	_update_campus_loading_range(message, progress, stage_start, stage_end)
+
+
 func _update_campus_loading_range(message: String, progress: float, range_start: float, range_end: float) -> void:
 	var mapped_progress := lerpf(range_start, range_end, clampf(progress, 0.0, 100.0) / 100.0)
 	_update_campus_loading_absolute(message, mapped_progress)
@@ -2675,7 +2752,7 @@ func _prepare_os_creation_worksite() -> void:
 	os_creation_worksite.set_company_logo_texture(_company_logo_texture(clampi(int(career.get("logo_id", 1)), 1, 50)))
 	os_creation_worksite.process_mode = Node.PROCESS_MODE_DISABLED
 	os_creation_worksite.connect("back_requested", Callable(self, "_return_from_os_creation_worksite"))
-	os_creation_worksite.connect("setup_progress", Callable(self, "_update_campus_loading_range").bind(74.0, 100.0))
+	os_creation_worksite.connect("setup_progress", Callable(self, "_update_os_startup_loading"))
 	os_creation_worksite.connect("setup_completed", Callable(self, "_finish_campus_loading"))
 	os_creation_worksite.connect("setup_failed", Callable(self, "_on_os_worksite_setup_failed"))
 	os_creation_worksite.hide()
