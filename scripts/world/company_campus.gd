@@ -28,6 +28,7 @@ const PHONE_BODY_BUTTON_GAP := 26.0
 const PHONE_BUTTON_STACK_GAP := 10.0
 const PHONE_BODY_LEFT_CLEARANCE := 230.0
 const GRASS_INSTANCE_COUNT := 7600
+const GRASS_BLADE_COUNT := 6
 const MAINTAINED_GRASS_RATIO := 0.72
 
 const CAMPUS_SECTION_NAMES := [
@@ -308,7 +309,8 @@ func _ready() -> void:
 	set_meta("initially_accessible_land_parcel_count", 1)
 	set_meta("active_land_parcel_id", active_land_parcel_id)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
-	set_meta("movement_response", "direct_constant_speed_no_deadzone_no_acceleration")
+	set_meta("movement_response", "direct_analog_speed_no_deadzone_no_temporal_acceleration")
+	set_meta("mobile_render_profile", "performance_first_no_realtime_shadows")
 	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
 	set_meta("player_spawn_zone", "central_dividing_aisle")
@@ -373,18 +375,20 @@ func _physics_process(delta: float) -> void:
 
 
 func _calculate_horizontal_velocity(movement: Vector2) -> Vector3:
-	if movement == Vector2.ZERO:
+	var movement_strength := clampf(movement.length(), 0.0, 1.0)
+	if movement_strength <= 0.0:
 		return Vector3.ZERO
 
 	var forward := Vector3(sin(camera_yaw), 0.0, -cos(camera_yaw))
 	var right := Vector3(cos(camera_yaw), 0.0, sin(camera_yaw))
 	var move_direction := right * movement.x + forward * movement.y
-	if move_direction == Vector3.ZERO:
+	if move_direction.length_squared() <= 0.000001:
 		return Vector3.ZERO
 
-	# Normalize direction first, then apply analog strength once. This keeps
-	# partial joystick input linear instead of squaring its magnitude.
-	return move_direction.normalized() * WALK_SPEED
+	# Preserve the joystick's radial strength while normalizing only its
+	# direction. Full deflection remains 2 m/s; partial deflection scales
+	# proportionally without a dead zone or time-based acceleration ramp.
+	return move_direction.normalized() * WALK_SPEED * movement_strength
 
 
 func _process(_delta: float) -> void:
@@ -463,7 +467,9 @@ func _build_environment_batched() -> void:
 	sun.rotation_degrees = Vector3(-43.0, -32.0, 0.0)
 	sun.light_color = Color("#fff1dc")
 	sun.light_energy = 1.24
-	sun.shadow_enabled = true
+	# Real-time directional shadows are expensive on lower-end Android GPUs.
+	# Keep direct lighting, but avoid the extra shadow-map rendering pass.
+	sun.shadow_enabled = false
 	sun.directional_shadow_max_distance = 72.0
 	add_child(sun)
 	setup_progress.emit("Preparing campus environment", 15.0)
@@ -477,8 +483,10 @@ func _build_terrain_batched() -> void:
 	terrain.set_meta("grass_layout", "hybrid_maintained_core_natural_perimeter")
 	var terrain_mesh := PlaneMesh.new()
 	terrain_mesh.size = Vector2(CAMPUS_WIDTH, CAMPUS_DEPTH)
-	terrain_mesh.subdivide_width = 64
-	terrain_mesh.subdivide_depth = 48
+	# This ground is flat and texture-driven; dense subdivisions add vertices
+	# without providing visible surface detail.
+	terrain_mesh.subdivide_width = 1
+	terrain_mesh.subdivide_depth = 1
 	terrain.mesh = terrain_mesh
 
 	var grass_material := StandardMaterial3D.new()
@@ -1251,7 +1259,7 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	blade_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	blade_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-	var blade_mesh := _create_grass_clump_mesh(blade_material, 0.19, 8)
+	var blade_mesh := _create_grass_clump_mesh(blade_material, 0.19, GRASS_BLADE_COUNT)
 
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
@@ -1304,6 +1312,7 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	grass.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	grass.set_meta("instance_count", GRASS_INSTANCE_COUNT)
+	grass.set_meta("blade_count_per_instance", GRASS_BLADE_COUNT)
 	grass.set_meta("maintained_core_instance_count", maintained_count)
 	grass.set_meta("natural_edge_instance_count", GRASS_INSTANCE_COUNT - maintained_count)
 	grass.set_meta("road_safe_instance_count", road_safe_instance_count)
@@ -1423,7 +1432,7 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 	var trunks := MultiMeshInstance3D.new()
 	trunks.name = "Campus_Tree_Trunks"
 	trunks.multimesh = trunk_multi
-	trunks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	trunks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	trunks.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	trunks.set_meta("tree_count", positions.size())
 	add_child(trunks)
@@ -1431,7 +1440,7 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 	var canopies := MultiMeshInstance3D.new()
 	canopies.name = "Campus_Tree_Canopies"
 	canopies.multimesh = canopy_multi
-	canopies.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	canopies.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	canopies.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	canopies.set_meta("tree_count", positions.size())
 	add_child(canopies)

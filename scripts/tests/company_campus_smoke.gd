@@ -300,6 +300,18 @@ func _run_test() -> void:
 	if int(grass.get_meta("road_safe_instance_count", 0)) != 7600 or not bool(grass.get_meta("road_exclusion_enabled", false)):
 		_fail("The campus grass generator did not keep every generated clump clear of asphalt corridors.")
 		return
+	if int(grass.get_meta("blade_count_per_instance", 0)) != 6:
+		_fail("The mobile grass mesh must use the optimized six-blade clump geometry.")
+		return
+	var daylight := campus.get_node_or_null("Soft_Daylight") as DirectionalLight3D
+	var tree_trunks := campus.get_node_or_null("Campus_Tree_Trunks") as MultiMeshInstance3D
+	var tree_canopies := campus.get_node_or_null("Campus_Tree_Canopies") as MultiMeshInstance3D
+	if daylight == null or daylight.shadow_enabled:
+		_fail("The mobile campus must not render an expensive real-time directional shadow map.")
+		return
+	if tree_trunks == null or tree_canopies == null or tree_trunks.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or tree_canopies.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		_fail("Instanced campus trees must preserve their geometry without rendering real-time shadows.")
+		return
 	for road_x in [-200.0, 0.0, 200.0]:
 		if not bool(campus.call("_is_on_asphalt_road", road_x, 100.0)):
 			_fail("The asphalt exclusion mask missed a vertical road corridor.")
@@ -351,12 +363,14 @@ func _run_test() -> void:
 	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
 		_fail("Project-wide physics interpolation must be enabled for smooth rendered movement.")
 		return
-	if campus.get_meta("movement_response", "") != "direct_constant_speed_no_deadzone_no_acceleration":
+	if campus.get_meta("movement_response", "") != "direct_analog_speed_no_deadzone_no_temporal_acceleration":
 		_fail("Player movement must use direct continuous joystick velocity without an acceleration ramp.")
 		return
 	var full_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 1.0))
+	var half_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.5))
 	var slight_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 0.001))
 	var diagonal_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.7071068, 0.7071068))
+	var oversized_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2(0.0, 2.0))
 	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
 	if not is_equal_approx(full_input_velocity.length(), 2.0):
 		_fail("Full joystick input must produce the calibrated 2.0 m/s slide speed.")
@@ -364,11 +378,17 @@ func _run_test() -> void:
 	if not is_equal_approx(full_input_velocity.x, 2.0) or not is_equal_approx(full_input_velocity.z, 0.0):
 		_fail("Forward movement must follow the central dividing aisle east-west instead of entering either plot row.")
 		return
-	if not is_equal_approx(slight_input_velocity.length(), 2.0):
-		_fail("Any non-zero joystick input, however small, must immediately produce the full 1.5 m/s speed.")
+	if not is_equal_approx(half_input_velocity.length(), 1.0):
+		_fail("Half joystick deflection must produce half of the calibrated 2.0 m/s maximum speed.")
+		return
+	if not is_equal_approx(slight_input_velocity.length(), 0.002):
+		_fail("Small non-zero joystick input must remain responsive and scale proportionally without a dead zone.")
 		return
 	if not is_equal_approx(diagonal_input_velocity.length(), 2.0):
 		_fail("Diagonal movement must remain normalized and must not move faster.")
+		return
+	if not is_equal_approx(oversized_input_velocity.length(), 2.0):
+		_fail("Joystick input above its unit radius must clamp to the 2.0 m/s maximum speed.")
 		return
 	if released_input_velocity.length_squared() > 0.000001:
 		_fail("Releasing the joystick must stop horizontal movement directly, without glide steps.")
