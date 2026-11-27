@@ -95,6 +95,17 @@ const CENTRAL_DIVIDING_AISLE_WIDTH := INTERNAL_ROAD_WIDTH
 const ROAD_VERTICAL_CENTERS := [-200.0, 0.0, 200.0]
 const ROAD_HORIZONTAL_CENTERS := [-150.0, 0.0, 150.0]
 const STARTER_LAND_PARCEL_ID := "LAND-01"
+const FENCE_UPGRADE_FULL_COSTS := {
+	2: 2000000,
+	3: 3500000,
+	4: 5000000
+}
+const FENCE_UPGRADE_TIER_NAMES := {
+	1: "Wooden Fence",
+	2: "Concrete Block Wall",
+	3: "Modern Steel Security Fence",
+	4: "Premium Architectural Security Fence"
+}
 const STARTER_PLOT_SPAWN_POSITION := Vector3(-202.0, 0.0, 225.0)
 const LAND_PARCEL_COUNT := 16
 
@@ -538,6 +549,11 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	var fence_root := Node3D.new()
 	fence_root.name = "Campus_Wooden_Fences"
 	fence_root.set_meta("wooden_fence", true)
+	fence_root.set_meta("fence_upgrade_system_configured", true)
+	fence_root.set_meta("current_fence_level", 1)
+	fence_root.set_meta("fence_level_names", FENCE_UPGRADE_TIER_NAMES.duplicate(true))
+	fence_root.set_meta("fence_upgrade_full_costs", FENCE_UPGRADE_FULL_COSTS.duplicate(true))
+	fence_root.set_meta("fence_upgrade_currency", "USD")
 	fence_root.set_meta("gate_opening_width_metres", SECTION_GATE_WIDTH)
 	fence_root.set_meta("plot_count", LAND_PARCEL_COUNT)
 	add_child(fence_root)

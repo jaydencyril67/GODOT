@@ -193,6 +193,21 @@ func _run_test() -> void:
 	if fences == null or not bool(fences.get_meta("wooden_fence", false)):
 		_fail("The wooden campus fence system is missing.")
 		return
+	if int(fences.get_meta("current_fence_level", 0)) != 1:
+		_fail("The current campus fence level must start at Level 1.")
+		return
+	var fence_costs: Dictionary = fences.get_meta("fence_upgrade_full_costs", {})
+	if int(fence_costs.get(2, -1)) != 2000000 or int(fence_costs.get(3, -1)) != 3500000 or int(fence_costs.get(4, -1)) != 5000000:
+		_fail("Fence upgrade prices must be full fixed costs: Level 2 $2M, Level 3 $3.5M, Level 4 $5M.")
+		return
+	var fence_levels: Dictionary = fences.get_meta("fence_level_names", {})
+	if str(fence_levels.get(2, "")) != "Concrete Block Wall" or str(fence_levels.get(3, "")) != "Modern Steel Security Fence" or str(fence_levels.get(4, "")) != "Premium Architectural Security Fence":
+		_fail("Fence upgrade levels do not match the four approved fence tiers.")
+		return
+	if not bool(fences.get_meta("fence_upgrade_system_configured", false)) or str(fences.get_meta("fence_upgrade_currency", "")) != "USD":
+		_fail("Fence upgrade pricing configuration or currency metadata is missing.")
+		return
+
 	var fence_posts := fences.get_node_or_null("Fence_Posts") as MultiMeshInstance3D
 	var fence_pickets := fences.get_node_or_null("Fence_Vertical_Pickets") as MultiMeshInstance3D
 	var fence_collisions := fences.get_node_or_null("Fence_Collisions") as StaticBody3D
