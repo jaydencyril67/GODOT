@@ -196,12 +196,8 @@ func _run_test() -> void:
 	if int(grass.get_meta("maintained_core_instance_count", 0)) != 5472 or int(grass.get_meta("natural_edge_instance_count", 0)) != 2128:
 		_fail("The maintained and natural grass zone counts are incorrect.")
 		return
-	var near_grass := campus.get_node_or_null("NearPlayer_Grass") as MultiMeshInstance3D
-	if near_grass == null or near_grass.multimesh == null:
-		_fail("The near-player grass layer is missing.")
-		return
-	if near_grass.multimesh.instance_count != 900 or not bool(near_grass.get_meta("follows_player", false)):
-		_fail("The near-player grass layer is not configured to follow the player.")
+	if campus.get_node_or_null("NearPlayer_Grass") != null or bool(campus.get_meta("movement_grass_follow_enabled", true)):
+		_fail("Player movement must not trigger or carry a regenerating near-player grass layer.")
 		return
 	var tree_trunks := campus.get_node_or_null("Campus_Tree_Trunks") as MultiMeshInstance3D
 	var tree_canopies := campus.get_node_or_null("Campus_Tree_Canopies") as MultiMeshInstance3D
@@ -220,6 +216,12 @@ func _run_test() -> void:
 		return
 	if player.collision_layer != 1 or player.collision_mask != 1:
 		_fail("The player collision layer and mask are not configured to collide with campus fences.")
+		return
+	if player.physics_interpolation_mode != Node.PHYSICS_INTERPOLATION_MODE_ON:
+		_fail("The campus player must explicitly use physics transform interpolation.")
+		return
+	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
+		_fail("Project-wide physics interpolation must be enabled for smooth rendered movement.")
 		return
 	if campus.get_meta("movement_response", "") != "direct_analog_slide_no_acceleration_ramp":
 		_fail("Player movement must use direct continuous joystick velocity without an acceleration ramp.")
@@ -241,6 +243,7 @@ func _run_test() -> void:
 		_fail("Releasing the joystick must stop horizontal movement directly, without glide steps.")
 		return
 	await physics_frame
+	await process_frame
 	var fence_ray := PhysicsRayQueryParameters3D.create(
 		Vector3(-398.0, 0.80, 50.0),
 		Vector3(-390.0, 0.80, 50.0)
@@ -255,6 +258,9 @@ func _run_test() -> void:
 	var camera := campus.get_node_or_null("PlayerCamera") as Camera3D
 	if camera == null:
 		_fail("The first-person player camera is missing.")
+		return
+	if camera.get_parent() != campus or camera.physics_interpolation_mode != Node.PHYSICS_INTERPOLATION_MODE_OFF:
+		_fail("The first-person camera must remain independent and follow the interpolated player transform manually.")
 		return
 	if campus.get_meta("camera_perspective", "") != "first_person_eye_only":
 		_fail("The campus camera is not configured for strict eye-only first-person view.")
