@@ -547,27 +547,16 @@ func _show_home_scene() -> void:
 	campus.connect("research_launch_requested", Callable(self, "_open_research_from_campus"))
 	campus.connect("project_launch_requested", Callable(self, "_open_project_from_campus"))
 	campus.connect("staff_launch_requested", Callable(self, "_open_staff_from_campus"))
-	campus.connect("legacy_app_launch_requested", Callable(self, "_open_legacy_app_from_campus"))
 	campus.visible = false
 	company_campus = campus
 	add_child(company_campus)
 
 
-func _open_worksite_from_campus(worksite_id: String) -> void:
+func _open_worksite_from_campus(_worksite_id: String) -> void:
 	if not is_instance_valid(company_campus):
 		return
 	_suspend_company_campus_for_phone_app()
-	match worksite_id:
-		"phone":
-			_show_phone_creation_worksite()
-		"camera":
-			_show_camera_creation_worksite()
-		"processor":
-			_show_processor_creation_worksite()
-		"os":
-			_open_os_worksite_from_campus()
-		_:
-			_resume_company_campus_after_phone_app()
+	_show_create_scene()
 
 
 func _open_os_worksite_from_campus() -> void:
@@ -592,22 +581,11 @@ func _on_campus_os_worksite_setup_failed(message: String) -> void:
 	_resume_company_campus_after_phone_app()
 
 
-func _open_research_from_campus(research_id: String) -> void:
+func _open_research_from_campus(_research_id: String) -> void:
 	if not is_instance_valid(company_campus):
 		return
 	_suspend_company_campus_for_phone_app()
 	_show_research_scene()
-	match research_id:
-		"hub":
-			return
-		"phone":
-			_show_research_allocation_dashboard()
-		"camera":
-			_show_research_allocation_dashboard(true)
-		"processor":
-			_show_research_allocation_dashboard(false, true)
-		_:
-			_resume_company_campus_after_phone_app()
 
 
 func _open_project_from_campus() -> void:
@@ -646,13 +624,6 @@ func _open_staff_from_campus(staff_screen_id: String) -> void:
 	_suspend_company_campus_for_phone_app()
 	_ensure_staff_data()
 	_open_staff_screen("market" if staff_screen_id == "market" else "management")
-
-
-func _open_legacy_app_from_campus(app_id: String) -> void:
-	if app_id != "create" or not is_instance_valid(company_campus):
-		return
-	_suspend_company_campus_for_phone_app()
-	_show_create_scene()
 
 
 func _show_world_globe() -> void:
