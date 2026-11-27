@@ -243,8 +243,11 @@ func _load_career() -> bool:
 		"research_technologies": config.get_value("career", "research_technologies", {}),
 		"research_component_levels": config.get_value("career", "research_component_levels", {}),
 		"processor_design": config.get_value("career", "processor_design", {}),
-		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1))
+		"next_research_project_id": int(config.get_value("career", "next_research_project_id", 1)),
+		"land_parcels": config.get_value("career", "land_parcels", []),
+		"active_land_parcel_id": str(config.get_value("career", "active_land_parcel_id", "LAND-01"))
 	}
+	_normalize_land_parcel_state()
 	_normalize_phone_identity()
 	ResearchManagerScript.ensure_state(career)
 	game_date_unix = float(career.get("game_date_unix", GAME_START_DATE_UNIX))
@@ -253,6 +256,59 @@ func _load_career() -> bool:
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
 	return not str(career.get("company_name", "")).is_empty()
+
+
+func _normalize_land_parcel_state() -> void:
+	var saved_parcels: Variant = career.get("land_parcels", [])
+	var parcels_by_id: Dictionary = {}
+	if saved_parcels is Array:
+		for saved_value in saved_parcels:
+			if not (saved_value is Dictionary):
+				continue
+			var saved_parcel: Dictionary = saved_value
+			var saved_id := str(saved_parcel.get("id", ""))
+			if saved_id.begins_with("LAND-"):
+				parcels_by_id[saved_id] = saved_parcel.duplicate(true)
+
+	var normalized_parcels: Array[Dictionary] = []
+	for section_index in range(8):
+		var parcel_id := "LAND-%02d" % (section_index + 1)
+		var parcel_value: Variant = parcels_by_id.get(parcel_id, {})
+		var parcel: Dictionary = parcel_value.duplicate(true) if parcel_value is Dictionary else {}
+		var default_tenure := "starter_access" if section_index == 0 else "not_acquired"
+		var tenure_status := str(parcel.get("tenure_status", default_tenure))
+		var access_granted := bool(parcel.get("access_granted", section_index == 0))
+		if tenure_status in ["starter_access", "owned", "rented"]:
+			access_granted = true
+		if not parcels_by_id.has(parcel_id):
+			access_granted = section_index == 0
+			tenure_status = default_tenure
+		parcel["id"] = parcel_id
+		parcel["section_index"] = section_index
+		parcel["access_granted"] = access_granted
+		parcel["access_status"] = "accessible" if access_granted else "locked"
+		parcel["tenure_status"] = tenure_status if access_granted else "not_acquired"
+		normalized_parcels.append(parcel)
+
+	var first_accessible_id := ""
+	for parcel in normalized_parcels:
+		if bool(parcel.get("access_granted", false)):
+			first_accessible_id = str(parcel.get("id", ""))
+			break
+	if first_accessible_id.is_empty():
+		normalized_parcels[0]["access_granted"] = true
+		normalized_parcels[0]["access_status"] = "accessible"
+		normalized_parcels[0]["tenure_status"] = "starter_access"
+		first_accessible_id = "LAND-01"
+
+	var active_id := str(career.get("active_land_parcel_id", "LAND-01"))
+	var active_is_accessible := false
+	for parcel in normalized_parcels:
+		if str(parcel.get("id", "")) == active_id and bool(parcel.get("access_granted", false)):
+			active_is_accessible = true
+			break
+	career["land_parcels"] = normalized_parcels
+	career["active_land_parcel_id"] = active_id if active_is_accessible else first_accessible_id
 
 
 func _normalize_phone_identity() -> void:
@@ -265,6 +321,7 @@ func _normalize_phone_identity() -> void:
 
 
 func _save_career() -> bool:
+	_normalize_land_parcel_state()
 	_normalize_phone_identity()
 	var config := ConfigFile.new()
 	config.set_value("career", "full_name", str(career.get("full_name", "")))
@@ -290,6 +347,8 @@ func _save_career() -> bool:
 	config.set_value("career", "research_component_levels", career.get("research_component_levels", {}))
 	config.set_value("career", "processor_design", career.get("processor_design", {}))
 	config.set_value("career", "next_research_project_id", int(career.get("next_research_project_id", 1)))
+	config.set_value("career", "land_parcels", career.get("land_parcels", []))
+	config.set_value("career", "active_land_parcel_id", str(career.get("active_land_parcel_id", "LAND-01")))
 	var error := config.save(SAVE_PATH)
 	return error == OK
 
@@ -541,6 +600,7 @@ func _show_home_scene() -> void:
 		_format_game_date(game_date_unix),
 		game_clock_paused
 	)
+	campus.call("configure_land_parcels", career.get("land_parcels", []), str(career.get("active_land_parcel_id", "LAND-01")))
 	campus.connect("setup_progress", Callable(self, "_update_campus_startup_loading"))
 	campus.connect("setup_completed", Callable(self, "_on_company_campus_setup_completed"))
 	campus.connect("back_requested", Callable(self, "_show_menu"))
