@@ -153,20 +153,20 @@ func _ready() -> void:
 
 	setup_progress.emit("Preparing campus environment", 0.0)
 	await get_tree().process_frame
-	_build_environment()
-	setup_progress.emit("Preparing campus environment", 100.0)
+	await _build_environment_batched()
 
 	await get_tree().process_frame
 	setup_progress.emit("Generating campus grounds and landscaping", 0.0)
-	_build_terrain()
-	setup_progress.emit("Generating campus grounds and landscaping", 100.0)
+	await _build_terrain_batched()
 
 	await get_tree().process_frame
 	setup_progress.emit("Setting up first-person campus controls", 0.0)
 	_build_player()
 	_build_camera()
-	_build_overlay()
 	_update_camera()
+	setup_progress.emit("Setting up first-person campus controls", 35.0)
+	await get_tree().process_frame
+	_build_overlay()
 	setup_progress.emit("Setting up first-person campus controls", 100.0)
 	set_meta("campus_generation_complete", true)
 	setup_completed.emit()
@@ -269,7 +269,7 @@ func _update_camera() -> void:
 	player_camera.look_at(player_camera.global_position + look_direction, Vector3.UP)
 
 
-func _build_environment() -> void:
+func _build_environment_batched() -> void:
 	var world_environment := WorldEnvironment.new()
 	world_environment.name = "Campus_World_Environment"
 	var environment := Environment.new()
@@ -300,11 +300,12 @@ func _build_environment() -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 72.0
 	add_child(sun)
+	setup_progress.emit("Preparing campus environment", 15.0)
+	await get_tree().process_frame
+	await _build_cloud_layer_batched()
 
-	_build_cloud_layer()
 
-
-func _build_terrain() -> void:
+func _build_terrain_batched() -> void:
 	var terrain := MeshInstance3D.new()
 	terrain.name = "Terrain"
 	terrain.set_meta("grass_layout", "hybrid_maintained_core_natural_perimeter")
@@ -315,7 +316,7 @@ func _build_terrain() -> void:
 	terrain.mesh = terrain_mesh
 
 	var grass_material := StandardMaterial3D.new()
-	grass_material.albedo_texture = _create_grass_texture()
+	grass_material.albedo_texture = await _create_grass_texture_batched(0.0, 18.0)
 	grass_material.roughness = 1.0
 	grass_material.uv1_scale = Vector3(42.0, 32.0, 1.0)
 	grass_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -333,14 +334,15 @@ func _build_terrain() -> void:
 	ground_shape.shape = ground_box
 	ground_body.add_child(ground_shape)
 	add_child(ground_body)
+	setup_progress.emit("Generating campus grounds and landscaping", 18.0)
+	await get_tree().process_frame
+	await _add_grass_instances_batched(18.0, 65.0)
+	await _build_campus_trees_batched(65.0, 72.0)
+	await _build_campus_sections_batched(72.0, 100.0)
 
-	_add_grass_instances()
-	_build_campus_trees()
-	_build_campus_sections()
 
 
-
-func _build_cloud_layer() -> void:
+func _build_cloud_layer_batched() -> void:
 	var cloud_material := StandardMaterial3D.new()
 	cloud_material.albedo_color = Color.WHITE
 	cloud_material.vertex_color_use_as_albedo = true
@@ -390,12 +392,18 @@ func _build_cloud_layer() -> void:
 			)
 			var cloud_basis := Basis.IDENTITY.scaled(puff_scale)
 			cloud_transforms.append(Transform3D(cloud_basis, puff_position))
+		if (cloud_index + 1) % 2 == 0 or cloud_index + 1 == CLOUD_CLUSTER_COUNT:
+			setup_progress.emit("Preparing campus environment", 15.0 + 55.0 * float(cloud_index + 1) / float(CLOUD_CLUSTER_COUNT))
+			await get_tree().process_frame
 
 	cloud_multi.instance_count = cloud_transforms.size()
 	for index in range(cloud_transforms.size()):
 		cloud_multi.set_instance_transform(index, cloud_transforms[index])
 		var brightness := rng.randf_range(0.91, 1.0)
 		cloud_multi.set_instance_color(index, Color(brightness, brightness, minf(1.0, brightness + 0.015), 1.0))
+		if (index + 1) % 64 == 0 or index + 1 == cloud_transforms.size():
+			setup_progress.emit("Preparing campus environment", 70.0 + 29.0 * float(index + 1) / maxf(float(cloud_transforms.size()), 1.0))
+			await get_tree().process_frame
 
 	var clouds := MultiMeshInstance3D.new()
 	clouds.name = "Campus_Clouds"
@@ -408,7 +416,7 @@ func _build_cloud_layer() -> void:
 	add_child(clouds)
 
 
-func _build_campus_sections() -> void:
+func _build_campus_sections_batched(progress_start: float, progress_end: float) -> void:
 	var section_root := Node3D.new()
 	section_root.name = "Campus_Sections"
 	section_root.set_meta("section_count", CAMPUS_SECTION_NAMES.size())
@@ -473,17 +481,19 @@ func _build_campus_sections() -> void:
 		var east_start := center + Vector3(SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var north_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, -SECTION_HALF_DEPTH)
 		var south_start := center + Vector3(-SECTION_HALF_WIDTH, 0.0, SECTION_HALF_DEPTH)
-		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
-		_append_fence_side(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0)
 		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
+		setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_start + (progress_end - progress_start) * 0.55, float(section_index + 1) / float(CAMPUS_SECTION_NAMES.size())))
+		await get_tree().process_frame
 	var picket_material := StandardMaterial3D.new()
 	picket_material.albedo_color = Color("#a87549")
 	picket_material.roughness = 0.93
-	var posts := _add_fence_multimesh(fence_root, "Fence_Posts", post_mesh, post_material, post_transforms)
-	var rails := _add_fence_multimesh(fence_root, "Fence_Rails", rail_mesh, rail_material, rail_transforms)
-	var pickets := _add_fence_multimesh(fence_root, "Fence_Vertical_Pickets", picket_mesh, picket_material, picket_transforms)
+	var posts: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Posts", post_mesh, post_material, post_transforms, progress_start + (progress_end - progress_start) * 0.55, progress_start + (progress_end - progress_start) * 0.68)
+	var rails: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Rails", rail_mesh, rail_material, rail_transforms, progress_start + (progress_end - progress_start) * 0.68, progress_start + (progress_end - progress_start) * 0.80)
+	var pickets: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Vertical_Pickets", picket_mesh, picket_material, picket_transforms, progress_start + (progress_end - progress_start) * 0.80, progress_start + (progress_end - progress_start) * 0.99)
 	posts.set_meta("fence_component", "structural_posts")
 	rails.set_meta("fence_component", "horizontal_rails")
 	pickets.set_meta("fence_component", "vertical_pickets")
@@ -549,6 +559,84 @@ func _append_fence_side(
 		fence_collisions.add_child(fence_shape)
 
 
+func _append_fence_side_batched(
+	post_transforms: Array[Transform3D],
+	rail_transforms: Array[Transform3D],
+	picket_transforms: Array[Transform3D],
+	fence_collisions: StaticBody3D,
+	start: Vector3,
+	direction: Vector3,
+	length: float
+) -> void:
+	var normalized_direction := direction.normalized()
+	var gate_start := (length - SECTION_GATE_WIDTH) * 0.5
+	var gate_end := gate_start + SECTION_GATE_WIDTH
+	var segments := [Vector2(0.0, gate_start), Vector2(gate_end, length)]
+	var yaw := 0.0 if absf(normalized_direction.x) > 0.5 else PI * 0.5
+	for segment in segments:
+		var segment_start: float = segment.x
+		var segment_end: float = segment.y
+		var segment_length := segment_end - segment_start
+		if segment_length <= 0.5:
+			continue
+		var segment_center := start + normalized_direction * ((segment_start + segment_end) * 0.5)
+		for rail_height in [0.38, 1.08]:
+			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.16, 0.18))
+			rail_transforms.append(Transform3D(rail_basis, segment_center + Vector3.UP * rail_height))
+		var picket_spacing := 0.34
+		var picket_count := maxi(1, ceili(segment_length / picket_spacing))
+		for picket_index in range(picket_count):
+			var picket_distance := minf(segment_length - 0.10, (float(picket_index) + 0.5) * segment_length / float(picket_count))
+			var picket_position := start + normalized_direction * (segment_start + picket_distance) + Vector3.UP * 0.76
+			picket_transforms.append(Transform3D(Basis(Vector3.UP, yaw), picket_position))
+			if (picket_index + 1) % 128 == 0:
+				await get_tree().process_frame
+		var post_steps := maxi(1, ceili(segment_length / 3.4))
+		for post_index in range(post_steps + 1):
+			var post_distance := lerpf(segment_start, segment_end, float(post_index) / float(post_steps))
+			var post_position := start + normalized_direction * post_distance + Vector3.UP * 0.72
+			var post_basis := Basis(Vector3.UP, yaw).scaled(Vector3(0.20, 1.44, 0.20))
+			post_transforms.append(Transform3D(post_basis, post_position))
+		var fence_shape := CollisionShape3D.new()
+		fence_shape.name = "Fence_Wall_Collision"
+		var fence_box := BoxShape3D.new()
+		fence_box.size = Vector3(segment_length, 1.52, 0.30)
+		fence_shape.shape = fence_box
+		fence_shape.position = segment_center + Vector3.UP * 0.76
+		fence_shape.rotation.y = yaw
+		fence_collisions.add_child(fence_shape)
+
+
+func _add_fence_multimesh_batched(
+	parent: Node3D,
+	node_name: String,
+	mesh: Mesh,
+	material: Material,
+	transforms: Array[Transform3D],
+	progress_start: float,
+	progress_end: float
+) -> MultiMeshInstance3D:
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = mesh
+	multi.instance_count = transforms.size()
+	for index in range(transforms.size()):
+		multi.set_instance_transform(index, transforms[index])
+		if (index + 1) % 256 == 0 or index + 1 == transforms.size():
+			var ratio := float(index + 1) / maxf(float(transforms.size()), 1.0)
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, ratio))
+			await get_tree().process_frame
+	var instance := MultiMeshInstance3D.new()
+	instance.name = node_name
+	instance.multimesh = multi
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	instance.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	instance.set_meta("instance_count", transforms.size())
+	parent.add_child(instance)
+	return instance
+
+
 func _add_fence_multimesh(
 	parent: Node3D,
 	node_name: String,
@@ -604,7 +692,7 @@ func _build_section_sign(
 	sign_root.add_child(label)
 
 
-func _create_grass_texture() -> Texture2D:
+func _create_grass_texture_batched(progress_start: float, progress_end: float) -> Texture2D:
 	var image := Image.create(512, 512, false, Image.FORMAT_RGB8)
 	var broad_noise := FastNoiseLite.new()
 	broad_noise.seed = 4817
@@ -631,6 +719,10 @@ func _create_grass_texture() -> Texture2D:
 				0.038 + patch * 0.040 + dry_tone * 0.16 + micro * 0.25
 			)
 			image.set_pixel(x, y, color)
+		if (y + 1) % 16 == 0:
+			var row_progress := float(y + 1) / 512.0
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_start + (progress_end - progress_start) * 0.65, row_progress))
+			await get_tree().process_frame
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 490217
@@ -647,10 +739,14 @@ func _create_grass_texture() -> Texture2D:
 			var old_color := image.get_pixel(px, py)
 			var blade_color := Color(0.25, 0.38, 0.13) if light_blade else Color(0.08, 0.19, 0.035)
 			image.set_pixel(px, py, old_color.lerp(blade_color * blade_tone, 0.42))
+		if (blade_index + 1) % 300 == 0 or blade_index + 1 == 9000:
+			var blade_progress := float(blade_index + 1) / 9000.0
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start + (progress_end - progress_start) * 0.65, progress_end, blade_progress))
+			await get_tree().process_frame
 	image.generate_mipmaps()
 	return ImageTexture.create_from_image(image)
 
-func _add_grass_instances() -> void:
+func _add_grass_instances_batched(progress_start: float, progress_end: float) -> void:
 	var blade_material := StandardMaterial3D.new()
 	blade_material.albedo_color = Color.WHITE
 	blade_material.vertex_color_use_as_albedo = true
@@ -696,6 +792,9 @@ func _add_grass_instances() -> void:
 		var shade := rng.randf_range(0.90, 1.08) if is_maintained else rng.randf_range(0.72, 1.12)
 		var tint := Color(0.78, 0.94, 0.68, 1.0) if is_maintained else Color(0.74, 0.91, 0.61, 1.0)
 		multi.set_instance_color(index, Color(tint.r * shade, tint.g * shade, tint.b * shade, 1.0))
+		if (index + 1) % 256 == 0 or index + 1 == GRASS_INSTANCE_COUNT:
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_start + (progress_end - progress_start) * 0.86, float(index + 1) / float(GRASS_INSTANCE_COUNT)))
+			await get_tree().process_frame
 
 	var grass := MultiMeshInstance3D.new()
 	grass.name = "Hybrid_Grass_Clumps"
@@ -719,7 +818,7 @@ func _add_grass_instances() -> void:
 	near_player_grass.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	near_player_grass.set_meta("follows_player", true)
 	add_child(near_player_grass)
-	_update_near_player_grass(true)
+	await _populate_near_player_grass_batched(progress_start + (progress_end - progress_start) * 0.86, progress_end)
 
 func _create_near_grass_mesh(material: Material) -> ArrayMesh:
 	return _create_grass_clump_mesh(material, 0.30, 9)
@@ -772,6 +871,29 @@ func _add_grass_quad(surface: SurfaceTool, left_base: Vector3, right_base: Vecto
 	surface.set_color(top_color)
 	surface.add_vertex(left_top)
 
+func _populate_near_player_grass_batched(progress_start: float, progress_end: float) -> void:
+	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
+		return
+	var flat_position := Vector3(player.global_position.x, 0.0, player.global_position.z)
+	near_player_grass_center = flat_position
+	var multi := near_player_grass.multimesh
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 871203
+	for index in range(NEAR_PLAYER_GRASS_COUNT):
+		var angle := rng.randf_range(0.0, TAU)
+		var radius := sqrt(rng.randf_range(0.45 * 0.45, NEAR_PLAYER_GRASS_RADIUS * NEAR_PLAYER_GRASS_RADIUS))
+		var x := flat_position.x + cos(angle) * radius
+		var z := flat_position.z + sin(angle) * radius
+		var scale_value := rng.randf_range(0.78, 1.28)
+		var grass_instance_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
+		multi.set_instance_transform(index, Transform3D(grass_instance_basis, Vector3(x, 0.008, z)))
+		var shade := rng.randf_range(0.82, 1.08)
+		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
+		if (index + 1) % 128 == 0 or index + 1 == NEAR_PLAYER_GRASS_COUNT:
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, float(index + 1) / float(NEAR_PLAYER_GRASS_COUNT)))
+			await get_tree().process_frame
+
+
 func _update_near_player_grass(force: bool = false) -> void:
 	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
 		return
@@ -793,9 +915,7 @@ func _update_near_player_grass(force: bool = false) -> void:
 		multi.set_instance_transform(index, Transform3D(grass_instance_basis, Vector3(x, 0.008, z)))
 		var shade := rng.randf_range(0.82, 1.08)
 		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
-
-
-func _build_campus_trees() -> void:
+func _build_campus_trees_batched(progress_start: float, progress_end: float) -> void:
 	var trunk_material := StandardMaterial3D.new()
 	trunk_material.albedo_color = Color("#60432e")
 	trunk_material.roughness = 0.96
@@ -837,6 +957,9 @@ func _build_campus_trees() -> void:
 		var tree_instance_transform := Transform3D(tree_instance_basis, positions[index])
 		trunk_multi.set_instance_transform(index, tree_instance_transform)
 		canopy_multi.set_instance_transform(index, tree_instance_transform)
+		if (index + 1) % 8 == 0 or index + 1 == positions.size():
+			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, float(index + 1) / float(positions.size())))
+			await get_tree().process_frame
 	var trunks := MultiMeshInstance3D.new()
 	trunks.name = "Campus_Tree_Trunks"
 	trunks.multimesh = trunk_multi
