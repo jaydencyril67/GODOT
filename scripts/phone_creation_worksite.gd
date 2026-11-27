@@ -983,6 +983,9 @@ func _build_interface_batched() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "PhoneCreationWorksiteInterface"
 	layer.layer = 40
+	# CanvasLayer visibility is independent of the hidden Node3D worksite.
+	# During deferred career startup, keep this interface off-screen until opened.
+	layer.visible = not defer_initial_setup
 	add_child(layer)
 
 	var root := Control.new()
