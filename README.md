@@ -36,7 +36,7 @@ The career home is an **800 m × 600 m** walkable campus covering **480,000 m² 
 
 The twelve-metre internal road corridors use a shared, merged asphalt surface with lightweight instanced lane markings; plot ground remains grass. Every plot owns a physical gate on each side that borders another plot. Gate fronts face the internal roads so neighbouring gates face one another, while the outer campus perimeter has no plot gates. Plot 1 starts accessible with its two internal entrances open; the other fifteen plots start locked.
 
-The player begins on the central east-west asphalt aisle, outside the plots, and uses direct analogue joystick movement with an eye-only first-person camera. Existing careers keep their saved access and tenure for plots 1–8; plots 9–16 are added as locked plots. The campus is generated as part of the career loading flow and remains the home world while phone apps and external workspaces are opened.
+The player begins on the central east-west asphalt aisle, outside the plots, and uses direct analogue joystick movement with an eye-only first-person camera. Existing careers keep their saved access and tenure for plots 1–8; plots 9–16 are added as locked plots. The campus is generated as part of the career loading flow and remains the home world while phone apps and external workspaces are opened. The sixteen-plot layout, inward-facing gate arrangement, and asphalt corridor network are covered by the company-campus smoke test.
 
 The old ten-level headquarters showroom, its building tiers, office purchase/downgrade flow, and monthly headquarters rent system have been removed. Hiring is no longer locked behind owning or upgrading a headquarters building.
 
