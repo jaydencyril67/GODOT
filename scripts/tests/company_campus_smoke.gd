@@ -129,6 +129,15 @@ func _run_test() -> void:
 		if section == null or str(section.get_meta("section_name", "")).is_empty():
 			_fail("Campus section %d or its name metadata is missing." % section_index)
 			return
+		if str(section.get_meta("property_id", "")) != "LAND-%02d" % section_index or not bool(section.get_meta("is_individual_land_parcel", false)):
+			_fail("Campus section %d is not represented as its own independent land parcel." % section_index)
+			return
+		if not is_equal_approx(float(section.get_meta("property_area_square_metres", 0.0)), 54144.0):
+			_fail("Campus land parcel %d has an incorrect independently measured area." % section_index)
+			return
+		if bool(section.get_meta("access_granted", false)) != (section_index == 1):
+			_fail("Only the first land parcel should have starter access when a new career begins.")
+			return
 		var section_sign := section.get_node_or_null("SectionSign/SectionName") as Label3D
 		if section_sign == null or section_sign.text.is_empty():
 			_fail("Campus section %d does not have a visible 3D sign." % section_index)
@@ -160,6 +169,22 @@ func _run_test() -> void:
 	if fence_collisions.get_child_count() < 32 or not bool(fence_collisions.get_meta("blocks_player", false)):
 		_fail("The wooden fence boundaries do not have complete player-blocking collision.")
 		return
+	var property_gates := fences.get_node_or_null("Property_Gates") as Node3D
+	if property_gates == null or property_gates.get_child_count() != 7 or int(property_gates.get_meta("locked_gate_count", 0)) != 7:
+		_fail("The seven unacquired land parcels must each have one visible locked entrance gate.")
+		return
+	if property_gates.get_node_or_null("PropertyGate_01") != null:
+		_fail("The starter land parcel must have an open entrance, not a locked gate.")
+		return
+	for parcel_number in range(2, 9):
+		var property_gate := property_gates.get_node_or_null("PropertyGate_%02d" % parcel_number) as StaticBody3D
+		var gate_collision := property_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(property_gate) else null
+		if property_gate == null or not property_gate.visible or gate_collision == null or gate_collision.disabled:
+			_fail("Land parcel %02d is missing its visible, collision-blocking entrance gate." % parcel_number)
+			return
+		if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or not bool(property_gate.get_meta("gate_locked", false)):
+			_fail("Land parcel %02d has an incorrectly assigned entrance gate." % parcel_number)
+			return
 
 	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
 	if clouds == null or clouds.multimesh == null:
@@ -258,6 +283,15 @@ func _run_test() -> void:
 	var fence_hit := campus.get_world_3d().direct_space_state.intersect_ray(fence_ray)
 	if fence_hit.is_empty() or fence_hit.get("collider") != fence_collisions:
 		_fail("A physics ray passed through a solid wooden fence section.")
+		return
+	var gate_ray := PhysicsRayQueryParameters3D.create(Vector3(-100.0, 1.0, 300.0), Vector3(-100.0, 1.0, 288.0))
+	gate_ray.collision_mask = 1
+	gate_ray.collide_with_bodies = true
+	gate_ray.collide_with_areas = false
+	var gate_hit := campus.get_world_3d().direct_space_state.intersect_ray(gate_ray)
+	var expected_gate := property_gates.get_node_or_null("PropertyGate_02")
+	if gate_hit.is_empty() or gate_hit.get("collider") != expected_gate:
+		_fail("A physics ray passed through the locked gate at the second land parcel entrance.")
 		return
 	var camera := campus.get_node_or_null("PlayerCamera") as Camera3D
 	if camera == null:
@@ -464,15 +498,16 @@ func _run_test() -> void:
 			return
 
 	var seventh_section_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
+	var starter_player_position := player.global_position
 	seventh_section_button.emit_signal("pressed")
-	if int(campus.get_meta("last_explore_section", 0)) != 7 or int(player.get_meta("last_explore_section_index", -1)) != 6:
-		_fail("Selecting a campus destination did not record the chosen section.")
+	if str(campus.get_meta("last_locked_land_request", "")) != "LAND-07":
+		_fail("Selecting a locked parcel did not register the access restriction.")
 		return
-	if player.global_position != Vector3(100.0, 0.0, -150.0) or player.velocity != Vector3.ZERO:
-		_fail("The Explore app did not transport the player to the selected section center.")
+	if player.global_position != starter_player_position or player.velocity != Vector3.ZERO:
+		_fail("The Explore app bypassed a locked land entrance and transported the player into an unacquired parcel.")
 		return
-	if not explore_status_label.text.contains("Logistics & Warehouses"):
-		_fail("The Explore app did not confirm arrival at the selected section.")
+	if not explore_status_label.text.contains("LAND-07") or not explore_status_label.text.contains("locked"):
+		_fail("The Explore app did not explain why the selected parcel is inaccessible.")
 		return
 
 	explore_back_button.emit_signal("pressed")
@@ -542,8 +577,8 @@ func _run_test() -> void:
 		return
 	campus.find_child("StatisticsBackToHomeButton", true, false).emit_signal("pressed")
 	office_app_icon.emit_signal("pressed")
-	if player.global_position != Vector3(-100.0, 0.0, 150.0) or not phone_home_view.visible:
-		_fail("The Office app did not take the player to the corporate office section.")
+	if player.global_position != starter_player_position or not explore_app_view.visible or not explore_status_label.text.contains("LAND-02"):
+		_fail("The Office shortcut bypassed the locked corporate-office land gate instead of showing the access restriction.")
 		return
 
 	project_app_icon.emit_signal("pressed")
