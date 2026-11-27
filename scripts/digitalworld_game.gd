@@ -494,10 +494,10 @@ func _show_home_scene() -> void:
 	current_screen = "company_campus"
 	_clear_world()
 	await get_tree().process_frame
-	_refresh_staff_market_on_startup()
+	await _refresh_staff_market_on_startup_batched()
 	# Every first-load destination is prepared off-screen in its own yielding
 	# batches. The same instances are reused after the loading screen closes.
-	_update_campus_loading_range("Preparing Phone Creation Worksite", 0.0, 0.0, 10.0)
+	_update_campus_loading_range("Preparing Phone Creation Worksite", 0.0, 2.0, 10.0)
 	_prepare_phone_creation_worksite()
 	phone_creation_worksite.connect("startup_progress", Callable(self, "_update_phone_startup_loading"))
 	await phone_creation_worksite.call("prepare_for_initial_load")
@@ -1762,9 +1762,9 @@ func _update_workspace_startup_loading(
 
 func _update_phone_startup_loading(message: String, progress: float) -> void:
 	if message == "Building Phone Creation preview":
-		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 0.0, 10.0)
+		_update_workspace_startup_loading(message, progress, 0.0, 30.0, 2.0, 10.0)
 	else:
-		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 0.0, 10.0)
+		_update_workspace_startup_loading(message, progress, 30.0, 100.0, 2.0, 10.0)
 
 
 func _update_processor_startup_loading(message: String, progress: float) -> void:
@@ -3174,17 +3174,21 @@ func _generate_staff_candidate() -> Dictionary:
 	}
 
 
-func _refresh_staff_market_on_startup() -> void:
-	# Refresh candidates on every launch while the HQ preparation screen is shown.
-	# Employees already hired remain untouched.
+func _refresh_staff_market_on_startup_batched() -> void:
+	# Refresh candidates on every launch while the initialization screen is
+	# active. Generate them in small groups so the loading screen keeps rendering.
 	_ensure_staff_data()
 	var refreshed_market: Array = []
 	for index in range(50):
 		refreshed_market.append(_generate_staff_candidate())
+		if (index + 1) % 5 == 0 or index + 1 == 50:
+			_update_campus_loading_range("Refreshing staff candidates", float(index + 1) * 2.0, 0.0, 2.0)
+			await get_tree().process_frame
 	career["staff_candidates"] = refreshed_market
 	career["staff_market_initialized"] = true
 	career["last_candidate_refresh_month"] = _get_game_month_key(game_date_unix)
 	_save_career()
+	_update_campus_loading_range("Refreshing staff candidates", 100.0, 0.0, 2.0)
 
 
 func _process_staff_market_refresh(current_month: String) -> void:
