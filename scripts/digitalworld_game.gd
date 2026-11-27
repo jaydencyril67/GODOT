@@ -3193,10 +3193,39 @@ func _update_staff_office_balance() -> void:
 
 
 func _prepare_staff_scenes_batched() -> void:
+	if is_instance_valid(staff_market_screen) and is_instance_valid(staff_management_screen):
+		_update_campus_loading_range("Preparing Staff screens", 100.0, 30.0, 38.0)
+		return
+
+	staff_ui_layer = CanvasLayer.new()
+	staff_ui_layer.name = "DigitalWorld_Prepared_Staff_Layer"
+	staff_ui_layer.layer = 60
+	add_child(staff_ui_layer)
+	staff_ui_layer.hide()
+
 	_update_campus_loading_range("Preparing Staff Market", 0.0, 30.0, 34.0)
-	_prepare_staff_scenes()
+	staff_market_screen = StaffMarketScene.instantiate()
+	staff_market_screen.name = "Prepared_Staff_Market"
+	staff_ui_layer.add_child(staff_market_screen)
+	_connect_staff_screen_signals(staff_market_screen)
+	_update_campus_loading_range("Preparing Staff Market", 20.0, 30.0, 34.0)
 	await get_tree().process_frame
+	staff_market_screen.open("market", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_market_screen.hide()
+	_update_campus_loading_range("Preparing Staff Market", 100.0, 30.0, 34.0)
+	await get_tree().process_frame
+
+	_update_campus_loading_range("Preparing Staff Management", 0.0, 34.0, 38.0)
+	staff_management_screen = StaffMarketScene.instantiate()
+	staff_management_screen.name = "Prepared_Staff_Management"
+	staff_ui_layer.add_child(staff_management_screen)
+	_connect_staff_screen_signals(staff_management_screen)
+	_update_campus_loading_range("Preparing Staff Management", 20.0, 34.0, 38.0)
+	await get_tree().process_frame
+	staff_management_screen.open("management", career.get("staff_candidates", []), career.get("staff_employees", []), -1, str(career.get("company_name", "YOUR COMPANY")), float(career.get("balance", 0.0)))
+	staff_management_screen.hide()
 	_update_campus_loading_range("Preparing Staff Management", 100.0, 34.0, 38.0)
+	await get_tree().process_frame
 
 
 func _prepare_staff_scenes() -> void:
