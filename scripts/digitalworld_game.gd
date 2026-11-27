@@ -2957,6 +2957,9 @@ func _activate_camera_creation_worksite() -> void:
 			ui_layer = create_ui_layer
 			ui_root = create_ui_root
 		return
+	if not bool(camera_creation_worksite.get("startup_setup_complete")):
+		await _apply_camera_startup_settings_batched()
+		await camera_creation_worksite.call("prepare_for_initial_load")
 	camera_creation_worksite.call("set_back_raised_design_research_level", int(career.get("research_component_levels", {}).get("Back Raised Design", 0)))
 	camera_creation_worksite.call("set_rear_camera_mp_research_level", int(career.get("research_component_levels", {}).get("Rear Camera MP", 0)))
 	camera_creation_worksite.call("set_rear_camera_count_research_level", int(career.get("research_component_levels", {}).get("Rear Camera Count", 0)))
@@ -3048,6 +3051,9 @@ func _activate_processor_creation_worksite() -> void:
 			ui_layer = create_ui_layer
 			ui_root = create_ui_root
 		return
+	if not bool(processor_creation_worksite.get("startup_setup_complete")):
+		await _apply_processor_startup_settings_batched()
+		await processor_creation_worksite.call("prepare_for_initial_load")
 
 	# Make this a single-owner screen transition: no previous page or worksite
 	# may remain visible or continue processing behind the Processor Worksite.
@@ -3138,6 +3144,9 @@ func _show_phone_creation_worksite() -> void:
 		_prepare_phone_creation_worksite()
 	if not is_instance_valid(phone_creation_worksite):
 		return
+	if not bool(phone_creation_worksite.get("startup_setup_complete")):
+		await _apply_phone_startup_settings_batched()
+		await phone_creation_worksite.call("prepare_for_initial_load")
 	if is_instance_valid(ui_layer):
 		ui_layer.hide()
 	if is_instance_valid(create_ui_layer):
