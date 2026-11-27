@@ -81,7 +81,6 @@ var explore_app_view: Control
 var explore_status_label: Label
 var explore_section_buttons: Array[Button] = []
 var phone_app_views: Dictionary = {}
-var staffs_app_buttons: Array[Button] = []
 var career_company_name := "YOUR COMPANY"
 var career_insignia_texture: Texture2D
 var career_balance_text := "$10,000,000"
@@ -1484,27 +1483,9 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	setup_progress.emit("Setting up first-person campus controls", 80.0)
 	await get_tree().process_frame
 
-	var staffs_page := _create_phone_app_page("StaffsAppScreen", "Staffs", "Choose a staff area to open", "StaffsBackToHomeButton")
-	phone_screen_ui.add_child(staffs_page["page"])
-	phone_app_views["staffs"] = staffs_page["page"]
-	var staffs_list: VBoxContainer = staffs_page["list"]
-	staffs_app_buttons.clear()
-	var staff_options := [
-		{"id": "market", "name": "Staff Market", "detail": "Find and recruit employees"},
-		{"id": "management", "name": "Staff Management", "detail": "Manage your employees"}
-	]
-	for option in staff_options:
-		var option_id := str(option["id"])
-		var staff_button := _create_phone_destination_button(
-			staffs_list,
-			"StaffsOption_" + option_id.capitalize(),
-			str(option["name"]),
-			str(option["detail"]),
-			Callable(self, "_request_staff_launch").bind(option_id)
-		)
-		staffs_app_buttons.append(staff_button)
-		setup_progress.emit("Setting up first-person campus controls", 92.0)
-		await get_tree().process_frame
+	# Staffs now opens the standalone Staff gateway instead of an in-phone list.
+	setup_progress.emit("Setting up first-person campus controls", 92.0)
+	await get_tree().process_frame
 
 	_add_phone_feature_page("ProductsAppScreen", "Products", "Company product catalogue", "ProductsBackToHomeButton", "Your product catalogue will appear here.")
 	_add_phone_feature_page("MarketingAppScreen", "Marketing", "Promote your company's products", "MarketingBackToHomeButton", "Marketing tools will appear here.")
@@ -1746,7 +1727,7 @@ func _request_project_launch() -> void:
 
 
 func _launch_staffs_app() -> void:
-	_open_phone_app("staffs")
+	_request_staff_launch("hub")
 
 
 func _return_to_phone_home() -> void:
@@ -1787,7 +1768,7 @@ func _request_research_launch(research_id: String) -> void:
 
 
 func _request_staff_launch(staff_screen_id: String) -> void:
-	if not ["market", "management"].has(staff_screen_id):
+	if staff_screen_id != "hub":
 		return
 	_close_phone_for_external_scene()
 	staff_launch_requested.emit(staff_screen_id)
