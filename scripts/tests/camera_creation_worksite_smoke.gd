@@ -30,8 +30,16 @@ func _run_camera_worksite_test() -> void:
 		return
 	# Reveal only after the production-style deferred preparation has completed.
 	worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	var hidden_preview_studio := worksite.find_child("CameraPreviewStudio", true, false) as Node
+	var hidden_scene_viewport := hidden_preview_studio.get("test_viewport") as SubViewport if hidden_preview_studio != null else null
+	var hidden_screen_viewport := hidden_preview_studio.get("screen_viewport") as SubViewport if hidden_preview_studio != null else null
+	if hidden_scene_viewport == null or hidden_screen_viewport == null or hidden_scene_viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED or hidden_screen_viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_fail("Hidden Camera Worksite preview viewports must not render in the background.")
+		worksite.free()
+		return
 	worksite.show()
 	interface_layer.show()
+	worksite.call("set_preview_active", true)
 	worksite.call("_apply_responsive_layout")
 	# Re-enable processing and allow Godot to complete container/viewport layout
 	# before checking rendering dimensions and update modes.
@@ -73,6 +81,12 @@ func _run_camera_worksite_test() -> void:
 
 	if preview_studio == null or int(preview_studio.call("get_scene_count")) != 30 or change_view_button == null or zoom_in_button == null or capture_button == null or gallery_button == null or night_mode_button == null:
 		_fail("Camera Worksite is missing its 30-scene camera preview studio or its still-camera controls.")
+		worksite.free()
+		return
+	var studio_scene_viewport := preview_studio.get("test_viewport") as SubViewport
+	var studio_screen_viewport := preview_studio.get("screen_viewport") as SubViewport
+	if studio_scene_viewport == null or studio_screen_viewport == null or studio_scene_viewport.msaa_3d != Viewport.MSAA_DISABLED or studio_scene_viewport.render_target_update_mode != SubViewport.UPDATE_ALWAYS or studio_screen_viewport.render_target_update_mode != SubViewport.UPDATE_ALWAYS:
+		_fail("Visible Camera Worksite must render its live feed only while active, without MSAA.")
 		worksite.free()
 		return
 	var screen_material := screen.material_override as StandardMaterial3D
@@ -779,6 +793,11 @@ func _run_camera_worksite_test() -> void:
 		worksite.free()
 		return
 
+	worksite.call("set_preview_active", false)
+	if studio_scene_viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED or studio_screen_viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_fail("Camera Worksite preview viewports continued rendering after deactivation.")
+		worksite.free()
+		return
 	worksite.free()
 	print("CAMERA_CREATION_WORKSITE_SMOKE_TEST: PASS")
 	quit(0)
