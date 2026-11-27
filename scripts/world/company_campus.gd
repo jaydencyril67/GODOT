@@ -1262,6 +1262,7 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 260911
 	var maintained_count := int(float(GRASS_INSTANCE_COUNT) * MAINTAINED_GRASS_RATIO)
+	var road_safe_instance_count := 0
 	for index in range(GRASS_INSTANCE_COUNT):
 		var is_maintained := index < maintained_count
 		var edge := -1 if is_maintained else rng.randi_range(0, 3)
@@ -1285,6 +1286,7 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 				z = rng.randf_range(-HALF_DEPTH * 0.34, HALF_DEPTH * 0.34)
 			if not _is_on_asphalt_road(x, z):
 				break
+		road_safe_instance_count += 1
 
 		var scale_value := rng.randf_range(0.72, 0.98) if is_maintained else rng.randf_range(1.25, 2.05)
 		var grass_transform_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
@@ -1304,6 +1306,8 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	grass.set_meta("instance_count", GRASS_INSTANCE_COUNT)
 	grass.set_meta("maintained_core_instance_count", maintained_count)
 	grass.set_meta("natural_edge_instance_count", GRASS_INSTANCE_COUNT - maintained_count)
+	grass.set_meta("road_safe_instance_count", road_safe_instance_count)
+	grass.set_meta("road_exclusion_enabled", road_safe_instance_count == GRASS_INSTANCE_COUNT)
 	add_child(grass)
 
 
