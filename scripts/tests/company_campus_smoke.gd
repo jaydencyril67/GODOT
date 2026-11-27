@@ -233,7 +233,7 @@ func _run_test() -> void:
 			if property_gate.visible != should_be_locked or gate_collision.disabled == should_be_locked:
 				_fail("Plot %02d has an incorrect initial gate visibility or collision state." % parcel_number)
 				return
-			if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or str(property_gate.get_meta("entrance_side", "")) != side or not bool(property_gate.get_meta("faces_campus_interior", false)) or bool(property_gate.get_meta("gate_locked", false)) != should_be_locked:
+			if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or str(property_gate.get_meta("entrance_side", "")) != side or not bool(property_gate.get_meta("faces_campus_interior", false)) or not bool(property_gate.get_meta("gate_front_faces_internal_road", false)) or bool(property_gate.get_meta("gate_locked", false)) != should_be_locked:
 				_fail("Plot %02d has a wrongly assigned or outward-facing gate." % parcel_number)
 				return
 			var expected_gate_position := center
@@ -241,16 +241,16 @@ func _run_test() -> void:
 			match side:
 				"north":
 					expected_gate_position += Vector3(0.0, 0.0, 69.0)
-					expected_gate_yaw = PI
+					expected_gate_yaw = 0.0
 				"south":
 					expected_gate_position += Vector3(0.0, 0.0, -69.0)
-					expected_gate_yaw = 0.0
+					expected_gate_yaw = PI
 				"east":
 					expected_gate_position += Vector3(94.0, 0.0, 0.0)
-					expected_gate_yaw = -PI * 0.5
+					expected_gate_yaw = PI * 0.5
 				"west":
 					expected_gate_position += Vector3(-94.0, 0.0, 0.0)
-					expected_gate_yaw = PI * 0.5
+					expected_gate_yaw = -PI * 0.5
 			if property_gate.position.distance_to(expected_gate_position) > 0.001 or not is_equal_approx(property_gate.rotation.y, expected_gate_yaw):
 				_fail("Plot %02d's %s gate is not mounted on its own inward-facing plot boundary." % [parcel_number, side])
 				return
