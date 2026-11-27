@@ -29,9 +29,6 @@ const PHONE_BUTTON_STACK_GAP := 10.0
 const PHONE_BODY_LEFT_CLEARANCE := 230.0
 const GRASS_INSTANCE_COUNT := 7600
 const MAINTAINED_GRASS_RATIO := 0.72
-const NEAR_PLAYER_GRASS_COUNT := 900
-const NEAR_PLAYER_GRASS_RADIUS := 6.5
-const NEAR_PLAYER_GRASS_UPDATE_DISTANCE := 1.25
 
 const CAMPUS_SECTION_NAMES := [
 	"Main Entrance, Security & Reception",
@@ -98,8 +95,6 @@ var career_identity_card: PanelContainer
 var career_balance_label: Label
 var career_date_label: Label
 var career_clock_button: Button
-var near_player_grass: MultiMeshInstance3D
-var near_player_grass_center := Vector3.INF
 
 var camera_yaw := PI * 0.25
 var camera_pitch := 0.0
@@ -127,20 +122,24 @@ func update_career_hud(
 	date_text: String,
 	clock_paused: bool
 ) -> void:
-	career_company_name = company_name
-	career_balance_text = balance_text
-	career_date_text = date_text
-	career_clock_paused = clock_paused
-	if is_instance_valid(career_company_label):
-		career_company_label.text = career_company_name
-		career_company_label.tooltip_text = career_company_name
-		_update_career_identity_card_width()
-	if is_instance_valid(career_balance_label):
-		career_balance_label.text = career_balance_text
-	if is_instance_valid(career_date_label):
-		career_date_label.text = career_date_text
-	if is_instance_valid(career_clock_button):
-		career_clock_button.text = "▶  PLAY" if career_clock_paused else "Ⅱ  PAUSE"
+	if career_company_name != company_name:
+		career_company_name = company_name
+		if is_instance_valid(career_company_label):
+			career_company_label.text = career_company_name
+			career_company_label.tooltip_text = career_company_name
+			_update_career_identity_card_width()
+	if career_balance_text != balance_text:
+		career_balance_text = balance_text
+		if is_instance_valid(career_balance_label):
+			career_balance_label.text = career_balance_text
+	if career_date_text != date_text:
+		career_date_text = date_text
+		if is_instance_valid(career_date_label):
+			career_date_label.text = career_date_text
+	if career_clock_paused != clock_paused:
+		career_clock_paused = clock_paused
+		if is_instance_valid(career_clock_button):
+			career_clock_button.text = "▶  PLAY" if career_clock_paused else "Ⅱ  PAUSE"
 
 
 func _ready() -> void:
@@ -149,6 +148,7 @@ func _ready() -> void:
 	set_meta("map_area_square_metres", CAMPUS_WIDTH * CAMPUS_DEPTH)
 	set_meta("walk_speed_metres_per_second", WALK_SPEED)
 	set_meta("movement_response", "direct_analog_slide_no_acceleration_ramp")
+	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
 
 	setup_progress.emit("Preparing campus environment", 0.0)
@@ -203,7 +203,6 @@ func _physics_process(delta: float) -> void:
 	player.move_and_slide()
 	player.global_position.x = clampf(player.global_position.x, -HALF_WIDTH + 1.0, HALF_WIDTH - 1.0)
 	player.global_position.z = clampf(player.global_position.z, -HALF_DEPTH + 1.0, HALF_DEPTH - 1.0)
-	_update_near_player_grass()
 
 	player.rotation.y = -camera_yaw
 
@@ -260,7 +259,10 @@ func _rotate_camera(delta_position: Vector2) -> void:
 func _update_camera() -> void:
 	if not is_instance_valid(player_camera) or not is_instance_valid(player):
 		return
-	player_camera.global_position = player.global_position + Vector3.UP * FIRST_PERSON_EYE_HEIGHT
+	# Follow the transform that Godot will actually render, not the latest
+	# discrete physics transform. Keep look input responsive every rendered frame.
+	var rendered_player_transform := player.get_global_transform_interpolated()
+	player_camera.global_position = rendered_player_transform.origin + Vector3.UP * FIRST_PERSON_EYE_HEIGHT
 	var look_direction := Vector3(
 		sin(camera_yaw) * cos(camera_pitch),
 		-sin(camera_pitch),
@@ -819,115 +821,7 @@ func _add_grass_instances_batched(progress_start: float, progress_end: float) ->
 	grass.set_meta("natural_edge_instance_count", GRASS_INSTANCE_COUNT - maintained_count)
 	add_child(grass)
 
-	near_player_grass = MultiMeshInstance3D.new()
-	near_player_grass.name = "NearPlayer_Grass"
-	var near_multi := MultiMesh.new()
-	near_multi.transform_format = MultiMesh.TRANSFORM_3D
-	near_multi.use_colors = true
-	near_multi.mesh = _create_near_grass_mesh(blade_material)
-	near_multi.instance_count = NEAR_PLAYER_GRASS_COUNT
-	near_player_grass.multimesh = near_multi
-	near_player_grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	near_player_grass.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	near_player_grass.set_meta("follows_player", true)
-	add_child(near_player_grass)
-	await _populate_near_player_grass_batched(progress_start + (progress_end - progress_start) * 0.86, progress_end)
 
-func _create_near_grass_mesh(material: Material) -> ArrayMesh:
-	return _create_grass_clump_mesh(material, 0.30, 9)
-
-
-func _create_grass_clump_mesh(material: Material, max_height: float, blade_count: int) -> ArrayMesh:
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surface.set_material(material)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = blade_count * 731 + roundi(max_height * 1000.0)
-	for blade_index in range(blade_count):
-		var angle := TAU * float(blade_index) / float(blade_count) + rng.randf_range(-0.24, 0.24)
-		var direction := Vector3(cos(angle), 0.0, sin(angle))
-		var side := Vector3(-direction.z, 0.0, direction.x)
-		var base := direction * rng.randf_range(0.0, 0.022)
-		var height := rng.randf_range(max_height * 0.62, max_height)
-		var bend := direction * rng.randf_range(0.025, 0.085) + side * rng.randf_range(-0.025, 0.025)
-		var width := rng.randf_range(0.010, 0.018)
-		var base_left := base - side * width
-		var base_right := base + side * width
-		var middle := base + bend * 0.42 + Vector3.UP * height * 0.56
-		var middle_width := width * 0.58
-		var middle_left := middle - side * middle_width
-		var middle_right := middle + side * middle_width
-		var tip := base + bend + Vector3.UP * height
-		var tip_left := tip - side * 0.0015
-		var tip_right := tip + side * 0.0015
-		var brightness := rng.randf_range(0.82, 1.16)
-		var root_color := Color(0.12, 0.25, 0.07, 1.0) * brightness
-		var middle_color := Color(0.31, 0.53, 0.15, 1.0) * brightness
-		var tip_color := Color(0.56, 0.68, 0.28, 1.0) * brightness
-		_add_grass_quad(surface, base_left, base_right, middle_right, middle_left, root_color, middle_color)
-		_add_grass_quad(surface, middle_left, middle_right, tip_right, tip_left, middle_color, tip_color)
-	surface.generate_normals()
-	return surface.commit()
-
-
-func _add_grass_quad(surface: SurfaceTool, left_base: Vector3, right_base: Vector3, right_top: Vector3, left_top: Vector3, base_color: Color, top_color: Color) -> void:
-	surface.set_color(base_color)
-	surface.add_vertex(left_base)
-	surface.set_color(base_color)
-	surface.add_vertex(right_base)
-	surface.set_color(top_color)
-	surface.add_vertex(right_top)
-	surface.set_color(base_color)
-	surface.add_vertex(left_base)
-	surface.set_color(top_color)
-	surface.add_vertex(right_top)
-	surface.set_color(top_color)
-	surface.add_vertex(left_top)
-
-func _populate_near_player_grass_batched(progress_start: float, progress_end: float) -> void:
-	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
-		return
-	var flat_position := Vector3(player.global_position.x, 0.0, player.global_position.z)
-	near_player_grass_center = flat_position
-	var multi := near_player_grass.multimesh
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 871203
-	for index in range(NEAR_PLAYER_GRASS_COUNT):
-		var angle := rng.randf_range(0.0, TAU)
-		var radius := sqrt(rng.randf_range(0.45 * 0.45, NEAR_PLAYER_GRASS_RADIUS * NEAR_PLAYER_GRASS_RADIUS))
-		var x := flat_position.x + cos(angle) * radius
-		var z := flat_position.z + sin(angle) * radius
-		var scale_value := rng.randf_range(0.78, 1.28)
-		var grass_instance_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
-		multi.set_instance_transform(index, Transform3D(grass_instance_basis, Vector3(x, 0.008, z)))
-		var shade := rng.randf_range(0.82, 1.08)
-		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
-		if (index + 1) % 128 == 0 or index + 1 == NEAR_PLAYER_GRASS_COUNT:
-			setup_progress.emit("Generating campus grounds and landscaping", lerpf(progress_start, progress_end, float(index + 1) / float(NEAR_PLAYER_GRASS_COUNT)))
-			await get_tree().process_frame
-
-
-func _update_near_player_grass(force: bool = false) -> void:
-	if not is_instance_valid(player) or not is_instance_valid(near_player_grass):
-		return
-	var player_position := player.global_position
-	var flat_position := Vector3(player_position.x, 0.0, player_position.z)
-	if not force and near_player_grass_center != Vector3.INF and near_player_grass_center.distance_to(flat_position) < NEAR_PLAYER_GRASS_UPDATE_DISTANCE:
-		return
-	near_player_grass_center = flat_position
-	var multi := near_player_grass.multimesh
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 871203
-	for index in range(NEAR_PLAYER_GRASS_COUNT):
-		var angle := rng.randf_range(0.0, TAU)
-		var radius := sqrt(rng.randf_range(0.45 * 0.45, NEAR_PLAYER_GRASS_RADIUS * NEAR_PLAYER_GRASS_RADIUS))
-		var x := flat_position.x + cos(angle) * radius
-		var z := flat_position.z + sin(angle) * radius
-		var scale_value := rng.randf_range(0.78, 1.28)
-		var grass_instance_basis := Basis.IDENTITY.scaled(Vector3(scale_value, scale_value, scale_value))
-		multi.set_instance_transform(index, Transform3D(grass_instance_basis, Vector3(x, 0.008, z)))
-		var shade := rng.randf_range(0.82, 1.08)
-		multi.set_instance_color(index, Color(0.72 * shade, 0.91 * shade, 0.60 * shade, 1.0))
 func _build_campus_trees_batched(progress_start: float, progress_end: float) -> void:
 	var trunk_material := StandardMaterial3D.new()
 	trunk_material.albedo_color = Color("#60432e")
@@ -1099,6 +993,7 @@ func _build_player() -> void:
 	player.position = Vector3(-366.0, 0.0, 266.0)
 	player.collision_layer = 1
 	player.collision_mask = 1
+	player.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
 	player.floor_snap_length = 0.28
 	player.safe_margin = 0.06
 
@@ -1111,6 +1006,10 @@ func _build_player() -> void:
 	collision.position.y = 0.92
 	player.add_child(collision)
 	add_child(player)
+	# Prime interpolation history before the first camera read, then avoid a
+	# spawn-time streak from the uninitialized previous transform.
+	player.get_global_transform_interpolated()
+	player.reset_physics_interpolation()
 
 
 func _build_camera() -> void:
@@ -1119,6 +1018,9 @@ func _build_camera() -> void:
 	player_camera.fov = 78.0
 	player_camera.near = 0.08
 	player_camera.far = 500.0
+	# The camera follows the interpolated target manually in _process so touch
+	# look stays immediate instead of being delayed by physics interpolation.
+	player_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(player_camera)
 	player_camera.make_current()
 
@@ -1889,6 +1791,7 @@ func _transport_to_campus_section(section_index: int) -> void:
 		player.global_position.y,
 		SECTION_ROW_CENTERS[row_index]
 	)
+	player.reset_physics_interpolation()
 	player.set_meta("last_explore_section_index", section_index)
 	set_meta("last_explore_section", section_index + 1)
 	_update_camera()
