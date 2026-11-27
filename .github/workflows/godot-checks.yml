@@ -134,6 +134,15 @@ jobs:
       pass_marker: "PROCESSOR_WORKSITE_SMOKE_TEST: PASS"
       log_name: processor-worksite-smoke.log
 
+  phone-worksite-startup-visibility-smoke:
+    name: Phone Worksite startup visibility isolation
+    uses: ./.github/workflows/godot-smoke-test.yml
+    with:
+      test_name: Phone Worksite startup visibility isolation
+      script_path: scripts/tests/phone_worksite_startup_visibility_smoke.gd
+      pass_marker: "PHONE_WORKSITE_STARTUP_VISIBILITY_SMOKE_TEST: PASS"
+      log_name: phone-worksite-startup-visibility-smoke.log
+
   camera-creation-smoke:
     name: Camera Creation Worksite full-project smoke test
     uses: ./.github/workflows/godot-smoke-test.yml
