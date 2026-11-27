@@ -191,9 +191,11 @@ func set_land_parcel_access(parcel_id: String, access_granted: bool, tenure_stat
 		return false
 	for index in range(land_parcels.size()):
 		if str(land_parcels[index].get("id", "")) == parcel_id:
-			land_parcels[index]["access_granted"] = access_granted
-			land_parcels[index]["access_status"] = "accessible" if access_granted else "locked"
-			land_parcels[index]["tenure_status"] = tenure_status if access_granted else "not_acquired"
+			var updated_parcel: Dictionary = land_parcels[index].duplicate(true)
+			updated_parcel["access_granted"] = access_granted
+			updated_parcel["access_status"] = "accessible" if access_granted else "locked"
+			updated_parcel["tenure_status"] = tenure_status if access_granted else "not_acquired"
+			land_parcels[index] = updated_parcel
 			break
 	var section_root := get_node_or_null("Campus_Sections") as Node3D
 	var section := section_root.get_node_or_null("Section_%02d" % (section_index + 1)) as Node3D if is_instance_valid(section_root) else null
