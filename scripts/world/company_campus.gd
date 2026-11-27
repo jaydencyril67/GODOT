@@ -97,7 +97,7 @@ var career_balance_label: Label
 var career_date_label: Label
 var career_clock_button: Button
 
-var camera_yaw := PI * 0.25
+var camera_yaw := PI * 0.5
 var camera_pitch := 0.0
 var camera_touch_index := -1
 var mouse_look_active := false
@@ -249,6 +249,9 @@ func _ready() -> void:
 	set_meta("movement_response", "direct_constant_speed_no_deadzone_no_acceleration")
 	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
+	set_meta("player_spawn_zone", "central_dividing_aisle")
+	set_meta("player_spawn_position", Vector3(-366.0, 0.0, 0.0))
+	set_meta("player_spawn_heading", "east_along_central_aisle")
 
 	setup_progress.emit("Preparing campus environment", 0.0)
 	await get_tree().process_frame
@@ -586,8 +589,11 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 			if str(parcel.get("id", "")) == parcel_id:
 				parcel_tenure = str(parcel.get("tenure_status", parcel_tenure))
 				break
+		var entrance_on_negative_z_side := row_index == 0
 		section.set_meta("section_number", section_index + 1)
 		section.set_meta("section_name", CAMPUS_SECTION_NAMES[section_index])
+		section.set_meta("entrance_side", "north" if entrance_on_negative_z_side else "south")
+		section.set_meta("faces_central_dividing_aisle", true)
 		section.set_meta("property_id", parcel_id)
 		section.set_meta("is_individual_land_parcel", true)
 		section.set_meta("property_area_square_metres", SECTION_HALF_WIDTH * 2.0 * SECTION_HALF_DEPTH * 2.0)
@@ -605,12 +611,12 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var side_progress_base := progress_start + float(section_index * 4) * side_progress_span
 		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, false)
 		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, false)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, false)
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, true)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, entrance_on_negative_z_side)
+		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, not entrance_on_negative_z_side)
 		if not parcel_accessible:
 			_build_locked_property_gate(gates_root, center, section_index)
 			locked_gate_count += 1
-		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material)
+		_build_section_sign(section, CAMPUS_SECTION_SIGN_TEXT[section_index], sign_board_material, sign_support_material, entrance_on_negative_z_side)
 		await get_tree().process_frame
 	var picket_material := StandardMaterial3D.new()
 	picket_material.albedo_color = Color("#a87549")
@@ -808,10 +814,14 @@ func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, se
 	var parcel_id := "LAND-%02d" % (section_index + 1)
 	var gate := StaticBody3D.new()
 	gate.name = "PropertyGate_%02d" % (section_index + 1)
-	gate.position = section_center + Vector3(0.0, 0.0, SECTION_HALF_DEPTH)
+	var row_index := floori(float(section_index) / 4.0)
+	var entrance_offset_z := -SECTION_HALF_DEPTH if row_index == 0 else SECTION_HALF_DEPTH
+	gate.position = section_center + Vector3(0.0, 0.0, entrance_offset_z)
 	gate.collision_layer = 1
 	gate.collision_mask = 1
 	gate.set_meta("property_id", parcel_id)
+	gate.set_meta("entrance_side", "north" if row_index == 0 else "south")
+	gate.set_meta("faces_central_dividing_aisle", true)
 	gate.set_meta("gate_locked", true)
 	gate.set_meta("blocks_player", true)
 	gate.add_to_group("locked_land_gates")
@@ -857,13 +867,14 @@ func _build_section_sign(
 	section: Node3D,
 	sign_text: String,
 	board_material: Material,
-	support_material: Material
+	support_material: Material,
+	entrance_on_negative_z_side: bool
 ) -> void:
 	var sign_root := Node3D.new()
 	sign_root.name = "SectionSign"
 	section.add_child(sign_root)
 
-	var sign_z := -SECTION_HALF_DEPTH + 5.0
+	var sign_z := SECTION_HALF_DEPTH - 5.0 if entrance_on_negative_z_side else -SECTION_HALF_DEPTH + 5.0
 	_add_box(sign_root, "Sign_Support_Left", Vector3(0.20, 2.85, 0.22), Vector3(-3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Sign_Support_Right", Vector3(0.20, 2.85, 0.22), Vector3(3.72, 1.425, sign_z), support_material)
 	_add_box(sign_root, "Wooden_Sign_Board", Vector3(7.55, 1.08, 0.22), Vector3(0.0, 2.43, sign_z), board_material)
@@ -878,8 +889,8 @@ func _build_section_sign(
 	label.outline_modulate = Color("#2d2118")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.rotation.y = 0.0
-	label.position = Vector3(0.0, 2.43, sign_z + 0.13)
+	label.rotation.y = PI if entrance_on_negative_z_side else 0.0
+	label.position = Vector3(0.0, 2.43, sign_z + (0.13 if not entrance_on_negative_z_side else -0.13))
 	sign_root.add_child(label)
 
 
@@ -1228,7 +1239,7 @@ func _add_colored_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vect
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "PlayerCharacter"
-	player.position = Vector3(-366.0, 0.0, 266.0)
+	player.position = Vector3(-366.0, 0.0, 0.0)
 	player.collision_layer = 1
 	player.collision_mask = 1
 	player.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_ON
