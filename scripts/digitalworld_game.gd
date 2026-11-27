@@ -475,6 +475,7 @@ func _resume_company_campus_after_phone_app() -> bool:
 	if not campus_phone_return_active or not is_instance_valid(company_campus):
 		return false
 	campus_phone_return_active = false
+	staff_gateway_active = false
 	if is_instance_valid(ui_layer) and ui_layer != create_ui_layer:
 		ui_layer.hide()
 		ui_layer.queue_free()
