@@ -294,6 +294,7 @@ func _add_fence_design_card(design: Dictionary) -> void:
 	card_style.content_margin_top = 8.0
 	card_style.content_margin_bottom = 8.0
 	card.add_theme_stylebox_override("panel", card_style)
+	catalogue_grid.add_child(card)
 
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
