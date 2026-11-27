@@ -1103,6 +1103,7 @@ func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, se
 	gate.set_meta("property_id", parcel_id)
 	gate.set_meta("entrance_side", side)
 	gate.set_meta("faces_campus_interior", true)
+	gate.set_meta("gate_front_faces_internal_road", true)
 	gate.set_meta("gate_locked", not parcel_accessible)
 	gate.set_meta("blocks_player", true)
 	gate.add_to_group("locked_land_gates")
@@ -1111,16 +1112,16 @@ func _build_locked_property_gate(gates_root: Node3D, section_center: Vector3, se
 	match side:
 		"north":
 			gate_offset = Vector3(0.0, 0.0, SECTION_HALF_DEPTH)
-			gate.rotation.y = PI
+			gate.rotation.y = 0.0
 		"south":
 			gate_offset = Vector3(0.0, 0.0, -SECTION_HALF_DEPTH)
-			gate.rotation.y = 0.0
+			gate.rotation.y = PI
 		"east":
 			gate_offset = Vector3(SECTION_HALF_WIDTH, 0.0, 0.0)
-			gate.rotation.y = -PI * 0.5
+			gate.rotation.y = PI * 0.5
 		"west":
 			gate_offset = Vector3(-SECTION_HALF_WIDTH, 0.0, 0.0)
-			gate.rotation.y = PI * 0.5
+			gate.rotation.y = -PI * 0.5
 		_:
 			push_error("Unknown internal plot gate side: " + side)
 			return gate
