@@ -220,6 +220,7 @@ func _refresh_explore_section_buttons() -> void:
 		var parcel_id := "LAND-%02d" % (section_index + 1)
 		button.set_meta("property_access", "accessible" if accessible else "locked")
 		button.set_meta("property_id", parcel_id)
+		button.text = "%02d   %s   %s" % [section_index + 1, CAMPUS_SECTION_SHORT_NAMES[section_index], "OPEN" if accessible else "LOCKED"]
 		button.tooltip_text = "%s - %s" % [parcel_id, "Access available" if accessible else "Locked: acquire or rent this land"]
 
 
