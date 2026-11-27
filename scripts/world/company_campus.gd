@@ -1179,6 +1179,14 @@ func _build_career_hud(root: Control) -> void:
 	_apply_career_hud_card_style(career_identity_card)
 	row.add_child(career_identity_card)
 
+	# Keep company identity at the left and push all financial/time controls
+	# together to the far right edge of the landscape HUD.
+	var alignment_spacer := Control.new()
+	alignment_spacer.name = "CampusCareerHudAlignmentSpacer"
+	alignment_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	alignment_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(alignment_spacer)
+
 	var identity := VBoxContainer.new()
 	identity.name = "CampusCompanyIdentity"
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
