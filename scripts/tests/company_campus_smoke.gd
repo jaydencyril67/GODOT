@@ -496,6 +496,10 @@ func _run_test() -> void:
 		if section_button == null or int(section_button.get_meta("campus_section_index", -1)) != section_index:
 			_fail("The Explore destination list is missing or has an incorrect section index.")
 			return
+		var expected_access_text := "OPEN" if section_index == 0 else "LOCKED"
+		if not section_button.text.contains(expected_access_text):
+			_fail("The Explore list must visibly label each parcel as OPEN or LOCKED without hiding it.")
+			return
 
 	var seventh_section_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
 	var starter_player_position := player.global_position
@@ -579,6 +583,23 @@ func _run_test() -> void:
 	office_app_icon.emit_signal("pressed")
 	if player.global_position != starter_player_position or not explore_app_view.visible or not explore_status_label.text.contains("LAND-02"):
 		_fail("The Office shortcut bypassed the locked corporate-office land gate instead of showing the access restriction.")
+		return
+
+	var seventh_gate := property_gates.get_node_or_null("PropertyGate_07") as StaticBody3D
+	var seventh_gate_collision := seventh_gate.get_node_or_null("GateCollision") as CollisionShape3D if is_instance_valid(seventh_gate) else null
+	if not bool(campus.call("set_land_parcel_access", "LAND-07", true, "rented")):
+		_fail("The parcel access API rejected a valid rental access update.")
+		return
+	var seventh_section := sections.get_node_or_null("Section_07") as Node3D
+	var seventh_explore_button := campus.find_child("ExploreSectionButton_07", true, false) as Button
+	if seventh_gate.visible or seventh_gate_collision.disabled or not bool(seventh_section.get_meta("access_granted", false)) or not seventh_explore_button.text.contains("OPEN"):
+		_fail("Granting parcel access did not open its gate, disable collision, and refresh its Explore status.")
+		return
+	if not bool(campus.call("set_land_parcel_access", "LAND-07", false, "not_acquired")):
+		_fail("The parcel access API could not re-lock an inactive parcel.")
+		return
+	if not seventh_gate.visible or seventh_gate_collision.disabled or bool(seventh_section.get_meta("access_granted", true)) or not seventh_explore_button.text.contains("LOCKED"):
+		_fail("Re-locking a parcel did not restore its gate collision and Explore status.")
 		return
 
 	project_app_icon.emit_signal("pressed")
