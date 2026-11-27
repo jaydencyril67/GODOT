@@ -256,6 +256,7 @@ func _build_preview_world_batched() -> void:
 	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
 	preview_container.add_child(preview_viewport)
+	preview_container.visibility_changed.connect(Callable(self, "_apply_preview_render_budget"))
 	startup_progress.emit("Building Camera Worksite preview", 12.0)
 	await get_tree().process_frame
 
@@ -407,10 +408,9 @@ func _build_interface_batched() -> void:
 	_build_camera_preview_controls()
 	startup_progress.emit("Building Camera Worksite interface", 20.0)
 	await get_tree().process_frame
-	# SubViewportContainer switches attached viewports to UPDATE_ALWAYS while
-	# mounting. Restore visibility-based rendering after the viewport is mounted
-	# so the studio does not waste frames when the worksite is hidden.
-	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	# The container can override viewport settings while mounting or becoming
+	# visible. Reapply the complete low-end rendering budget after layout.
+	_apply_preview_render_budget()
 
 	right_panel_column = VBoxContainer.new()
 	right_panel_column.name = "CameraCreationRightPanel"
@@ -3318,6 +3318,18 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _apply_preview_render_budget() -> void:
+	if not is_instance_valid(preview_viewport):
+		return
+	# Keep preview rendering inexpensive even after SubViewportContainer
+	# remounts the viewport or the hidden worksite is revealed.
+	preview_viewport.msaa_3d = Viewport.MSAA_DISABLED
+	preview_viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	preview_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	if preview_viewport.size.x <= 0 or preview_viewport.size.y <= 0:
+		preview_viewport.size = Vector2i(640, 640)
+
+
 func _apply_responsive_layout() -> void:
 	if not is_instance_valid(worksite_body) or not is_instance_valid(preview_region) or not is_instance_valid(selection_scroll) or not is_instance_valid(right_panel_column):
 		return
@@ -3336,6 +3348,7 @@ func _apply_responsive_layout() -> void:
 		preview_region.custom_minimum_size = Vector2(0.0, maxf(140.0, viewport_size.y * 0.24))
 		right_panel_column.custom_minimum_size = Vector2(0.0, maxf(270.0, viewport_size.y * 0.52))
 		selection_scroll.custom_minimum_size = Vector2.ZERO
+	_apply_preview_render_budget()
 
 
 func _style_button(button: Button, primary: bool) -> void:
