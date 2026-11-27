@@ -2,8 +2,8 @@ extends Control
 
 signal vector_changed(value: Vector2)
 
-const OUTER_RADIUS := 88.0
-const KNOB_RADIUS := 34.0
+const OUTER_RADIUS := 94.0
+const KNOB_RADIUS := 44.2
 const TRAVEL_RADIUS := 48.0
 
 var _value := Vector2.ZERO
