@@ -20,8 +20,8 @@ func _run_test() -> void:
 		_fail("The Project dashboard scene could not be instantiated.")
 		return
 	root.add_child(dashboard)
-	var back_requests := 0
-	dashboard.back_requested.connect(func(): back_requests += 1)
+	var back_requests := [0]
+	dashboard.back_requested.connect(func(): back_requests[0] += 1)
 	await process_frame
 
 	if str(dashboard.get_meta("project_dashboard_version", "")) != "stage_one_fencing_catalogue":
@@ -87,7 +87,7 @@ func _run_test() -> void:
 		return
 	back_button.emit_signal("pressed")
 	await process_frame
-	if back_requests != 1:
+	if back_requests[0] != 1:
 		_fail("The Project back control did not request a return to the campus.")
 		return
 

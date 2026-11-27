@@ -394,7 +394,7 @@ func _create_fence_preview(design_id: String) -> SubViewportContainer:
 	camera.fov = 40.0
 	camera.near = 0.05
 	camera.far = 80.0
-	camera.look_at(Vector3(0.0, 0.82, 0.0), Vector3.UP)
+	camera.look_at_from_position(camera.position, Vector3(0.0, 0.82, 0.0), Vector3.UP)
 	camera.current = true
 	viewport.add_child(camera)
 
@@ -438,8 +438,8 @@ func _build_wooden_fence_preview(parent: Node3D) -> void:
 
 	for board_index in range(21):
 		var x := -1.92 + float(board_index) * 0.192
-		var material := board_material if board_index % 3 != 1 else dark_board_material
-		_add_preview_box(parent, "WoodBoard_%02d" % board_index, Vector3(0.105, 1.16, 0.075), Vector3(x, 0.86, 0.105), material)
+		var board_surface := board_material if board_index % 3 != 1 else dark_board_material
+		_add_preview_box(parent, "WoodBoard_%02d" % board_index, Vector3(0.105, 1.16, 0.075), Vector3(x, 0.86, 0.105), board_surface)
 
 
 func _build_concrete_block_fence_preview(parent: Node3D) -> void:
@@ -460,13 +460,13 @@ func _build_concrete_block_fence_preview(parent: Node3D) -> void:
 			var x := -total_width * 0.5 + block_width * 0.5 + float(block_index) * (block_width + gap) + offset
 			if x > 1.92:
 				continue
-			var material := block_material if (block_index + course) % 2 == 0 else alternate_block_material
+			var block_surface := block_material if (block_index + course) % 2 == 0 else alternate_block_material
 			_add_preview_box(
 				parent,
 				"MasonryBlock_%02d_%02d" % [course, block_index],
 				Vector3(block_width, 0.245, 0.32),
 				Vector3(x, 0.34 + float(course) * 0.25, 0.0),
-				material
+				block_surface
 			)
 
 	for pier_index in range(3):
@@ -523,7 +523,7 @@ func _add_preview_box(
 	node_name: String,
 	box_size: Vector3,
 	box_position: Vector3,
-	material: StandardMaterial3D
+	surface_material: StandardMaterial3D
 ) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
@@ -531,17 +531,17 @@ func _add_preview_box(
 	mesh.size = box_size
 	instance.mesh = mesh
 	instance.position = box_position
-	instance.material_override = material
+	instance.material_override = surface_material
 	parent.add_child(instance)
 	return instance
 
 
 func _preview_material(color: Color, roughness: float = 0.82, metallic: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = roughness
-	material.metallic = metallic
-	return material
+	var new_material := StandardMaterial3D.new()
+	new_material.albedo_color = color
+	new_material.roughness = roughness
+	new_material.metallic = metallic
+	return new_material
 
 
 func _make_panel_style() -> StyleBoxFlat:
