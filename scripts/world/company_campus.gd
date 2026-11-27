@@ -65,6 +65,7 @@ const SECTION_ROW_CENTERS := [150.0, -150.0]
 const SECTION_HALF_WIDTH := 94.0
 const SECTION_HALF_DEPTH := 144.0
 const SECTION_GATE_WIDTH := 8.0
+const CENTRAL_DIVIDING_AISLE_WIDTH := 12.0
 const STARTER_LAND_PARCEL_ID := "LAND-01"
 const LAND_PARCEL_COUNT := 8
 
@@ -252,6 +253,7 @@ func _ready() -> void:
 	set_meta("player_spawn_zone", "central_dividing_aisle")
 	set_meta("player_spawn_position", Vector3(-366.0, 0.0, 0.0))
 	set_meta("player_spawn_heading", "east_along_central_aisle")
+	set_meta("central_dividing_aisle_width_metres", CENTRAL_DIVIDING_AISLE_WIDTH)
 
 	setup_progress.emit("Preparing campus environment", 0.0)
 	await get_tree().process_frame
@@ -1071,8 +1073,14 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 	var positions: Array[Vector3] = []
 	for index in range(11):
 		var z := lerpf(-238.0, 238.0, float(index) / 10.0)
-		positions.append(Vector3(-354.0, 0.0, z))
-		positions.append(Vector3(354.0, 0.0, z))
+		if absf(z) < 0.01:
+			# Keep the centre dividing aisle clear from end to end. The two
+			# perimeter trees beside this crossing are moved into their plots.
+			positions.append(Vector3(-354.0, 0.0, -20.0))
+			positions.append(Vector3(354.0, 0.0, 20.0))
+		else:
+			positions.append(Vector3(-354.0, 0.0, z))
+			positions.append(Vector3(354.0, 0.0, z))
 	for index in range(11):
 		var x := lerpf(-316.0, 316.0, float(index) / 10.0)
 		positions.append(Vector3(x, 0.0, -254.0))
