@@ -117,6 +117,18 @@ func _run_test() -> void:
 		_fail("The campus area metadata is incorrect.")
 		return
 
+	var spawned_player := campus.get_node_or_null("PlayerCharacter") as CharacterBody3D
+	var expected_starter_spawn := Vector3(-202.0, 0.0, 225.0)
+	if spawned_player == null or spawned_player.global_position.distance_to(expected_starter_spawn) > 0.01:
+		_fail("The player must spawn outside the open Plot 1 east entrance, not beside another plot.")
+		return
+	if str(campus.get_meta("player_spawn_land_parcel_id", "")) != "LAND-01" or str(campus.get_meta("player_spawn_zone", "")) != "starter_plot_01_east_entrance":
+		_fail("The player spawn is not assigned to the starter open plot.")
+		return
+	if not is_equal_approx(float(campus.get("camera_yaw")), -PI * 0.5):
+		_fail("The player must face west through the open Plot 1 entrance at spawn.")
+		return
+
 	var sections := campus.get_node_or_null("Campus_Sections") as Node3D
 	if sections == null or int(sections.get_meta("section_count", 0)) != 16:
 		_fail("The campus does not contain all sixteen planned plots.")

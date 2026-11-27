@@ -95,6 +95,7 @@ const CENTRAL_DIVIDING_AISLE_WIDTH := INTERNAL_ROAD_WIDTH
 const ROAD_VERTICAL_CENTERS := [-200.0, 0.0, 200.0]
 const ROAD_HORIZONTAL_CENTERS := [-150.0, 0.0, 150.0]
 const STARTER_LAND_PARCEL_ID := "LAND-01"
+const STARTER_PLOT_SPAWN_POSITION := Vector3(-202.0, 0.0, 225.0)
 const LAND_PARCEL_COUNT := 16
 
 var land_parcels: Array[Dictionary] = []
@@ -128,7 +129,7 @@ var career_clock_button: Button
 var _property_gate_mesh: Mesh
 var _property_gate_material: StandardMaterial3D
 
-var camera_yaw := PI * 0.5
+var camera_yaw := -PI * 0.5
 var camera_pitch := 0.0
 var camera_touch_index := -1
 var mouse_look_active := false
@@ -314,9 +315,10 @@ func _ready() -> void:
 	set_meta("mobile_render_profile", "performance_first_no_realtime_shadows")
 	set_meta("movement_grass_follow_enabled", false)
 	set_meta("camera_perspective", "first_person_eye_only")
-	set_meta("player_spawn_zone", "central_dividing_aisle")
-	set_meta("player_spawn_position", Vector3(-366.0, 0.0, 0.0))
-	set_meta("player_spawn_heading", "east_along_central_aisle")
+	set_meta("player_spawn_zone", "starter_plot_01_east_entrance")
+	set_meta("player_spawn_land_parcel_id", STARTER_LAND_PARCEL_ID)
+	set_meta("player_spawn_position", STARTER_PLOT_SPAWN_POSITION)
+	set_meta("player_spawn_heading", "west_into_starter_plot_01")
 	set_meta("central_dividing_aisle_width_metres", CENTRAL_DIVIDING_AISLE_WIDTH)
 
 	setup_progress.emit("Preparing campus environment", 0.0)
@@ -1468,7 +1470,7 @@ func _add_colored_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vect
 func _build_player() -> void:
 	player = CharacterBody3D.new()
 	player.name = "PlayerCharacter"
-	player.position = Vector3(-366.0, 0.0, 0.0)
+	player.position = STARTER_PLOT_SPAWN_POSITION
 	player.collision_layer = 1
 	player.collision_mask = 1
 	player.set_meta("motion_model", "continuous_velocity")
