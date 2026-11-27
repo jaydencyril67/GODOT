@@ -142,8 +142,13 @@ func _run_test() -> void:
 		if section_sign == null or section_sign.text.is_empty():
 			_fail("Campus section %d does not have a visible 3D sign." % section_index)
 			return
-		if section_sign.position.z > -130.0:
-			_fail("Campus section %d signage must stay clear of the new south entrance gate." % section_index)
+		var expected_sign_on_positive_z := section_index <= 4
+		if (expected_sign_on_positive_z and section_sign.position.z < 130.0) or (not expected_sign_on_positive_z and section_sign.position.z > -130.0):
+			_fail("Campus section %d signage must stay on the side opposite its central-aisle entrance." % section_index)
+			return
+		var expected_entrance_side := "north" if expected_sign_on_positive_z else "south"
+		if str(section.get_meta("entrance_side", "")) != expected_entrance_side or not bool(section.get_meta("faces_central_dividing_aisle", false)):
+			_fail("Campus section %d does not expose its entrance toward the central dividing aisle." % section_index)
 			return
 
 	var fences := campus.get_node_or_null("Campus_Wooden_Fences") as Node3D
@@ -187,6 +192,12 @@ func _run_test() -> void:
 			return
 		if str(property_gate.get_meta("property_id", "")) != "LAND-%02d" % parcel_number or not bool(property_gate.get_meta("gate_locked", false)):
 			_fail("Land parcel %02d has an incorrectly assigned entrance gate." % parcel_number)
+			return
+		var expected_columns := [-300.0, -100.0, 100.0, 300.0]
+		var expected_gate_z := 6.0 if parcel_number <= 4 else -6.0
+		var expected_gate_position := Vector3(expected_columns[(parcel_number - 1) % 4], 0.0, expected_gate_z)
+		if property_gate.position.distance_to(expected_gate_position) > 0.001 or not bool(property_gate.get_meta("faces_central_dividing_aisle", false)):
+			_fail("Land parcel %02d gate is not mounted on its central-aisle-facing plot edge." % parcel_number)
 			return
 
 	var clouds := campus.get_node_or_null("Campus_Clouds") as MultiMeshInstance3D
@@ -252,6 +263,12 @@ func _run_test() -> void:
 	if player.physics_interpolation_mode != Node.PHYSICS_INTERPOLATION_MODE_ON:
 		_fail("The campus player must explicitly use physics transform interpolation.")
 		return
+	if player.position.distance_to(Vector3(-366.0, 0.0, 0.0)) > 0.001 or campus.get_meta("player_spawn_zone", "") != "central_dividing_aisle":
+		_fail("The player must spawn on the central dividing aisle, outside every land parcel.")
+		return
+	if not is_equal_approx(float(campus.camera_yaw), PI * 0.5) or campus.get_meta("player_spawn_heading", "") != "east_along_central_aisle":
+		_fail("The player must initially face along the central aisle toward the opposing gate rows.")
+		return
 	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
 		_fail("Project-wide physics interpolation must be enabled for smooth rendered movement.")
 		return
@@ -264,6 +281,9 @@ func _run_test() -> void:
 	var released_input_velocity: Vector3 = campus.call("_calculate_horizontal_velocity", Vector2.ZERO)
 	if not is_equal_approx(full_input_velocity.length(), 2.0):
 		_fail("Full joystick input must produce the calibrated 2.0 m/s slide speed.")
+		return
+	if not is_equal_approx(full_input_velocity.x, 2.0) or not is_equal_approx(full_input_velocity.z, 0.0):
+		_fail("Forward movement must follow the central dividing aisle east-west instead of entering either plot row.")
 		return
 	if not is_equal_approx(slight_input_velocity.length(), 2.0):
 		_fail("Any non-zero joystick input, however small, must immediately produce the full 1.5 m/s speed.")
@@ -287,7 +307,7 @@ func _run_test() -> void:
 	if fence_hit.is_empty() or fence_hit.get("collider") != fence_collisions:
 		_fail("A physics ray passed through a solid wooden fence section.")
 		return
-	var gate_ray := PhysicsRayQueryParameters3D.create(Vector3(-100.0, 1.0, 300.0), Vector3(-100.0, 1.0, 288.0))
+	var gate_ray := PhysicsRayQueryParameters3D.create(Vector3(-100.0, 1.0, 12.0), Vector3(-100.0, 1.0, 0.0))
 	gate_ray.collision_mask = 1
 	gate_ray.collide_with_bodies = true
 	gate_ray.collide_with_areas = false
