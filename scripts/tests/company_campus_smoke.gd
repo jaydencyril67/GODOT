@@ -241,16 +241,16 @@ func _run_test() -> void:
 			match side:
 				"north":
 					expected_gate_position += Vector3(0.0, 0.0, 69.0)
-					expected_gate_yaw = 0.0
+					expected_gate_yaw = PI
 				"south":
 					expected_gate_position += Vector3(0.0, 0.0, -69.0)
-					expected_gate_yaw = PI
+					expected_gate_yaw = 0.0
 				"east":
 					expected_gate_position += Vector3(94.0, 0.0, 0.0)
-					expected_gate_yaw = PI * 0.5
+					expected_gate_yaw = -PI * 0.5
 				"west":
 					expected_gate_position += Vector3(-94.0, 0.0, 0.0)
-					expected_gate_yaw = -PI * 0.5
+					expected_gate_yaw = PI * 0.5
 			if property_gate.position.distance_to(expected_gate_position) > 0.001 or not is_equal_approx(property_gate.rotation.y, expected_gate_yaw):
 				_fail("Plot %02d's %s gate is not mounted on its own inward-facing plot boundary." % [parcel_number, side])
 				return
