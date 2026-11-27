@@ -14,15 +14,24 @@ func _run_camera_worksite_test() -> void:
 		_fail("Camera Creation Worksite scene failed to instantiate.")
 		return
 
+	worksite.call("set_defer_initial_setup", true)
+	worksite.process_mode = Node.PROCESS_MODE_DISABLED
+	worksite.hide()
 	root.add_child(worksite)
-	var setup_frames := 0
-	while not bool(worksite.get("startup_setup_complete")) and setup_frames < 300:
-		await process_frame
-		setup_frames += 1
-	if not bool(worksite.get("startup_setup_complete")):
+	var setup_succeeded: bool = await worksite.call("prepare_for_initial_load")
+	if not setup_succeeded or not bool(worksite.get("startup_setup_complete")):
 		_fail("Camera Worksite did not finish its batched first-load preparation.")
 		worksite.free()
 		return
+	var interface_layer := worksite.get_node_or_null("CameraCreationWorksiteInterface") as CanvasLayer
+	if interface_layer == null or interface_layer.visible:
+		_fail("Camera Worksite CanvasLayer leaked through the hidden startup scene.")
+		worksite.free()
+		return
+	# Reveal only after the production-style deferred preparation has completed.
+	worksite.process_mode = Node.PROCESS_MODE_INHERIT
+	worksite.show()
+	interface_layer.show()
 	worksite.call("_apply_responsive_layout")
 
 	var worksite_root := worksite.find_child("WorksiteRoot", true, false) as Control
