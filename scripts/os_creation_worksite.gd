@@ -692,7 +692,7 @@ func _build_all_step_content_panels_batched() -> void:
 		var panel := VBoxContainer.new()
 		panel.name = "OSStepControls_%02d" % step_index
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		panel.alignment = BoxContainer.ALIGNMENT_CENTER
 		panel.add_theme_constant_override("separation", 28)
 		panel.visible = false
