@@ -1385,7 +1385,7 @@ func _collect_files_batched(folder_path: String, output: Array[String], category
 	var processed_entries := 0
 	var reported_batches := 0
 	while not pending_directories.is_empty():
-		var current_folder := pending_directories.pop_back()
+		var current_folder: String = pending_directories.pop_back()
 		var directory := DirAccess.open(current_folder)
 		if directory == null:
 			continue
@@ -1393,7 +1393,7 @@ func _collect_files_batched(folder_path: String, output: Array[String], category
 		var entry := directory.get_next()
 		while not entry.is_empty():
 			if entry != "." and entry != "..":
-				var full_path := current_folder.path_join(entry)
+				var full_path: String = current_folder.path_join(entry)
 				if directory.current_is_dir():
 					pending_directories.append(full_path)
 				else:
