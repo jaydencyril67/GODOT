@@ -15,7 +15,7 @@ This repository contains the game itself, not a website wrapper. The running gam
 
 ## Company campus
 
-The career home is an **800 m × 600 m** walkable campus covering **480,000 m² (48 hectares)**. Its eight sections are arranged as four columns by two rows:
+The career home is an **800 m × 600 m** walkable campus covering **480,000 m² (48 hectares)**. Its sixteen independent plots are arranged as four columns by four rows, with each plot measuring approximately **188 m × 138 m**. The original campus footprint is unchanged.
 
 1. Main Entrance, Security & Reception
 2. Administration & Corporate Offices
@@ -25,8 +25,18 @@ The career home is an **800 m × 600 m** walkable campus covering **480,000 m² 
 6. Production & Operations
 7. Logistics, Warehouses & Loading
 8. Landscaping, Green Spaces & Utilities
+9. Expansion Zone A
+10. Expansion Zone B
+11. Innovation Hub
+12. Future Projects
+13. R&D Extension
+14. Manufacturing Expansion
+15. Global Business Hub
+16. Special Projects
 
-The player uses direct analogue joystick movement and an eye-only first-person camera. Campus sections have perimeter fencing and access gates. The campus is generated as part of the career loading flow and remains the home world while phone apps and external workspaces are opened.
+The twelve-metre internal road corridors use a shared, merged asphalt surface with lightweight instanced lane markings; plot ground remains grass. Every plot owns a physical gate on each side that borders another plot. Gate fronts face the internal roads so neighbouring gates face one another, while the outer campus perimeter has no plot gates. Plot 1 starts accessible with its two internal entrances open; the other fifteen plots start locked.
+
+The player begins on the central east-west asphalt aisle, outside the plots, and uses direct analogue joystick movement with an eye-only first-person camera. Existing careers keep their saved access and tenure for plots 1–8; plots 9–16 are added as locked plots. The campus is generated as part of the career loading flow and remains the home world while phone apps and external workspaces are opened.
 
 The old ten-level headquarters showroom, its building tiers, office purchase/downgrade flow, and monthly headquarters rent system have been removed. Hiring is no longer locked behind owning or upgrading a headquarters building.
 
