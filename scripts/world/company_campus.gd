@@ -624,7 +624,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	var post_material := StandardMaterial3D.new()
 	post_material.albedo_color = Color("#67452e")
 	post_material.roughness = 0.94
-		var sign_board_material := StandardMaterial3D.new()
+	var sign_board_material := StandardMaterial3D.new()
 	sign_board_material.albedo_color = Color("#503522")
 	sign_board_material.roughness = 0.92
 	var sign_support_material := StandardMaterial3D.new()
@@ -633,7 +633,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 
 	var post_mesh := BoxMesh.new()
 	post_mesh.size = Vector3.ONE
-		var picket_mesh := BoxMesh.new()
+	var picket_mesh := BoxMesh.new()
 	picket_mesh.size = Vector3(0.16, 1.18, 0.10)
 	var post_transforms: Array[Transform3D] = []
 	var picket_transforms: Array[Transform3D] = []

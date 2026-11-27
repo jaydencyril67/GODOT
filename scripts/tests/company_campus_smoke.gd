@@ -193,7 +193,6 @@ func _run_test() -> void:
 	if fences.get_node_or_null("Fence_Rails") != null or int(fences.get_meta("horizontal_rail_count", -1)) != 0 or not bool(fences.get_meta("horizontal_rails_removed", false)):
 		_fail("Unwanted upper and lower horizontal wooden rails are still being generated.")
 		return
-		return
 	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
 		_fail("The wooden fence post instances are missing or incomplete.")
 		return
