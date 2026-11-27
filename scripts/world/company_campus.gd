@@ -773,7 +773,7 @@ func _build_asphalt_road_network() -> void:
 					break
 			if not near_intersection:
 				var dash_basis := Basis.IDENTITY.scaled(Vector3(2.6, 0.012, 0.16))
-				dash_transforms.append(Transform3D(dash_basis, Vector3(x_position, 0.052, horizontal_z)))
+				dash_transforms.append(Transform3D(dash_basis, Vector3(x_position, 0.041, horizontal_z)))
 			x_position += 14.0
 
 	for vertical_x in ROAD_VERTICAL_CENTERS:
@@ -786,7 +786,7 @@ func _build_asphalt_road_network() -> void:
 					break
 			if not near_intersection:
 				var dash_basis := Basis.IDENTITY.scaled(Vector3(0.16, 0.012, 2.6))
-				dash_transforms.append(Transform3D(dash_basis, Vector3(vertical_x, 0.052, z_position)))
+				dash_transforms.append(Transform3D(dash_basis, Vector3(vertical_x, 0.041, z_position)))
 			z_position += 14.0
 
 	var dash_multi := MultiMesh.new()
@@ -1366,14 +1366,16 @@ func _build_campus_trees_batched(progress_start: float, progress_end: float) -> 
 	var trunk_mesh := _create_tree_trunk_mesh(trunk_material)
 	var canopy_mesh := _create_tree_canopy_mesh(leaf_material)
 	var positions: Array[Vector3] = []
+	# Keep all perimeter tree trunks outside the fenced plot footprints. The
+	# six-metre border strip remains green without placing blockers in plots or roads.
 	var perimeter_tree_z_positions := [-260.0, -220.0, -185.0, -110.0, -75.0, -35.0, 35.0, 75.0, 110.0, 185.0, 260.0]
 	for z in perimeter_tree_z_positions:
-		positions.append(Vector3(-382.0, 0.0, z))
-		positions.append(Vector3(382.0, 0.0, z))
+		positions.append(Vector3(-398.0, 0.0, z))
+		positions.append(Vector3(398.0, 0.0, z))
 	var perimeter_tree_x_positions := [-380.0, -340.0, -280.0, -240.0, -120.0, -80.0, 80.0, 120.0, 240.0, 280.0, 340.0]
 	for x in perimeter_tree_x_positions:
-		positions.append(Vector3(x, 0.0, -288.0))
-		positions.append(Vector3(x, 0.0, 288.0))
+		positions.append(Vector3(x, 0.0, -298.0))
+		positions.append(Vector3(x, 0.0, 298.0))
 
 	var trunk_multi := MultiMesh.new()
 	trunk_multi.transform_format = MultiMesh.TRANSFORM_3D
