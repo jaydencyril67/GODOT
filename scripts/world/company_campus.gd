@@ -8,7 +8,6 @@ signal worksite_launch_requested(worksite_id: String)
 signal research_launch_requested(research_id: String)
 signal project_launch_requested
 signal staff_launch_requested(staff_screen_id: String)
-signal legacy_app_launch_requested(app_id: String)
 
 const JoystickScript = preload("res://scripts/world/campus_joystick.gd")
 const OSPhoneModelScript = preload("res://scripts/os_worksite_phone_model.gd")
@@ -82,8 +81,6 @@ var explore_app_view: Control
 var explore_status_label: Label
 var explore_section_buttons: Array[Button] = []
 var phone_app_views: Dictionary = {}
-var worksite_app_buttons: Array[Button] = []
-var research_app_buttons: Array[Button] = []
 var staffs_app_buttons: Array[Button] = []
 var career_company_name := "YOUR COMPANY"
 var career_insignia_texture: Texture2D
@@ -1386,7 +1383,7 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	phone_screen_ui.clip_contents = true
 	phone_screen_ui.z_index = 8
 	phone_screen_ui.set_meta("screen_powered", true)
-	phone_screen_ui.set_meta("home_app_count", 11)
+	phone_screen_ui.set_meta("home_app_count", 10)
 	phone_screen_ui.set_meta("active_app", "home")
 	phone_screen_ui.add_theme_stylebox_override(
 		"panel",
@@ -1434,7 +1431,6 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	_add_phone_home_app(app_grid, "Worksite", "WorksiteAppIcon", "▦", Callable(self, "_launch_worksite_app"))
 	_add_phone_home_app(app_grid, "Research", "ResearchAppIcon", "◈", Callable(self, "_launch_research_app"))
 	_add_phone_home_app(app_grid, "Staffs", "StaffsAppIcon", "♙", Callable(self, "_launch_staffs_app"))
-	_add_phone_home_app(app_grid, "Create", "CreateAppIcon", "✚", Callable(self, "_request_legacy_app_launch").bind("create"))
 	_add_phone_home_app(app_grid, "Products", "ProductsAppIcon", "▣", Callable(self, "_launch_phone_feature_app").bind("products"))
 	setup_progress.emit("Setting up first-person campus controls", 68.0)
 	await get_tree().process_frame
@@ -1484,53 +1480,9 @@ func _build_phone_screen_ui_batched(root: Control) -> void:
 	explore_status_label.add_theme_color_override("font_color", Color("#8FD7D1"))
 	explore_app_view.add_child(explore_status_label)
 
-	var worksite_page := _create_phone_app_page("WorksiteAppScreen", "Worksite", "Choose a workspace to open", "WorksiteBackToHomeButton")
-	phone_screen_ui.add_child(worksite_page["page"])
-	phone_app_views["worksite"] = worksite_page["page"]
-	var worksite_list: VBoxContainer = worksite_page["list"]
-	worksite_app_buttons.clear()
-	var worksite_options := [
-		{"id": "phone", "name": "Phone Creation Worksite", "detail": "Design and build phones"},
-		{"id": "camera", "name": "Camera Worksite", "detail": "Create camera systems"},
-		{"id": "os", "name": "OS Worksite", "detail": "Design the operating system"},
-		{"id": "processor", "name": "Processor Worksite", "detail": "Build processor designs"}
-	]
-	for option in worksite_options:
-		var option_id := str(option["id"])
-		var worksite_button := _create_phone_destination_button(
-			worksite_list,
-			"WorksiteOption_" + option_id.capitalize(),
-			str(option["name"]),
-			str(option["detail"]),
-			Callable(self, "_request_worksite_launch").bind(option_id)
-		)
-		worksite_app_buttons.append(worksite_button)
-		setup_progress.emit("Setting up first-person campus controls", 80.0)
-		await get_tree().process_frame
-
-	var research_page := _create_phone_app_page("ResearchAppScreen", "Research", "Open a research workspace", "ResearchBackToHomeButton")
-	phone_screen_ui.add_child(research_page["page"])
-	phone_app_views["research"] = research_page["page"]
-	var research_list: VBoxContainer = research_page["list"]
-	research_app_buttons.clear()
-	var research_options := [
-		{"id": "hub", "name": "Research Hub", "detail": "Browse all research areas"},
-		{"id": "phone", "name": "Phone Research", "detail": "Phone technology and components"},
-		{"id": "camera", "name": "Camera Research", "detail": "Imaging and camera technology"},
-		{"id": "processor", "name": "Processor Research", "detail": "Chip and processor technology"}
-	]
-	for option in research_options:
-		var option_id := str(option["id"])
-		var research_button := _create_phone_destination_button(
-			research_list,
-			"ResearchOption_" + option_id.capitalize(),
-			str(option["name"]),
-			str(option["detail"]),
-			Callable(self, "_request_research_launch").bind(option_id)
-		)
-		research_app_buttons.append(research_button)
-		setup_progress.emit("Setting up first-person campus controls", 86.0)
-		await get_tree().process_frame
+	# Worksite and Research now open their standalone gateway screens directly.
+	setup_progress.emit("Setting up first-person campus controls", 80.0)
+	await get_tree().process_frame
 
 	var staffs_page := _create_phone_app_page("StaffsAppScreen", "Staffs", "Choose a staff area to open", "StaffsBackToHomeButton")
 	phone_screen_ui.add_child(staffs_page["page"])
@@ -1774,13 +1726,6 @@ func _launch_office_shortcut() -> void:
 	_return_to_phone_home()
 
 
-func _request_legacy_app_launch(app_id: String) -> void:
-	if app_id != "create":
-		return
-	_close_phone_for_external_scene()
-	legacy_app_launch_requested.emit(app_id)
-
-
 func _launch_explore_app() -> void:
 	_open_phone_app("explore")
 	if is_instance_valid(explore_status_label):
@@ -1788,11 +1733,11 @@ func _launch_explore_app() -> void:
 
 
 func _launch_worksite_app() -> void:
-	_open_phone_app("worksite")
+	_request_worksite_launch("create")
 
 
 func _launch_research_app() -> void:
-	_open_phone_app("research")
+	_request_research_launch("hub")
 
 
 func _request_project_launch() -> void:
@@ -1828,7 +1773,7 @@ func _close_phone_for_external_scene() -> void:
 
 
 func _request_worksite_launch(worksite_id: String) -> void:
-	if not ["phone", "camera", "os", "processor"].has(worksite_id):
+	if worksite_id != "create":
 		return
 	_close_phone_for_external_scene()
 	worksite_launch_requested.emit(worksite_id)
