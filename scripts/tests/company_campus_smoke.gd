@@ -182,20 +182,20 @@ func _run_test() -> void:
 		_fail("The wooden campus fence system is missing.")
 		return
 	var fence_posts := fences.get_node_or_null("Fence_Posts") as MultiMeshInstance3D
-	var fence_rails := fences.get_node_or_null("Fence_Rails") as MultiMeshInstance3D
 	var fence_pickets := fences.get_node_or_null("Fence_Vertical_Pickets") as MultiMeshInstance3D
 	var fence_collisions := fences.get_node_or_null("Fence_Collisions") as StaticBody3D
-	if fence_posts == null or fence_rails == null or fence_pickets == null or fence_collisions == null:
-		_fail("The hybrid wooden fence posts, rails, pickets, or collision body are missing.")
+	if fence_posts == null or fence_pickets == null or fence_collisions == null:
+		_fail("The vertical wooden fence posts, pickets, or collision body are missing.")
 		return
-	if fences.get_meta("fence_style", "") != "hybrid_post_rail_vertical_picket":
-		_fail("The campus fence is not the upgraded hybrid timber picket style.")
+	if fences.get_meta("fence_style", "") != "vertical_post_picket_only":
+		_fail("The campus fence is not using the cleaned vertical post-and-picket style.")
+		return
+	if fences.get_node_or_null("Fence_Rails") != null or int(fences.get_meta("horizontal_rail_count", -1)) != 0 or not bool(fences.get_meta("horizontal_rails_removed", false)):
+		_fail("Unwanted upper and lower horizontal wooden rails are still being generated.")
+		return
 		return
 	if fence_posts.multimesh == null or fence_posts.multimesh.instance_count < 500:
 		_fail("The wooden fence post instances are missing or incomplete.")
-		return
-	if fence_rails.multimesh == null or fence_rails.multimesh.instance_count < 100:
-		_fail("The wooden fence rail instances are missing or incomplete.")
 		return
 	if fence_pickets.multimesh == null or fence_pickets.multimesh.instance_count < 25000:
 		_fail("The vertical wooden picket panels are missing or incomplete.")

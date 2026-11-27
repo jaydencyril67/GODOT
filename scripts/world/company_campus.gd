@@ -624,10 +624,7 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	var post_material := StandardMaterial3D.new()
 	post_material.albedo_color = Color("#67452e")
 	post_material.roughness = 0.94
-	var rail_material := StandardMaterial3D.new()
-	rail_material.albedo_color = Color("#8a5b38")
-	rail_material.roughness = 0.92
-	var sign_board_material := StandardMaterial3D.new()
+		var sign_board_material := StandardMaterial3D.new()
 	sign_board_material.albedo_color = Color("#503522")
 	sign_board_material.roughness = 0.92
 	var sign_support_material := StandardMaterial3D.new()
@@ -636,12 +633,9 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 
 	var post_mesh := BoxMesh.new()
 	post_mesh.size = Vector3.ONE
-	var rail_mesh := BoxMesh.new()
-	rail_mesh.size = Vector3.ONE
-	var picket_mesh := BoxMesh.new()
+		var picket_mesh := BoxMesh.new()
 	picket_mesh.size = Vector3(0.16, 1.18, 0.10)
 	var post_transforms: Array[Transform3D] = []
-	var rail_transforms: Array[Transform3D] = []
 	var picket_transforms: Array[Transform3D] = []
 
 	var fence_collisions := StaticBody3D.new()
@@ -696,10 +690,10 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 		var side_progress_span := (progress_end - progress_start) * 0.55 / float(CAMPUS_SECTION_NAMES.size() * 4)
 		var side_progress_base := progress_start + float(section_index * 4) * side_progress_span
 
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, internal_sides.has("west"))
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, internal_sides.has("east"))
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, internal_sides.has("north"))
-		await _append_fence_side_batched(post_transforms, rail_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, internal_sides.has("south"))
+		await _append_fence_side_batched(post_transforms, picket_transforms, fence_collisions, west_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base, side_progress_base + side_progress_span, internal_sides.has("west"))
+		await _append_fence_side_batched(post_transforms, picket_transforms, fence_collisions, east_start, Vector3(0.0, 0.0, 1.0), SECTION_HALF_DEPTH * 2.0, side_progress_base + side_progress_span, side_progress_base + side_progress_span * 2.0, internal_sides.has("east"))
+		await _append_fence_side_batched(post_transforms, picket_transforms, fence_collisions, north_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 2.0, side_progress_base + side_progress_span * 3.0, internal_sides.has("north"))
+		await _append_fence_side_batched(post_transforms, picket_transforms, fence_collisions, south_start, Vector3.RIGHT, SECTION_HALF_WIDTH * 2.0, side_progress_base + side_progress_span * 3.0, side_progress_base + side_progress_span * 4.0, internal_sides.has("south"))
 
 		for side in internal_sides:
 			_build_locked_property_gate(gates_root, center, section_index, side, parcel_accessible)
@@ -713,14 +707,13 @@ func _build_campus_sections_batched(progress_start: float, progress_end: float) 
 	picket_material.albedo_color = Color("#a87549")
 	picket_material.roughness = 0.93
 	var posts: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Posts", post_mesh, post_material, post_transforms, progress_start + (progress_end - progress_start) * 0.55, progress_start + (progress_end - progress_start) * 0.68)
-	var rails: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Rails", rail_mesh, rail_material, rail_transforms, progress_start + (progress_end - progress_start) * 0.68, progress_start + (progress_end - progress_start) * 0.80)
 	var pickets: MultiMeshInstance3D = await _add_fence_multimesh_batched(fence_root, "Fence_Vertical_Pickets", picket_mesh, picket_material, picket_transforms, progress_start + (progress_end - progress_start) * 0.80, progress_start + (progress_end - progress_start) * 0.99)
 	posts.set_meta("fence_component", "structural_posts")
-	rails.set_meta("fence_component", "horizontal_rails")
 	pickets.set_meta("fence_component", "vertical_pickets")
-	fence_root.set_meta("fence_style", "hybrid_post_rail_vertical_picket")
+	fence_root.set_meta("fence_style", "vertical_post_picket_only")
 	fence_root.set_meta("post_count", post_transforms.size())
-	fence_root.set_meta("rail_segment_count", rail_transforms.size())
+	fence_root.set_meta("horizontal_rail_count", 0)
+	fence_root.set_meta("horizontal_rails_removed", true)
 	fence_root.set_meta("picket_count", picket_transforms.size())
 	fence_root.set_meta("collision_segment_count", fence_collisions.get_child_count())
 	fence_root.set_meta("locked_gate_count", locked_gate_count)
@@ -846,7 +839,6 @@ func _is_on_asphalt_road(x: float, z: float) -> bool:
 
 func _append_fence_side(
 	post_transforms: Array[Transform3D],
-	rail_transforms: Array[Transform3D],
 	picket_transforms: Array[Transform3D],
 	fence_collisions: StaticBody3D,
 	start: Vector3,
@@ -870,9 +862,6 @@ func _append_fence_side(
 			continue
 
 		var segment_center := start + normalized_direction * ((segment_start + segment_end) * 0.5)
-		for rail_height in [0.38, 1.08]:
-			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.16, 0.18))
-			rail_transforms.append(Transform3D(rail_basis, segment_center + Vector3.UP * rail_height))
 
 		var picket_spacing := 0.34
 		var picket_count := maxi(1, ceili(segment_length / picket_spacing))
@@ -901,7 +890,6 @@ func _append_fence_side(
 
 func _append_fence_side_batched(
 	post_transforms: Array[Transform3D],
-	rail_transforms: Array[Transform3D],
 	picket_transforms: Array[Transform3D],
 	fence_collisions: StaticBody3D,
 	start: Vector3,
@@ -931,9 +919,6 @@ func _append_fence_side_batched(
 		if segment_length <= 0.5:
 			continue
 		var segment_center := start + normalized_direction * ((segment_start + segment_end) * 0.5)
-		for rail_height in [0.38, 1.08]:
-			var rail_basis := Basis(Vector3.UP, yaw).scaled(Vector3(segment_length, 0.16, 0.18))
-			rail_transforms.append(Transform3D(rail_basis, segment_center + Vector3.UP * rail_height))
 		var picket_spacing := 0.34
 		var picket_count := maxi(1, ceili(segment_length / picket_spacing))
 		for picket_index in range(picket_count):
