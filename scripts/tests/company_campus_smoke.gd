@@ -301,8 +301,8 @@ func _run_test() -> void:
 	await process_frame
 	var aisle_clear_ray := PhysicsRayQueryParameters3D.create(Vector3(-360.0, 0.80, 0.0), Vector3(-348.0, 0.80, 0.0))
 	aisle_clear_ray.collision_mask = 1
-	 aisle_clear_ray.collide_with_bodies = true
-	 aisle_clear_ray.collide_with_areas = false
+	aisle_clear_ray.collide_with_bodies = true
+	aisle_clear_ray.collide_with_areas = false
 	var aisle_clear_hit := campus.get_world_3d().direct_space_state.intersect_ray(aisle_clear_ray)
 	if not aisle_clear_hit.is_empty():
 		_fail("A perimeter tree or fence collision blocks the central dividing aisle near the starting point.")
