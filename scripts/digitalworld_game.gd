@@ -271,7 +271,7 @@ func _normalize_land_parcel_state() -> void:
 				parcels_by_id[saved_id] = saved_parcel.duplicate(true)
 
 	var normalized_parcels: Array[Dictionary] = []
-	for section_index in range(8):
+	for section_index in range(16):
 		var parcel_id := "LAND-%02d" % (section_index + 1)
 		var parcel_value: Variant = parcels_by_id.get(parcel_id, {})
 		var parcel: Dictionary = parcel_value.duplicate(true) if parcel_value is Dictionary else {}
