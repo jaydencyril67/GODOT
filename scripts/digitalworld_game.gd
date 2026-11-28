@@ -243,6 +243,7 @@ func _load_career() -> bool:
 		"balance": float(config.get_value("career", "balance", STARTING_COMPANY_BALANCE)),
 		"fence_level": clampi(int(config.get_value("career", "fence_level", 1)), 1, 4),
 		"pending_fence_upgrade": config.get_value("career", "pending_fence_upgrade", {}),
+		"development_start_balance_applied": bool(config.get_value("career", "development_start_balance_applied", false)),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
 		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
@@ -268,6 +269,11 @@ func _load_career() -> bool:
 	last_saved_game_day = floori(game_date_unix / 86400.0)
 	if not str(career.get("company_name", "")).is_empty():
 		_ensure_staff_data()
+	if not bool(career.get("development_start_balance_applied", false)):
+		career["balance"] = maxf(float(career.get("balance", STARTING_COMPANY_BALANCE)), STARTING_COMPANY_BALANCE)
+		career["development_start_balance_applied"] = true
+		if not _save_career():
+			push_warning("The one-time $900M development testing balance could not be saved.")
 	return not str(career.get("company_name", "")).is_empty()
 
 
@@ -385,6 +391,7 @@ func _save_career() -> bool:
 	config.set_value("career", "balance", float(career.get("balance", STARTING_COMPANY_BALANCE)))
 	config.set_value("career", "fence_level", clampi(int(career.get("fence_level", 1)), 1, 4))
 	config.set_value("career", "pending_fence_upgrade", career.get("pending_fence_upgrade", {}))
+	config.set_value("career", "development_start_balance_applied", bool(career.get("development_start_balance_applied", true)))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
 	config.set_value("career", "last_payroll_billed_month", str(career.get("last_payroll_billed_month", _get_game_month_key(game_date_unix))))
@@ -1614,6 +1621,8 @@ func _create_company() -> void:
 		career["fence_level"] = 1
 	if not career.has("pending_fence_upgrade"):
 		career["pending_fence_upgrade"] = {}
+	if not career.has("development_start_balance_applied"):
+		career["development_start_balance_applied"] = true
 	if not career.has("game_date_unix"):
 		game_date_unix = GAME_START_DATE_UNIX
 		career["game_date_unix"] = game_date_unix

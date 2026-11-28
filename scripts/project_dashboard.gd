@@ -16,7 +16,7 @@ const FENCE_DESIGNS := [
 		"level": "LEVEL 01",
 		"name": "Wooden Fence",
 		"descriptor": "TREATED TIMBER",
-		"description": "Timber posts, horizontal support rails and closely spaced vertical boards. The basic perimeter option."
+		"description": "Treated timber posts and closely spaced vertical boards form the basic perimeter boundary."
 	},
 	{
 		"id": "concrete_block",

@@ -433,7 +433,7 @@ func _run_test() -> void:
 		return
 	await physics_frame
 	await process_frame
-	var aisle_clear_ray := PhysicsRayQueryParameters3D.create(Vector3(-203.0, 0.80, 225.0), Vector3(-197.0, 0.80, 225.0))
+	var aisle_clear_ray := PhysicsRayQueryParameters3D.create(Vector3(-208.0, 0.80, 225.0), Vector3(-203.0, 0.80, 225.0))
 	aisle_clear_ray.collision_mask = 1
 	aisle_clear_ray.collide_with_bodies = true
 	aisle_clear_ray.collide_with_areas = false
