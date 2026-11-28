@@ -16,6 +16,17 @@ const WorldGlobeScene: PackedScene = preload("res://scenes/world_globe.tscn")
 const ConfirmModalScript = preload("res://scripts/ui/digitalworld_confirm_modal.gd")
 const SAVE_PATH := "user://digitalworld_save.cfg"
 const GAME_START_DATE_UNIX := 1577836800.0 # 2020-01-01 00:00:00 UTC
+const STARTING_COMPANY_BALANCE := 900000000.0
+const FENCE_UPGRADE_FULL_COSTS := {
+	2: 2000000,
+	3: 3500000,
+	4: 5000000
+}
+const FENCE_UPGRADE_DESIGN_NAMES := {
+	2: "Concrete Block Wall",
+	3: "Modern Steel Security Fence",
+	4: "Premium Architectural Security Fence"
+}
 
 const LOGO_NAMES := [
 	"Orchard", "Skybird", "Crown", "Apex", "Volt", "Prism", "Quantum", "Helix", "Titan", "Zenith",
@@ -229,7 +240,9 @@ func _load_career() -> bool:
 		"fingerprint_sensor_available": bool(config.get_value("career", "fingerprint_sensor_available", true)),
 		"created_at": str(config.get_value("career", "created_at", "")),
 		"last_opened_at": str(config.get_value("career", "last_opened_at", "")),
-		"balance": float(config.get_value("career", "balance", 10000000.0)),
+		"balance": float(config.get_value("career", "balance", STARTING_COMPANY_BALANCE)),
+		"fence_level": clampi(int(config.get_value("career", "fence_level", 1)), 1, 4),
+		"pending_fence_upgrade": config.get_value("career", "pending_fence_upgrade", {}),
 		"game_date_unix": float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX)),
 		"game_clock_paused": bool(config.get_value("career", "game_clock_paused", false)),
 		"last_payroll_billed_month": str(config.get_value("career", "last_payroll_billed_month", _get_game_month_key(float(config.get_value("career", "game_date_unix", GAME_START_DATE_UNIX))))),
@@ -369,7 +382,9 @@ func _save_career() -> bool:
 	config.set_value("career", "fingerprint_sensor_available", bool(career.get("fingerprint_sensor_available", true)))
 	config.set_value("career", "created_at", str(career.get("created_at", "")))
 	config.set_value("career", "last_opened_at", Time.get_datetime_string_from_system(true))
-	config.set_value("career", "balance", float(career.get("balance", 10000000.0)))
+	config.set_value("career", "balance", float(career.get("balance", STARTING_COMPANY_BALANCE)))
+	config.set_value("career", "fence_level", clampi(int(career.get("fence_level", 1)), 1, 4))
+	config.set_value("career", "pending_fence_upgrade", career.get("pending_fence_upgrade", {}))
 	config.set_value("career", "game_date_unix", game_date_unix)
 	config.set_value("career", "game_clock_paused", game_clock_paused)
 	config.set_value("career", "last_payroll_billed_month", str(career.get("last_payroll_billed_month", _get_game_month_key(game_date_unix))))
@@ -701,11 +716,90 @@ func _open_project_from_campus() -> void:
 		return
 	project_dashboard.name = "CompanyProjectDashboard"
 	project_dashboard.connect("back_requested", Callable(self, "_return_from_project_dashboard"))
+	project_dashboard.connect("fence_upgrade_requested", Callable(self, "_on_fence_upgrade_requested"))
+	project_dashboard.call(
+		"configure_fence_upgrade_state",
+		int(career.get("fence_level", 1)),
+		career.get("pending_fence_upgrade", {}),
+		float(career.get("balance", STARTING_COMPANY_BALANCE))
+	)
 	root.add_child(project_dashboard)
 	current_screen = "project_development"
 	var entrance := create_tween()
 	entrance.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	entrance.tween_property(root, "modulate:a", 1.0, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func _on_fence_upgrade_requested(level: int, requested_cost: int) -> void:
+	var installed_level := clampi(int(career.get("fence_level", 1)), 1, 4)
+	var pending_value: Variant = career.get("pending_fence_upgrade", {})
+	if pending_value is Dictionary and not pending_value.is_empty():
+		_show_notice("UPGRADE ALREADY PENDING", "A fence upgrade payment has already been recorded. Complete that construction project before commissioning another fence level.")
+		return
+	if level != installed_level + 1 or int(FENCE_UPGRADE_FULL_COSTS.get(level, -1)) != requested_cost:
+		_show_notice("UPGRADE NOT AVAILABLE", "Only the next fence level can be commissioned, using its configured full upgrade price.")
+		return
+	var balance := float(career.get("balance", STARTING_COMPANY_BALANCE))
+	if balance < float(requested_cost):
+		_show_notice("INSUFFICIENT COMPANY FUNDS", "This upgrade requires %s. Your available company balance is %s." % [_format_balance(float(requested_cost)), _format_balance(balance)])
+		return
+	var design_name := str(FENCE_UPGRADE_DESIGN_NAMES.get(level, "Fence Level %02d" % level))
+	var remaining_balance := balance - float(requested_cost)
+	_show_confirmation(
+		"CONFIRM FENCE UPGRADE PAYMENT",
+		"Commission %s?\n\nFull one-time upgrade cost: %s\nAvailable balance: %s\nBalance after payment: %s\n\nConfirming will record the payment and queue this upgrade for construction. Your existing fence will remain in place until the physical demolition and rebuilding stages are completed." % [
+			design_name,
+			_format_balance(float(requested_cost)),
+			_format_balance(balance),
+			_format_balance(remaining_balance)
+		],
+		"CONFIRM PAYMENT",
+		Callable(self, "_complete_fence_upgrade_payment").bind(level, requested_cost)
+	)
+
+
+func _complete_fence_upgrade_payment(level: int, requested_cost: int) -> void:
+	var installed_level := clampi(int(career.get("fence_level", 1)), 1, 4)
+	if level != installed_level + 1 or int(FENCE_UPGRADE_FULL_COSTS.get(level, -1)) != requested_cost:
+		_show_notice("PAYMENT CANCELLED", "The fence upgrade selection is no longer valid. No money was deducted.")
+		return
+	var pending_value: Variant = career.get("pending_fence_upgrade", {})
+	if pending_value is Dictionary and not pending_value.is_empty():
+		_show_notice("PAYMENT CANCELLED", "Another fence upgrade is already awaiting construction. No money was deducted.")
+		return
+	var previous_balance := float(career.get("balance", STARTING_COMPANY_BALANCE))
+	if previous_balance < float(requested_cost):
+		_show_notice("PAYMENT CANCELLED", "Your available balance changed before confirmation. No money was deducted.")
+		return
+	var previous_pending: Dictionary = pending_value.duplicate(true) if pending_value is Dictionary else {}
+	career["balance"] = previous_balance - float(requested_cost)
+	career["pending_fence_upgrade"] = {
+		"level": level,
+		"design_name": str(FENCE_UPGRADE_DESIGN_NAMES.get(level, "Fence Level %02d" % level)),
+		"cost": requested_cost,
+		"status": "paid_pending_construction",
+		"paid_at": Time.get_datetime_string_from_system(true)
+	}
+	if not _save_career():
+		career["balance"] = previous_balance
+		career["pending_fence_upgrade"] = previous_pending
+		_show_notice("PAYMENT NOT SAVED", "The upgrade payment could not be saved. Your company balance has not changed.")
+		return
+	_update_home_status_bar()
+	if is_instance_valid(project_dashboard):
+		project_dashboard.call(
+			"configure_fence_upgrade_state",
+			installed_level,
+			career.get("pending_fence_upgrade", {}),
+			float(career.get("balance", 0.0))
+		)
+	_show_notice(
+		"PAYMENT CONFIRMED",
+		"%s has been paid in full for %s. The project is now marked as awaiting construction. Your current fence has not changed; the worker, demolition and rebuilding process will be added as the next stage." % [
+			_format_balance(float(requested_cost)),
+			str(FENCE_UPGRADE_DESIGN_NAMES.get(level, "the selected fence upgrade"))
+		]
+	)
 
 
 func _return_from_project_dashboard() -> void:
@@ -1515,7 +1609,11 @@ func _create_company() -> void:
 	career["logo_id"] = selected_logo_id
 	_normalize_phone_identity()
 	if not career.has("balance"):
-		career["balance"] = 10000000.0
+		career["balance"] = STARTING_COMPANY_BALANCE
+	if not career.has("fence_level"):
+		career["fence_level"] = 1
+	if not career.has("pending_fence_upgrade"):
+		career["pending_fence_upgrade"] = {}
 	if not career.has("game_date_unix"):
 		game_date_unix = GAME_START_DATE_UNIX
 		career["game_date_unix"] = game_date_unix

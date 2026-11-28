@@ -1,6 +1,7 @@
 extends Control
 
 signal back_requested
+signal fence_upgrade_requested(level: int, cost: int)
 
 const TEXT_MAIN := Color("#EEE9DF")
 const TEXT_MUTED := Color("#AAA49A")
@@ -22,6 +23,7 @@ const FENCE_DESIGNS := [
 		"level": "LEVEL 02",
 		"name": "Concrete Block Wall",
 		"descriptor": "SOLID MASONRY",
+		"upgrade_cost": 2000000,
 		"description": "Layered concrete masonry with reinforced piers, a solid base and a protective top cap."
 	},
 	{
@@ -29,6 +31,7 @@ const FENCE_DESIGNS := [
 		"level": "LEVEL 03",
 		"name": "Modern Steel Security Fence",
 		"descriptor": "POWDER-COATED STEEL",
+		"upgrade_cost": 3500000,
 		"description": "Heavy steel posts, horizontal rails and evenly spaced vertical security bars."
 	},
 	{
@@ -36,6 +39,7 @@ const FENCE_DESIGNS := [
 		"level": "LEVEL 04",
 		"name": "Premium Architectural Security Fence",
 		"descriptor": "ARCHITECTURAL SECURITY",
+		"upgrade_cost": 5000000,
 		"description": "A premium perimeter design combining architectural piers, glazed panels and precision-finished metal details."
 	}
 ]
@@ -48,6 +52,20 @@ var content_body: VBoxContainer
 var back_button: Button
 var catalogue_grid: GridContainer
 var current_page := "projects"
+var current_fence_level := 1
+var pending_fence_upgrade: Dictionary = {}
+var available_balance := 0.0
+
+
+func configure_fence_upgrade_state(installed_level: int, pending_upgrade: Dictionary, balance: float) -> void:
+	current_fence_level = clampi(installed_level, 1, 4)
+	pending_fence_upgrade = pending_upgrade.duplicate(true)
+	available_balance = maxf(balance, 0.0)
+	set_meta("current_fence_level", current_fence_level)
+	set_meta("pending_fence_upgrade", pending_fence_upgrade.duplicate(true))
+	set_meta("available_balance", available_balance)
+	if current_page == "fencing" and is_instance_valid(content_body):
+		_show_fencing_catalogue()
 
 
 func _ready() -> void:
@@ -252,9 +270,12 @@ func _show_fencing_catalogue() -> void:
 	intro_stack.add_theme_constant_override("separation", 2)
 	intro.add_child(intro_stack)
 	intro_stack.add_child(_label("FENCE DESIGN CATALOGUE", 11, ACCENT_SOFT))
-	var subtitle := _label("Inspect the materials and physical construction style of each fence design.", 11, TEXT_MUTED)
+	var subtitle := _label("Inspect the designs, then select the next fence level to commission its construction.", 11, TEXT_MUTED)
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro_stack.add_child(subtitle)
+	var balance_label := _label("AVAILABLE BALANCE  " + _format_upgrade_cost(int(available_balance)), 10, TEXT_MAIN)
+	balance_label.name = "FenceUpgradeAvailableBalance"
+	intro_stack.add_child(balance_label)
 	var design_count := _label("04 OPTIONS", 10, TEXT_MAIN, HORIZONTAL_ALIGNMENT_RIGHT)
 	design_count.custom_minimum_size.x = 90.0
 	intro.add_child(design_count)
@@ -330,9 +351,45 @@ func _add_fence_design_card(design: Dictionary) -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(description)
 
+	var level_number := int(str(design.get("level", "LEVEL 01")).get_slice(" ", 1))
+	var upgrade_cost := int(design.get("upgrade_cost", 0))
+	var cost_text := "CURRENTLY INSTALLED" if level_number == current_fence_level else "FULL UPGRADE COST  " + _format_upgrade_cost(upgrade_cost)
+	if not pending_fence_upgrade.is_empty() and int(pending_fence_upgrade.get("level", 0)) == level_number:
+		cost_text = "PAYMENT RECORDED  " + _format_upgrade_cost(upgrade_cost)
+	var cost_label := _label(cost_text, 8, ACCENT_SOFT)
+	cost_label.name = "FenceUpgradeCost_" + design_id
+	content.add_child(cost_label)
+
+	var button_text := "CURRENT FENCE"
+	var button_enabled := false
+	if level_number < current_fence_level:
+		button_text = "PREVIOUS TIER"
+	elif level_number > current_fence_level and not pending_fence_upgrade.is_empty():
+		button_text = "UPGRADE PENDING"
+		if int(pending_fence_upgrade.get("level", 0)) == level_number:
+			button_text = "PAID · AWAITING BUILD"
+	elif level_number == current_fence_level + 1:
+		button_text = "SELECT UPGRADE"
+		button_enabled = true
+	else:
+		button_text = "LOCKED · UPGRADE PREVIOUS TIER"
+
+	var upgrade_button := _make_button(button_text, button_enabled)
+	upgrade_button.name = "SelectFenceUpgradeButton_%02d" % level_number
+	upgrade_button.custom_minimum_size = Vector2(0.0, 34.0)
+	upgrade_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	upgrade_button.disabled = not button_enabled
+	upgrade_button.add_theme_font_size_override("font_size", 10)
+	if button_enabled:
+		upgrade_button.pressed.connect(_emit_fence_upgrade_request.bind(level_number, upgrade_cost))
+	content.add_child(upgrade_button)
+
 	card.set_meta("fence_design_id", design_id)
 	card.set_meta("preview_is_3d", true)
 	card.set_meta("single_row_card", true)
+	card.set_meta("upgrade_level", level_number)
+	card.set_meta("upgrade_cost", upgrade_cost)
+	card.set_meta("upgrade_selectable", button_enabled)
 
 
 func _create_fence_preview(design_id: String) -> SubViewportContainer:
@@ -569,6 +626,20 @@ func _make_panel_style() -> StyleBoxFlat:
 	style.content_margin_top = 12
 	style.content_margin_bottom = 12
 	return style
+
+
+func _emit_fence_upgrade_request(level: int, cost: int) -> void:
+	fence_upgrade_requested.emit(level, cost)
+
+
+func _format_upgrade_cost(amount: int) -> String:
+	var digits := str(maxi(amount, 0))
+	var formatted := ""
+	for index in range(digits.length()):
+		if index > 0 and (digits.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += digits.substr(index, 1)
+	return "$" + formatted
 
 
 func _make_button(text_value: String, primary: bool) -> Button:

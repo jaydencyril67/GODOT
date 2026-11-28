@@ -97,7 +97,36 @@ func _run_test() -> void:
 			return
 
 	if dashboard.find_children("BuildFenceButton_*", "Button", true, false).size() > 0:
-		_fail("Stage one must remain a design catalogue and must not start construction.")
+		_fail("The fence upgrade selection stage must not start construction.")
+		return
+	var level_two_button := dashboard.find_child("SelectFenceUpgradeButton_02", true, false) as Button
+	var level_three_button := dashboard.find_child("SelectFenceUpgradeButton_03", true, false) as Button
+	var level_four_button := dashboard.find_child("SelectFenceUpgradeButton_04", true, false) as Button
+	if level_two_button == null or level_three_button == null or level_four_button == null:
+		_fail("The three upgradeable fence levels must each have a selection control.")
+		return
+	if level_two_button.disabled or not level_three_button.disabled or not level_four_button.disabled:
+		_fail("Only the immediate next fence level should be selectable.")
+		return
+	if str((dashboard.find_child("FenceUpgradeCost_concrete_block", true, false) as Label).text) != "FULL UPGRADE COST  $2,000,000":
+		_fail("Level 2 must display its full fixed $2,000,000 cost.")
+		return
+	var requested_upgrades: Array[Dictionary] = []
+	dashboard.connect("fence_upgrade_requested", func(level: int, cost: int):
+		requested_upgrades.append({"level": level, "cost": cost})
+	)
+	level_two_button.emit_signal("pressed")
+	if requested_upgrades.size() != 1 or int(requested_upgrades[0].get("level", 0)) != 2 or int(requested_upgrades[0].get("cost", 0)) != 2000000:
+		_fail("Selecting Level 2 did not request the correct full-cost fence upgrade.")
+		return
+	dashboard.call("configure_fence_upgrade_state", 1, {"level": 2, "cost": 2000000, "status": "paid_pending_construction"}, 898000000.0)
+	await process_frame
+	var paid_level_two_button := dashboard.find_child("SelectFenceUpgradeButton_02", true, false) as Button
+	if paid_level_two_button == null or not paid_level_two_button.disabled or not paid_level_two_button.text.contains("PAID"):
+		_fail("A paid fence upgrade must remain queued and must not allow a duplicate purchase.")
+		return
+	if int(dashboard.get_meta("current_fence_level", 0)) != 1:
+		_fail("Recording an upgrade payment must not instantly change the installed fence level.")
 		return
 
 	var back_button := dashboard.find_child("ProjectBackButton", true, false) as Button
